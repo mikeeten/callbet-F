@@ -1,0 +1,1121 @@
+<!-- Toast Notification -->
+@if (toastMessage()) {
+  <div class="callbet-toast">
+    <mat-icon>check_circle</mat-icon>
+    <span>{{ toastMessage() }}</span>
+  </div>
+}
+
+<div class="callbet-landing">
+  <!-- Top Navigation Header -->
+  <header class="main-header">
+    <div class="header-inner">
+      <!-- Brand Logo -->
+      <a routerLink="/" class="brand-logo">
+        <div class="logo-icon-wrap">
+          <mat-icon>handyman</mat-icon>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">CALLBET</span>
+          <span class="brand-tag">HOME SERVICES</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav class="desktop-nav">
+        <a href="#services" class="nav-link">Services</a>
+        <a href="#estimator" class="nav-link">Cost Estimator</a>
+        <a href="#professionals" class="nav-link">Verified Pros</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#escrow-safety" class="nav-link">Escrow & Safety</a>
+        @if (!authService.isAuthenticated()) {
+          <a routerLink="/customer-dashboard" class="nav-link highlight-link">Customer Hub</a>
+          <a routerLink="/professional-dashboard" class="nav-link highlight-link">Pro Hub</a>
+        } @else {
+          @if (authService.hasRole('Admin')) {
+            <a routerLink="/admin-dashboard" class="nav-link highlight-link">Admin Tower</a>
+            <a routerLink="/customer-dashboard" class="nav-link">Customer Hub</a>
+            <a routerLink="/professional-dashboard" class="nav-link">Pro Hub</a>
+          } @else if (authService.hasRole('Professional')) {
+            <a routerLink="/professional-dashboard" class="nav-link highlight-link">Pro Hub</a>
+          } @else {
+            <a routerLink="/customer-dashboard" class="nav-link highlight-link">Customer Hub</a>
+          }
+        }
+      </nav>
+
+      <!-- Header Actions -->
+      <div class="header-actions">
+        <!-- Notification Bell -->
+        <button
+          mat-icon-button
+          class="bell-btn"
+          routerLink="/professional-dashboard/notifications"
+          [matBadge]="notificationService.unreadCount()"
+          [matBadgeHidden]="notificationService.unreadCount() === 0"
+          matBadgeColor="warn"
+          title="Notifications"
+        >
+          <mat-icon>notifications</mat-icon>
+        </button>
+
+        <a routerLink="/login" [queryParams]="{role: 'Professional'}" class="pro-link-btn">
+          <mat-icon>engineering</mat-icon>
+          <span>Become a Pro</span>
+        </a>
+
+        <a routerLink="/customer-services" class="btn-primary-cta">
+          <mat-icon>bolt</mat-icon>
+          <span>Book a Service</span>
+        </a>
+
+        @if (authService.isAuthenticated()) {
+          <a [routerLink]="userDashboardRoute()" class="profile-icon-btn" [title]="'Go to Dashboard (' + (authService.currentUser()?.firstName || 'User') + ')'">
+            <mat-icon>account_circle</mat-icon>
+          </a>
+          <a routerLink="/signout" class="signout-nav-btn" title="Sign Out">
+            <mat-icon>logout</mat-icon>
+            <span>Sign Out</span>
+          </a>
+        } @else {
+          <a routerLink="/login" class="login-nav-btn">
+            <mat-icon>login</mat-icon>
+            <span>Log In</span>
+          </a>
+        }
+
+        <!-- Mobile Menu Toggle -->
+        <button mat-icon-button class="mobile-toggle-btn" (click)="mobileNavOpen.set(!mobileNavOpen())">
+          <mat-icon>{{ mobileNavOpen() ? 'close' : 'menu' }}</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Nav Dropdown -->
+    @if (mobileNavOpen()) {
+      <div class="mobile-nav-panel">
+        <a href="#services" (click)="mobileNavOpen.set(false)">Services Catalog</a>
+        <a href="#estimator" (click)="mobileNavOpen.set(false)">Cost Estimator</a>
+        <a href="#professionals" (click)="mobileNavOpen.set(false)">Top Verified Pros</a>
+        <a href="#how-it-works" (click)="mobileNavOpen.set(false)">How Escrow Works</a>
+        <a href="#escrow-safety" (click)="mobileNavOpen.set(false)">Trust & Safety</a>
+        <div class="mobile-nav-divider"></div>
+        @if (!authService.isAuthenticated()) {
+          <a routerLink="/customer-dashboard" (click)="mobileNavOpen.set(false)" class="mobile-highlight">
+            <mat-icon>person</mat-icon> Customer Control Center
+          </a>
+          <a routerLink="/professional-dashboard" (click)="mobileNavOpen.set(false)" class="mobile-highlight">
+            <mat-icon>handyman</mat-icon> Professional Hub
+          </a>
+        } @else {
+          @if (authService.hasRole('Admin')) {
+            <a routerLink="/admin-dashboard" (click)="mobileNavOpen.set(false)" class="mobile-highlight">
+              <mat-icon>admin_panel_settings</mat-icon> Admin Control Tower
+            </a>
+            <a routerLink="/customer-dashboard" (click)="mobileNavOpen.set(false)">
+              <mat-icon>person</mat-icon> Customer Control Center
+            </a>
+            <a routerLink="/professional-dashboard" (click)="mobileNavOpen.set(false)">
+              <mat-icon>handyman</mat-icon> Professional Hub
+            </a>
+          } @else if (authService.hasRole('Professional')) {
+            <a routerLink="/professional-dashboard" (click)="mobileNavOpen.set(false)" class="mobile-highlight">
+              <mat-icon>handyman</mat-icon> Professional Hub
+            </a>
+          } @else {
+            <a routerLink="/customer-dashboard" (click)="mobileNavOpen.set(false)" class="mobile-highlight">
+              <mat-icon>person</mat-icon> Customer Control Center
+            </a>
+          }
+        }
+        <div class="mobile-nav-divider"></div>
+        <a routerLink="/customer-services" (click)="mobileNavOpen.set(false)">
+          <mat-icon>search</mat-icon> Browse All Services
+        </a>
+        <a routerLink="/login" [queryParams]="{mode: 'register', role: 'Customer'}" (click)="mobileNavOpen.set(false)">
+          <mat-icon>person_add</mat-icon> Customer Sign Up
+        </a>
+        <a routerLink="/login" [queryParams]="{mode: 'register', role: 'Professional'}" (click)="mobileNavOpen.set(false)">
+          <mat-icon>engineering</mat-icon> Professional Sign Up
+        </a>
+      </div>
+    }
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-bg-shapes">
+      <div class="glow-orb orb-1"></div>
+      <div class="glow-orb orb-2"></div>
+      <div class="glow-orb orb-3"></div>
+    </div>
+
+    <div class="hero-content">
+      <!-- Trust Pill -->
+      <div class="hero-badge">
+        <span class="badge-icon">🛡️</span>
+        <span class="badge-text">100% Escrow-Protected • Verified Local Experts</span>
+        <span class="badge-dot"></span>
+        <span class="badge-sub">Addis Ababa</span>
+      </div>
+
+      <h1 class="hero-title">
+        Trusted Home Services,<br />
+        <span class="gradient-text">Delivered on Demand.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Connect directly with vetted electricians, cleaners, plumbers, and home artisans.
+        Your payment is safely held in escrow and only released when you inspect and approve the job.
+      </p>
+
+      <!-- Multi-Parameter Smart Search Bar -->
+      <div class="smart-search-card">
+        <div class="search-field search-query-field">
+          <mat-icon class="field-icon">search</mat-icon>
+          <div class="field-body">
+            <label>What service do you need?</label>
+            <input
+              type="text"
+              [(ngModel)]="searchQuery"
+              placeholder="e.g. Deep cleaning, Fan repair, Pipe leak..."
+              (keyup.enter)="executeSearch()"
+            />
+          </div>
+        </div>
+
+        <div class="search-divider"></div>
+
+        <div class="search-field search-category-field">
+          <mat-icon class="field-icon">category</mat-icon>
+          <div class="field-body">
+            <label>Service Category</label>
+            <select [(ngModel)]="selectedCategoryId">
+              <option value="all">All Categories</option>
+              @for (cat of categories; track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="search-divider"></div>
+
+        <div class="search-field search-location-field">
+          <mat-icon class="field-icon">location_on</mat-icon>
+          <div class="field-body">
+            <label>Location (15km radius)</label>
+            <select [(ngModel)]="selectedLocation">
+              @for (loc of locations; track loc) {
+                <option [value]="loc">{{ loc }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <button class="search-submit-btn" (click)="executeSearch()">
+          <mat-icon>search</mat-icon>
+          <span>Find Pros</span>
+        </button>
+      </div>
+
+      <!-- Quick Category Select Chips -->
+      <div class="hero-quick-chips">
+        <span class="chips-label">Popular:</span>
+        <button class="quick-chip" (click)="selectCategoryPill('cleaning')">
+          <span>🧹</span> House Cleaning
+        </button>
+        <button class="quick-chip" (click)="selectCategoryPill('electrical')">
+          <span>⚡</span> Electrician
+        </button>
+        <button class="quick-chip" (click)="selectCategoryPill('plumbing')">
+          <span>🔧</span> Plumbing & Leaks
+        </button>
+        <button class="quick-chip" (click)="selectCategoryPill('painting')">
+          <span>🎨</span> Wall Painting
+        </button>
+        <button class="quick-chip" (click)="selectCategoryPill('appliance')">
+          <span>❄️</span> Appliance Fix
+        </button>
+      </div>
+
+      <!-- Key Trust Metrics Strip -->
+      <div class="hero-metrics-grid">
+        <div class="metric-item">
+          <div class="metric-icon-wrap shield-icon">
+            <mat-icon>lock</mat-icon>
+          </div>
+          <div class="metric-info">
+            <strong>100% Escrow Safety</strong>
+            <span>Funds released only after job approval</span>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-icon-wrap verified-icon">
+            <mat-icon>verified</mat-icon>
+          </div>
+          <div class="metric-info">
+            <strong>Vetted & Licensed Pros</strong>
+            <span>e-KYC ID, background & certificates checked</span>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-icon-wrap rating-icon">
+            <mat-icon>star</mat-icon>
+          </div>
+          <div class="metric-info">
+            <strong>4.95 / 5.0 Rating</strong>
+            <span>Based on 3,400+ verified completed jobs</span>
+          </div>
+        </div>
+
+        <div class="metric-item">
+          <div class="metric-icon-wrap speed-icon">
+            <mat-icon>near_me</mat-icon>
+          </div>
+          <div class="metric-info">
+            <strong>15-Min Dispatch</strong>
+            <span>Intelligent radius & proximity matching</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Live Cost & Duration Estimator Section -->
+  <section id="estimator" class="estimator-section">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">
+          <mat-icon>calculate</mat-icon>
+          <span>Transparent Pricing</span>
+        </div>
+        <h2 class="section-title">Instant Job & Cost Estimator</h2>
+        <p class="section-subtitle">
+          Select your service parameters below to get instant time and transparent escrow pricing breakdown before booking.
+        </p>
+      </div>
+
+      <div class="estimator-grid">
+        <!-- Estimator Controls -->
+        <div class="estimator-controls-card">
+          <!-- Category Selector -->
+          <div class="control-group">
+            <label class="control-label">1. Select Service Category</label>
+            <div class="estimator-cat-pills">
+              <button
+                type="button"
+                class="cat-pill-btn"
+                [class.active]="estimatorCategory() === 'cleaning'"
+                (click)="onEstimatorCategoryChange('cleaning')"
+              >
+                <mat-icon>cleaning_services</mat-icon>
+                <span>Cleaning</span>
+              </button>
+              <button
+                type="button"
+                class="cat-pill-btn"
+                [class.active]="estimatorCategory() === 'electrical'"
+                (click)="onEstimatorCategoryChange('electrical')"
+              >
+                <mat-icon>bolt</mat-icon>
+                <span>Electrical</span>
+              </button>
+              <button
+                type="button"
+                class="cat-pill-btn"
+                [class.active]="estimatorCategory() === 'plumbing'"
+                (click)="onEstimatorCategoryChange('plumbing')"
+              >
+                <mat-icon>plumbing</mat-icon>
+                <span>Plumbing</span>
+              </button>
+              <button
+                type="button"
+                class="cat-pill-btn"
+                [class.active]="estimatorCategory() === 'painting'"
+                (click)="onEstimatorCategoryChange('painting')"
+              >
+                <mat-icon>format_paint</mat-icon>
+                <span>Painting</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Specific Task Selector -->
+          <div class="control-group">
+            <label class="control-label">2. Specific Task</label>
+            <div class="task-selector-wrap">
+              <select [(ngModel)]="estimatorServiceType" class="custom-select">
+                @for (srv of getEstimatorServicesList(); track srv.key) {
+                  <option [value]="srv.key">{{ srv.name }} (Base: ETB {{ srv.base }})</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Scope / Size Selector -->
+          <div class="control-group">
+            <label class="control-label">3. Property or Job Scope</label>
+            <div class="scope-options-grid">
+              <label class="scope-option" [class.selected]="estimatorScope() === 'small'">
+                <input type="radio" name="scope" value="small" [(ngModel)]="estimatorScope" />
+                <div class="scope-content">
+                  <span class="scope-title">Small / Studio</span>
+                  <span class="scope-desc">1-2 fixtures or rooms</span>
+                </div>
+              </label>
+
+              <label class="scope-option" [class.selected]="estimatorScope() === 'medium'">
+                <input type="radio" name="scope" value="medium" [(ngModel)]="estimatorScope" />
+                <div class="scope-content">
+                  <span class="scope-title">Medium / Apartment</span>
+                  <span class="scope-desc">Standard 2-3 bed house</span>
+                </div>
+              </label>
+
+              <label class="scope-option" [class.selected]="estimatorScope() === 'large'">
+                <input type="radio" name="scope" value="large" [(ngModel)]="estimatorScope" />
+                <div class="scope-content">
+                  <span class="scope-title">Large / Villa</span>
+                  <span class="scope-desc">4+ rooms or full floor</span>
+                </div>
+              </label>
+
+              <label class="scope-option" [class.selected]="estimatorScope() === 'full'">
+                <input type="radio" name="scope" value="full" [(ngModel)]="estimatorScope" />
+                <div class="scope-content">
+                  <span class="scope-title">Full Renovation</span>
+                  <span class="scope-desc">Comprehensive overhaul</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Urgency Selector -->
+          <div class="control-group">
+            <label class="control-label">4. Schedule Urgency</label>
+            <div class="urgency-toggle-wrap">
+              <button
+                type="button"
+                class="urgency-btn"
+                [class.active]="estimatorUrgency() === 'standard'"
+                (click)="estimatorUrgency.set('standard')"
+              >
+                <mat-icon>event</mat-icon>
+                <span>Standard Booking (Next 24-48 hrs)</span>
+              </button>
+              <button
+                type="button"
+                class="urgency-btn urgent-btn"
+                [class.active]="estimatorUrgency() === 'urgent'"
+                (click)="estimatorUrgency.set('urgent')"
+              >
+                <mat-icon>bolt</mat-icon>
+                <span>Emergency Rush (Within 2 hrs)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Estimator Live Estimate Receipt Card -->
+        <div class="estimator-receipt-card">
+          <div class="receipt-header">
+            <div class="receipt-badge">
+              <mat-icon>verified_user</mat-icon>
+              <span>Instant Escrow Estimate</span>
+            </div>
+            <div class="receipt-price-box">
+              <span class="price-currency">ETB</span>
+              <span class="price-value">{{ estimatedPrice() }}</span>
+              <span class="price-tag">Fixed / Guaranteed</span>
+            </div>
+          </div>
+
+          <div class="receipt-details-list">
+            <div class="receipt-row">
+              <span class="row-label"><mat-icon>schedule</mat-icon> Estimated Duration:</span>
+              <span class="row-val font-semibold">{{ estimatedDuration() }}</span>
+            </div>
+
+            <div class="receipt-row">
+              <span class="row-label"><mat-icon>location_on</mat-icon> Dispatch Area:</span>
+              <span class="row-val">{{ selectedLocation() }}</span>
+            </div>
+
+            <div class="receipt-row">
+              <span class="row-label"><mat-icon>lock</mat-icon> Payment Model:</span>
+              <span class="row-val escrow-badge">100% Escrow Protected</span>
+            </div>
+
+            <div class="escrow-breakdown-box">
+              <div class="breakdown-title">
+                <span>Transparent Escrow Breakdown</span>
+                <mat-icon matTooltip="Funds are securely locked until you approve the completed job">info</mat-icon>
+              </div>
+              <div class="breakdown-row">
+                <span>Professional Worker Payout (85%):</span>
+                <strong>ETB {{ estimatedWorkerPayout() }}</strong>
+              </div>
+              <div class="breakdown-row">
+                <span>Platform Commission & Insurance (15%):</span>
+                <span>ETB {{ estimatedPlatformFee() }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="receipt-action-wrap">
+            <button
+              class="btn-receipt-book"
+              (click)="selectCategoryPill(estimatorCategory())"
+            >
+              <mat-icon>bolt</mat-icon>
+              <span>Book with Escrow Protection</span>
+            </button>
+            <p class="receipt-note">
+              <mat-icon>shield</mat-icon> No money is paid to the technician until you inspect the work.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Service Categories Showcase Grid -->
+  <section id="services" class="categories-section">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">
+          <mat-icon>apps</mat-icon>
+          <span>Comprehensive Catalog</span>
+        </div>
+        <h2 class="section-title">Explore Home Service Verticals</h2>
+        <p class="section-subtitle">
+          From emergency electrical repairs to routine deep house cleaning, find certified experts for every square meter of your home.
+        </p>
+      </div>
+
+      <div class="categories-grid">
+        @for (category of categories; track category.id) {
+          <div class="category-card" (click)="bookCategory(category)">
+            <div class="cat-card-top">
+              <div class="cat-icon-wrap" [style.background]="category.gradient">
+                <mat-icon>{{ category.icon }}</mat-icon>
+              </div>
+              <div class="cat-pros-badge">
+                <span class="pro-dot"></span>
+                <span>{{ category.activeProsCount }} Active Pros</span>
+              </div>
+            </div>
+
+            <h3 class="cat-title">{{ category.name }}</h3>
+            <p class="cat-desc">{{ category.description }}</p>
+
+            <div class="cat-subservices">
+              @for (sub of category.popularServices; track sub) {
+                <span class="subservice-pill">{{ sub }}</span>
+              }
+            </div>
+
+            <div class="cat-card-footer">
+              <div class="cat-price-from">
+                <span class="from-label">Starts at</span>
+                <span class="from-amount">ETB {{ category.startingPrice }}</span>
+              </div>
+              <button class="cat-explore-btn" title="Browse services in this category">
+                <span>Explore</span>
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Top Rated & Verified Professionals Showcase -->
+  <section id="professionals" class="pros-section">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">
+          <mat-icon>workspace_premium</mat-icon>
+          <span>LinkedIn for Home Pros</span>
+        </div>
+        <h2 class="section-title">Featured Verified Professionals</h2>
+        <p class="section-subtitle">
+          Every technician holds structured credentials, background verification, trade certifications, and genuine customer ratings.
+        </p>
+      </div>
+
+      <div class="pros-grid">
+        @for (pro of verifiedPros; track pro.id) {
+          <div class="pro-card">
+            <!-- Pro Card Top -->
+            <div class="pro-card-header">
+              <div class="pro-avatar-wrap">
+                <img [src]="pro.avatarUrl" [alt]="pro.name" class="pro-avatar-img" />
+                @if (pro.isVerified) {
+                  <div class="verified-seal" title="Verified Trade Professional">
+                    <mat-icon>verified</mat-icon>
+                  </div>
+                }
+              </div>
+
+              <div class="pro-header-text">
+                <div class="pro-name-row">
+                  <h3 class="pro-name">{{ pro.name }}</h3>
+                  <button
+                    class="bookmark-btn"
+                    [class.bookmarked]="isBookmarked(pro.id)"
+                    (click)="toggleBookmark(pro.id, pro.name, $event)"
+                    [title]="isBookmarked(pro.id) ? 'Remove from favorites' : 'Save pro to favorites'"
+                  >
+                    <mat-icon>{{ isBookmarked(pro.id) ? 'favorite' : 'favorite_border' }}</mat-icon>
+                  </button>
+                </div>
+                <div class="pro-category-tag">{{ pro.category }}</div>
+                <div class="pro-location-row">
+                  <mat-icon>location_on</mat-icon>
+                  <span>{{ pro.location }} ({{ pro.serviceRadiusKm }}km radius)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pro Headline -->
+            <p class="pro-headline">{{ pro.headline }}</p>
+
+            <!-- Certificate Strip -->
+            <div class="pro-cert-strip">
+              <mat-icon>school</mat-icon>
+              <span>{{ pro.certificate }}</span>
+            </div>
+
+            <!-- Pro Stats Matrix -->
+            <div class="pro-stats-grid">
+              <div class="pro-stat">
+                <div class="stat-val rating-val">
+                  <mat-icon>star</mat-icon>
+                  <span>{{ pro.rating }}</span>
+                </div>
+                <div class="stat-sub">({{ pro.reviewsCount }} reviews)</div>
+              </div>
+
+              <div class="pro-stat">
+                <div class="stat-val">{{ pro.completedJobsCount }}+</div>
+                <div class="stat-sub">Jobs Done</div>
+              </div>
+
+              <div class="pro-stat">
+                <div class="stat-val">{{ pro.experienceYears }} yrs</div>
+                <div class="stat-sub">Experience</div>
+              </div>
+            </div>
+
+            <!-- Skills Chips -->
+            <div class="pro-skills-wrap">
+              @for (skill of pro.skills; track skill) {
+                <span class="pro-skill-badge">{{ skill }}</span>
+              }
+            </div>
+
+            <!-- Pro Card Footer -->
+            <div class="pro-card-footer">
+              <div class="pro-rates">
+                <div class="rate-primary">
+                  <span class="rate-num">ETB {{ pro.hourlyRate }}</span>
+                  <span class="rate-unit">/hr</span>
+                </div>
+                @if (pro.fixedRate) {
+                  <div class="rate-secondary">or ETB {{ pro.fixedRate }} fixed</div>
+                }
+              </div>
+
+              <button class="btn-hire-pro" (click)="bookPro(pro)">
+                <span>Book Pro</span>
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- View All Button -->
+      <div class="section-footer-cta">
+        <a routerLink="/customer-services" class="btn-explore-all-pros">
+          <span>View All 300+ Verified Professionals</span>
+          <mat-icon>arrow_forward</mat-icon>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section (Customer vs Pro Switcher) -->
+  <section id="how-it-works" class="workflow-section">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">
+          <mat-icon>timeline</mat-icon>
+          <span>Simple & Secure</span>
+        </div>
+        <h2 class="section-title">How Callbet Works</h2>
+        <p class="section-subtitle">
+          Built on a rock-solid escrow state machine to protect both homeowners and hardworking professionals.
+        </p>
+
+        <!-- Persona Toggle Switch -->
+        <div class="persona-switch">
+          <button
+            type="button"
+            class="switch-btn"
+            [class.active]="howItWorksTab() === 'customer'"
+            (click)="howItWorksTab.set('customer')"
+          >
+            <mat-icon>person</mat-icon>
+            <span>For Homeowners & Customers</span>
+          </button>
+          <button
+            type="button"
+            class="switch-btn"
+            [class.active]="howItWorksTab() === 'pro'"
+            (click)="howItWorksTab.set('pro')"
+          >
+            <mat-icon>engineering</mat-icon>
+            <span>For Service Professionals</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Customer Workflow -->
+      @if (howItWorksTab() === 'customer') {
+        <div class="workflow-steps-grid">
+          <div class="step-card">
+            <div class="step-number">01</div>
+            <div class="step-icon-wrap">
+              <mat-icon>search</mat-icon>
+            </div>
+            <h3 class="step-title">Choose Service & Local Pro</h3>
+            <p class="step-desc">
+              Browse structured catalog items or search verified pros in your subcity. Inspect certificates, CVs, ratings, and fixed/hourly rates upfront.
+            </p>
+            <div class="step-highlight">
+              <mat-icon>check_circle</mat-icon> Verified credentials & real photos
+            </div>
+          </div>
+
+          <div class="step-card featured-step">
+            <div class="step-number">02</div>
+            <div class="step-icon-wrap">
+              <mat-icon>lock</mat-icon>
+            </div>
+            <h3 class="step-title">Lock in Escrow Booking</h3>
+            <p class="step-desc">
+              Confirm your booking with digital escrow. Your funds are safely held in the platform ledger (`held_in_escrow`). No cash is given to strangers.
+            </p>
+            <div class="step-highlight">
+              <mat-icon>security</mat-icon> Zero upfront risk for homeowners
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">03</div>
+            <div class="step-icon-wrap">
+              <mat-icon>thumb_up</mat-icon>
+            </div>
+            <h3 class="step-title">Inspect & Release Payout</h3>
+            <p class="step-desc">
+              The technician arrives, completes the task, and uploads proof photos. Once you inspect and approve the work, payout is released to their wallet.
+            </p>
+            <div class="step-highlight">
+              <mat-icon>verified</mat-icon> 24-hour review guarantee & genuine reviews
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Professional Workflow -->
+      @if (howItWorksTab() === 'pro') {
+        <div class="workflow-steps-grid">
+          <div class="step-card">
+            <div class="step-number">01</div>
+            <div class="step-icon-wrap">
+              <mat-icon>badge</mat-icon>
+            </div>
+            <h3 class="step-title">Register & Complete e-KYC</h3>
+            <p class="step-desc">
+              Upload your government ID, trade license, structured resume, skills, and set your service radius (e.g. 15km around Bole/CMC).
+            </p>
+            <div class="step-highlight">
+              <mat-icon>verified</mat-icon> Fast 24-hour compliance approval
+            </div>
+          </div>
+
+          <div class="step-card featured-step">
+            <div class="step-number">02</div>
+            <div class="step-icon-wrap">
+              <mat-icon>notifications_active</mat-icon>
+            </div>
+            <h3 class="step-title">Receive Instant Nearby Jobs</h3>
+            <p class="step-desc">
+              Get real-time push alerts when homeowners nearby book your services with funds already guaranteed in escrow. Accept jobs that fit your schedule.
+            </p>
+            <div class="step-highlight">
+              <mat-icon>payments</mat-icon> Guaranteed escrow payment before you travel
+            </div>
+          </div>
+
+          <div class="step-card">
+            <div class="step-number">03</div>
+            <div class="step-icon-wrap">
+              <mat-icon>account_balance_wallet</mat-icon>
+            </div>
+            <h3 class="step-title">Complete Job & Earn 85%</h3>
+            <p class="step-desc">
+              Perform quality service, upload completion photos, and receive 85% net payout directly to your bank or Telebirr wallet with zero payment hassle.
+            </p>
+            <div class="step-highlight">
+              <mat-icon>trending_up</mat-icon> Build verified reputation & client base
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Trust, Safety & Escrow Protection Architecture Banner -->
+  <section id="escrow-safety" class="escrow-banner-section">
+    <div class="section-container">
+      <div class="escrow-card">
+        <div class="escrow-content">
+          <div class="escrow-tag">
+            <mat-icon>verified_user</mat-icon>
+            <span>Platform Security Architecture</span>
+          </div>
+          <h2 class="escrow-title">The Callbet Escrow & Safety Guarantee</h2>
+          <p class="escrow-desc">
+            Unlike informal classifieds or unverified directories, Callbet acts as a digital trust broker.
+            We eliminate fraud, guarantee payment security, and enforce standards through a 5-stage lifecycle.
+          </p>
+
+          <div class="escrow-pillars-grid">
+            <div class="pillar-box">
+              <mat-icon>lock_clock</mat-icon>
+              <div>
+                <strong>Held in Escrow</strong>
+                <p>Funds are secured in escrow before dispatch and only released upon your final approval.</p>
+              </div>
+            </div>
+
+            <div class="pillar-box">
+              <mat-icon>policy</mat-icon>
+              <div>
+                <strong>3-Stage e-KYC</strong>
+                <p>ID checks, police clearance, and trade license verification before any pro goes live.</p>
+              </div>
+            </div>
+
+            <div class="pillar-box">
+              <mat-icon>chat</mat-icon>
+              <div>
+                <strong>In-App Privacy Shield</strong>
+                <p>Chat and address data are locked to active jobs to prevent off-platform spam and harassment.</p>
+              </div>
+            </div>
+
+            <div class="pillar-box">
+              <mat-icon>rate_review</mat-icon>
+              <div>
+                <strong>Zero Fake Reviews</strong>
+                <p>Only users who have completed and paid for a job can submit reviews and ratings.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="escrow-visual">
+          <div class="lifecycle-flow-card">
+            <div class="flow-header">
+              <mat-icon>sync_alt</mat-icon>
+              <span>Job Lifecycle State Machine</span>
+            </div>
+            <div class="flow-steps">
+              <div class="flow-step completed">
+                <span class="dot"></span>
+                <span class="label">1. Job Draft & Escrow Locked</span>
+              </div>
+              <div class="flow-step completed">
+                <span class="dot"></span>
+                <span class="label">2. Pro Assigned (Radius Match)</span>
+              </div>
+              <div class="flow-step active">
+                <span class="dot"></span>
+                <span class="label">3. En Route & In Progress</span>
+              </div>
+              <div class="flow-step">
+                <span class="dot"></span>
+                <span class="label">4. Photo Proof & Inspection</span>
+              </div>
+              <div class="flow-step">
+                <span class="dot"></span>
+                <span class="label">5. Payment Released (85% to Pro)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Verified Customer Reviews & Pro Replies -->
+  <section class="reviews-section">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">
+          <mat-icon>forum</mat-icon>
+          <span>Transparent Social Proof</span>
+        </div>
+        <h2 class="section-title">Real Feedback from Real Homeowners</h2>
+        <p class="section-subtitle">
+          See how Callbet verified pros communicate, deliver top-tier service, and reply to client reviews.
+        </p>
+      </div>
+
+      <div class="reviews-grid">
+        @for (review of reviews; track review.id) {
+          <div class="review-card">
+            <!-- Review Top -->
+            <div class="review-card-top">
+              <div class="reviewer-info">
+                <img [src]="review.customerAvatar" [alt]="review.customerName" class="reviewer-avatar" />
+                <div>
+                  <h4 class="reviewer-name">{{ review.customerName }}</h4>
+                  <span class="review-service">{{ review.serviceTitle }}</span>
+                </div>
+              </div>
+
+              <div class="review-meta">
+                <div class="review-stars">
+                  @for (star of [1,2,3,4,5]; track star) {
+                    <mat-icon class="star-icon">star</mat-icon>
+                  }
+                </div>
+                <span class="review-date">{{ review.date }}</span>
+              </div>
+            </div>
+
+            <!-- Verified Booking Badge -->
+            <div class="verified-booking-pill">
+              <mat-icon>verified</mat-icon>
+              <span>Verified Completed Job & Escrow Payment</span>
+            </div>
+
+            <!-- Review Text -->
+            <p class="review-comment">"{{ review.comment }}"</p>
+
+            <!-- Professional Response Box -->
+            @if (review.proReply) {
+              <div class="pro-reply-box">
+                <div class="reply-header">
+                  <mat-icon>reply</mat-icon>
+                  <strong>{{ review.proReply.author }} ({{ review.proRole }}) replied:</strong>
+                  <span class="reply-date">{{ review.proReply.date }}</span>
+                </div>
+                <p class="reply-text">{{ review.proReply.text }}</p>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Professional Partner Recruitment Banner -->
+  <section class="pro-recruit-section">
+    <div class="section-container">
+      <div class="recruit-banner-card">
+        <div class="recruit-text-wrap">
+          <div class="recruit-badge">
+            <mat-icon>handshake</mat-icon>
+            <span>For Electricians, Cleaners, Plumbers & Technicians</span>
+          </div>
+          <h2 class="recruit-title">Turn Your Trade Skills Into a Thriving Business</h2>
+          <p class="recruit-desc">
+            Join hundreds of vetted service professionals on Callbet. Set your custom prices, manage your weekly availability, and enjoy guaranteed escrow payouts without chasing unpaid invoices.
+          </p>
+
+          <div class="recruit-perks-list">
+            <div class="perk-item">
+              <mat-icon>check_circle</mat-icon>
+              <span>Keep 85% of all job fees with transparent accounting</span>
+            </div>
+            <div class="perk-item">
+              <mat-icon>check_circle</mat-icon>
+              <span>Job alerts within your preferred subcity radius</span>
+            </div>
+            <div class="perk-item">
+              <mat-icon>check_circle</mat-icon>
+              <span>Build a searchable CV, portfolio, and verified 5-star rating</span>
+            </div>
+          </div>
+
+          <div class="recruit-cta-wrap">
+            <a routerLink="/login" [queryParams]="{mode: 'register', role: 'Professional'}" class="btn-recruit-cta">
+              <mat-icon>how_to_reg</mat-icon>
+              <span>Join as a Professional Partner</span>
+            </a>
+            <a routerLink="/professional-profile" class="btn-recruit-secondary">
+              <span>View Professional Dashboard</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </a>
+          </div>
+        </div>
+
+        <div class="recruit-stats-card">
+          <div class="pro-earning-highlight">
+            <span class="earning-label">Top Pro Monthly Average</span>
+            <span class="earning-val">ETB 45,000+</span>
+            <span class="earning-sub">100% Escrow Guaranteed Payouts</span>
+          </div>
+          <div class="pro-quote-box">
+            <p>"Callbet eliminated no-shows and payment delays for my electrical business. I get 3 to 4 high-paying jobs every week right in Bole."</p>
+            <div class="quote-author">
+              <strong>— Dawit K.</strong>
+              <span>Certified Electrician</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive FAQ Accordion Section -->
+  <section id="faq" class="faq-section">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">
+          <mat-icon>help_outline</mat-icon>
+          <span>Frequently Asked Questions</span>
+        </div>
+        <h2 class="section-title">Everything You Need to Know</h2>
+        <p class="section-subtitle">
+          Got questions about escrow, professional vetting, pricing, or dispatch? We've got answers.
+        </p>
+      </div>
+
+      <div class="faq-accordion">
+        @for (faq of faqs; track faq.question; let idx = $index) {
+          <div
+            class="faq-card"
+            [class.expanded]="activeFaqIndex() === idx"
+            (click)="toggleFaq(idx)"
+          >
+            <div class="faq-question-row">
+              <div class="faq-title-wrap">
+                <span class="faq-cat-tag">{{ faq.category }}</span>
+                <h3 class="faq-question">{{ faq.question }}</h3>
+              </div>
+              <button class="faq-toggle-btn" aria-label="Toggle answer">
+                <mat-icon>{{ activeFaqIndex() === idx ? 'remove' : 'add' }}</mat-icon>
+              </button>
+            </div>
+
+            @if (activeFaqIndex() === idx) {
+              <div class="faq-answer-wrap">
+                <p class="faq-answer">{{ faq.answer }}</p>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Section -->
+  <footer class="main-footer">
+    <div class="section-container">
+      <div class="footer-top-grid">
+        <!-- Brand Column -->
+        <div class="footer-brand-col">
+          <div class="brand-logo footer-logo">
+            <div class="logo-icon-wrap">
+              <mat-icon>handyman</mat-icon>
+            </div>
+            <div class="brand-text">
+              <span class="brand-name">CALLBET</span>
+              <span class="brand-tag">HOME SERVICES</span>
+            </div>
+          </div>
+          <p class="footer-brand-desc">
+            The next-generation home-to-home service marketplace connecting homeowners with verified local professionals with 100% escrow protection.
+          </p>
+          <div class="footer-trust-badge">
+            <mat-icon>verified_user</mat-icon>
+            <span>Licensed & Encrypted Marketplace</span>
+          </div>
+        </div>
+
+        <!-- Services Column -->
+        <div class="footer-links-col">
+          <h4 class="footer-col-title">Popular Services</h4>
+          <ul class="footer-links">
+            <li><a routerLink="/customer-services" [queryParams]="{categoryId: 'cleaning'}">Home Cleaning</a></li>
+            <li><a routerLink="/customer-services" [queryParams]="{categoryId: 'electrical'}">Electrical Repairs</a></li>
+            <li><a routerLink="/customer-services" [queryParams]="{categoryId: 'plumbing'}">Plumbing & Leaks</a></li>
+            <li><a routerLink="/customer-services" [queryParams]="{categoryId: 'painting'}">Wall Painting</a></li>
+            <li><a routerLink="/customer-services" [queryParams]="{categoryId: 'appliance'}">Appliance Servicing</a></li>
+            <li><a routerLink="/customer-services" [queryParams]="{categoryId: 'carpentry'}">Furniture & Carpentry</a></li>
+          </ul>
+        </div>
+
+        <!-- Portals Column -->
+        <div class="footer-links-col">
+          <h4 class="footer-col-title">Platform Portals</h4>
+          <ul class="footer-links">
+            <li><a routerLink="/customer-services">Customer Service Finder</a></li>
+            <li><a routerLink="/login" [queryParams]="{mode: 'register', role: 'Customer'}">Customer Registration</a></li>
+            <li><a routerLink="/login" [queryParams]="{mode: 'register', role: 'Professional'}">Pro Partner Registration</a></li>
+            <li><a routerLink="/professional-profile">Professional Profile & CV</a></li>
+            <li><a routerLink="/professional-notifications">Activity & Job Feed</a></li>
+            <li><a routerLink="/admin-services">Admin Catalog Management</a></li>
+            <li><a routerLink="/verification-list">Admin Verification Portal</a></li>
+          </ul>
+        </div>
+
+        <!-- Contact & Security Column -->
+        <div class="footer-links-col">
+          <h4 class="footer-col-title">Support & Escrow</h4>
+          <div class="footer-contact-item">
+            <mat-icon>email</mat-icon>
+            <span>support&#64;callbet.com</span>
+          </div>
+          <div class="footer-contact-item">
+            <mat-icon>phone</mat-icon>
+            <span>+251 91 100 2233</span>
+          </div>
+          <div class="footer-contact-item">
+            <mat-icon>location_on</mat-icon>
+            <span>Bole Subcity, Addis Ababa, Ethiopia</span>
+          </div>
+
+          <div class="footer-security-statement">
+            <mat-icon>lock</mat-icon>
+            <span>All transactions are protected by platform escrow protocols.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom-bar">
+        <div class="footer-copy">
+          &copy; 2026 Callbet Technologies Inc. All rights reserved.
+        </div>
+        <div class="footer-bottom-links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Escrow Policy</a>
+          <a href="#">Trust & Safety Standards</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
