@@ -1,0 +1,522 @@
+.login-page-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 120px);
+  padding: 2.5rem 1rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f1f5f9 100%);
+  overflow: hidden;
+}
+
+// Ambient Background Glows
+.ambient-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 0;
+
+  &.glow-1 {
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, #818cf8 0%, rgba(99, 102, 241, 0) 70%);
+    top: -60px;
+    right: 5%;
+  }
+
+  &.glow-2 {
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle, #93c5fd 0%, rgba(59, 130, 246, 0) 70%);
+    bottom: -80px;
+    left: 5%;
+  }
+}
+
+// Main Card Container
+.auth-card {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+  width: 100%;
+  padding: 2.25rem 2.5rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(0, 0, 0, 0.03);
+  animation: cardFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @media (max-width: 576px) {
+    padding: 1.5rem 1.25rem;
+    border-radius: 16px;
+  }
+}
+
+// Auth Header
+.auth-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+
+  .brand-badge {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 0.85rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+    color: #ffffff;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.28);
+    transition: transform 0.25s ease;
+
+    &:hover {
+      transform: scale(1.05) rotate(3deg);
+    }
+
+    mat-icon {
+      font-size: 30px;
+      width: 30px;
+      height: 30px;
+    }
+  }
+
+  h2 {
+    margin: 0 0 0.35rem;
+    font-size: 1.55rem;
+    color: #0f172a;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .auth-subtitle {
+    margin: 0 0 1.25rem;
+    font-size: 0.88rem;
+    color: #64748b;
+    line-height: 1.45;
+  }
+
+  // Segmented Mode Switcher
+  .auth-mode-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+
+    .mode-switch-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0.65rem 1rem;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &.active {
+        background: #ffffff;
+        color: #3730a3;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      &:hover:not(.active) {
+        color: #1e293b;
+        background: rgba(255, 255, 255, 0.5);
+      }
+    }
+  }
+}
+
+// Alert Banners
+.alert-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 1.25rem;
+  animation: fadeInDown 0.25s ease;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  span {
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .alert-close-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    padding: 0;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &.error-banner {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  &.success-banner {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+}
+
+// Auth Card Content & Form
+.auth-card-content {
+  padding: 0;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+
+  .form-field {
+    width: 100%;
+    margin-bottom: 0.4rem;
+
+    mat-icon[matPrefix] {
+      color: #94a3b8;
+      margin-right: 8px;
+    }
+
+    mat-error {
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+  }
+
+  .form-row {
+    display: flex;
+    gap: 0.75rem;
+
+    .half {
+      flex: 1;
+    }
+
+    @media (max-width: 520px) {
+      flex-direction: column;
+      gap: 0;
+    }
+  }
+
+  // Role Selection Cards in Registration
+  .role-selection-group {
+    margin-bottom: 1rem;
+
+    .section-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .role-cards-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+
+      @media (max-width: 460px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .role-card-option {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+      &:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        transform: translateY(-1px);
+      }
+
+      &.selected {
+        border-color: #4f46e5;
+        background: #eef2ff;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
+
+        .role-text strong {
+          color: #3730a3;
+        }
+      }
+
+      .role-icon-wrap {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+
+        &.customer-icon {
+          background: #e0f2fe;
+          color: #0369a1;
+        }
+
+        &.pro-icon {
+          background: #fef3c7;
+          color: #b45309;
+        }
+      }
+
+      .role-text {
+        flex: 1;
+
+        strong {
+          display: block;
+          font-size: 0.92rem;
+          color: #1e293b;
+        }
+
+        span {
+          display: block;
+          font-size: 0.74rem;
+          color: #64748b;
+          margin-top: 1px;
+        }
+      }
+
+      .role-check {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: #4f46e5;
+      }
+    }
+  }
+
+  // Password Complexity Card
+  .password-complexity-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+    animation: fadeInDown 0.25s ease;
+
+    .complexity-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 0.6rem;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #4f46e5;
+      }
+    }
+
+    .rules-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem 0.75rem;
+
+      @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      transition: color 0.2s ease;
+
+      mat-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+        color: #cbd5e1;
+        transition: all 0.2s ease;
+      }
+
+      &.passed {
+        color: #15803d;
+        font-weight: 600;
+
+        mat-icon {
+          color: #16a34a;
+        }
+      }
+    }
+  }
+
+  // Submit Button
+  .submit-btn {
+    height: 50px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    border-radius: 12px;
+    margin-top: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &:hover:not([disabled]) {
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+      transform: translateY(-1px);
+    }
+
+    &[disabled] {
+      background: #e2e8f0 !important;
+      color: #94a3b8 !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+// Bottom Switch Row
+.bottom-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+  font-size: 0.88rem;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 1.25rem;
+
+  .switch-link-btn {
+    background: transparent;
+    border: none;
+    color: #4f46e5;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #3730a3;
+      text-decoration: underline;
+    }
+  }
+}
+
+// Admin Registration Link
+.admin-reg-row {
+  margin-top: 0.75rem;
+  text-align: center;
+
+  .admin-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #dc2626;
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      background: #fee2e2;
+      text-decoration: underline;
+    }
+  }
+}
+
+// Animations
+@keyframes cardFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

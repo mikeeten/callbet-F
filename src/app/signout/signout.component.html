@@ -1,0 +1,137 @@
+<div class="signout-page-container">
+  <!-- Animated Background Glow Blobs -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <div class="signout-wrapper">
+    <!-- Brand Header -->
+    <div class="brand-top">
+      <div class="brand-badge">
+        <span class="brand-logo-text">CALLBET</span>
+        <span class="security-chip">
+          <mat-icon>shield</mat-icon> 256-Bit Escrow Security
+        </span>
+      </div>
+    </div>
+
+    <!-- Main Glassmorphic Card -->
+    <mat-card class="signout-glass-card">
+      <!-- Animated Icon Circle with Glowing Rings -->
+      <div class="shield-container">
+        <div class="glow-ring ring-1"></div>
+        <div class="glow-ring ring-2"></div>
+        <div class="shield-circle">
+          <mat-icon class="shield-icon">lock_open</mat-icon>
+          <span class="check-badge">
+            <mat-icon>check</mat-icon>
+          </span>
+        </div>
+      </div>
+
+      <!-- Header & Title -->
+      <div class="card-header-block">
+        <span class="status-pill">
+          <span class="pulse-dot"></span> Session Terminated
+        </span>
+        <h1 class="main-title">Signed Out Successfully</h1>
+        <p class="subtitle">
+          Your Callbet session has ended securely. All session credentials, profile data, and active real-time connections were safely cleared from this browser.
+        </p>
+      </div>
+
+      <!-- Security Checklist Grid -->
+      <div class="security-audit-grid">
+        @for (step of securitySteps; track step.title) {
+          <div class="audit-item">
+            <div class="audit-icon-wrap">
+              <mat-icon>{{ step.icon }}</mat-icon>
+            </div>
+            <div class="audit-text">
+              <div class="audit-title-row">
+                <strong>{{ step.title }}</strong>
+                <span class="audit-badge">{{ step.badge }}</span>
+              </div>
+              <p>{{ step.description }}</p>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Circular Countdown & Auto-Redirect Bar -->
+      <div class="countdown-panel">
+        <div class="timer-ring-container">
+          <svg class="timer-svg" width="64" height="64" viewBox="0 0 64 64">
+            <!-- Background circle -->
+            <circle
+              class="timer-bg"
+              cx="32"
+              cy="32"
+              r="26"
+            ></circle>
+            <!-- Animated progress circle -->
+            <circle
+              class="timer-progress"
+              cx="32"
+              cy="32"
+              r="26"
+              [style.strokeDasharray]="circumference"
+              [style.strokeDashoffset]="strokeDashoffset()"
+            ></circle>
+          </svg>
+          <span class="timer-number">{{ countdown() }}</span>
+        </div>
+
+        <div class="timer-details">
+          @if (!isPaused()) {
+            <strong>Auto-redirecting to Home page</strong>
+            <span>Returning you to the homepage in {{ countdown() }} seconds</span>
+          } @else {
+            <strong class="paused-text">Redirect Paused</strong>
+            <span>Take your time! Click any option below when ready.</span>
+          }
+        </div>
+
+        <button
+          mat-icon-button
+          class="btn-pause-toggle"
+          (click)="togglePause()"
+          [matTooltip]="isPaused() ? 'Resume countdown' : 'Pause countdown'"
+        >
+          <mat-icon>{{ isPaused() ? 'play_arrow' : 'pause' }}</mat-icon>
+        </button>
+      </div>
+
+      <!-- Actions Hub -->
+      <div class="actions-group">
+        <button mat-raised-button class="btn-primary-action" (click)="goToLogin()">
+          <mat-icon>login</mat-icon>
+          <span>Sign In to Your Account</span>
+        </button>
+
+        <button mat-stroked-button class="btn-secondary-action" (click)="goHome()">
+          <mat-icon>home</mat-icon>
+          <span>Go to Home Page</span>
+        </button>
+
+        <button mat-button class="btn-tertiary-action" (click)="browseServices()">
+          <mat-icon>explore</mat-icon>
+          <span>Explore Services as Guest</span>
+        </button>
+      </div>
+
+      <!-- Security Notice Footer -->
+      <div class="security-footer-note">
+        <mat-icon>info_outline</mat-icon>
+        <span>
+          <strong>Shared computer?</strong> Close your browser tabs if you are on a public or shared workstation.
+        </span>
+      </div>
+    </mat-card>
+
+    <!-- Bottom Copyright & Trust Indicator -->
+    <div class="bottom-trust">
+      <span>Callbet Platform &bull; CBE Bank Escrow Guaranteed &bull; Addis Ababa, Ethiopia</span>
+    </div>
+  </div>
+</div>

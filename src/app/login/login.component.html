@@ -1,0 +1,412 @@
+<div class="login-page-container">
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <mat-card appearance="outlined" class="auth-card">
+    <!-- Header Section -->
+    <div class="auth-header">
+      <div class="brand-badge">
+        <mat-icon>{{ isRegisterMode() ? 'person_add' : 'lock' }}</mat-icon>
+      </div>
+      <h2>{{ isRegisterMode() ? 'Create Your Account' : 'Welcome to Callbet' }}</h2>
+      <p class="auth-subtitle">
+        {{
+          isRegisterMode()
+            ? 'Join our trusted on-demand home & commercial trade marketplace'
+            : 'Sign in to access your verified account'
+        }}
+      </p>
+
+      <!-- Segmented Mode Switcher Tabs -->
+      <div class="auth-mode-switch">
+        <button
+          type="button"
+          class="mode-switch-btn"
+          [class.active]="!isRegisterMode()"
+          (click)="setMode(false)"
+        >
+          <mat-icon>login</mat-icon>
+          <span>Sign In</span>
+        </button>
+        <button
+          type="button"
+          class="mode-switch-btn"
+          [class.active]="isRegisterMode()"
+          (click)="setMode(true)"
+        >
+          <mat-icon>person_add_alt</mat-icon>
+          <span>Create Account</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Alert Banners -->
+    @if (errorMessage()) {
+      <div class="alert-banner error-banner">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMessage() }}</span>
+        <button type="button" class="alert-close-btn" (click)="errorMessage.set(null)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    }
+
+    @if (successMessage()) {
+      <div class="alert-banner success-banner">
+        <mat-icon>check_circle</mat-icon>
+        <span>{{ successMessage() }}</span>
+        <button type="button" class="alert-close-btn" (click)="successMessage.set(null)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    }
+
+    <mat-card-content class="auth-card-content">
+      <!-- ========================================== -->
+      <!-- 1. USER LOGIN FORM -->
+      <!-- ========================================== -->
+      @if (!isRegisterMode()) {
+        <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="auth-form" novalidate>
+          <!-- Email Input -->
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Email Address</mat-label>
+            <input
+              matInput
+              type="email"
+              formControlName="email"
+              placeholder="e.g. name@domain.com"
+              autocomplete="email"
+            />
+            <mat-icon matPrefix>email</mat-icon>
+            @if (loginForm.get('email')?.hasError('required') && loginForm.get('email')?.touched) {
+              <mat-error>Email address is required</mat-error>
+            }
+            @if (loginForm.get('email')?.hasError('pattern') && loginForm.get('email')?.touched) {
+              <mat-error>Please enter a valid email format (name@domain.com)</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Password Input -->
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Password</mat-label>
+            <input
+              matInput
+              [type]="hideLoginPassword() ? 'password' : 'text'"
+              formControlName="password"
+              placeholder="Enter your secure password"
+              autocomplete="current-password"
+            />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="hideLoginPassword.set(!hideLoginPassword())"
+              [attr.aria-label]="'Toggle password visibility'"
+            >
+              <mat-icon>{{ hideLoginPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
+              <mat-error>Password is required</mat-error>
+            }
+            @if (
+              (loginForm.get('password')?.hasError('minlength') ||
+                loginForm.get('password')?.hasError('maxlength') ||
+                loginForm.get('password')?.hasError('pattern')) &&
+              loginForm.get('password')?.touched
+            ) {
+              <mat-error>Password must be 8-32 characters with uppercase, lowercase, number & special char</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Submit Button -->
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            class="submit-btn"
+            [disabled]="loginForm.invalid || loading()"
+          >
+            @if (loading()) {
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Authenticating...</span>
+            } @else {
+              <ng-container>
+                <mat-icon>login</mat-icon>
+                <span>Sign In to Account</span>
+              </ng-container>
+            }
+          </button>
+        </form>
+      }
+
+      <!-- ========================================== -->
+      <!-- 2. USER REGISTRATION FORM -->
+      <!-- ========================================== -->
+      @if (isRegisterMode()) {
+        <form [formGroup]="registerForm" (ngSubmit)="onRegister()" class="auth-form" novalidate>
+          <!-- Role Selection Cards -->
+          <div class="role-selection-group">
+            <label class="section-label">Select Account Type:</label>
+            <div class="role-cards-row">
+              <button
+                type="button"
+                class="role-card-option"
+                [class.selected]="registerForm.get('role')?.value === 'Customer'"
+                (click)="selectRole('Customer')"
+              >
+                <div class="role-icon-wrap customer-icon">
+                  <mat-icon>person</mat-icon>
+                </div>
+                <div class="role-text">
+                  <strong>Customer</strong>
+                  <span>Hire verified trades</span>
+                </div>
+                @if (registerForm.get('role')?.value === 'Customer') {
+                  <mat-icon class="role-check">check_circle</mat-icon>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="role-card-option"
+                [class.selected]="registerForm.get('role')?.value === 'Professional'"
+                (click)="selectRole('Professional')"
+              >
+                <div class="role-icon-wrap pro-icon">
+                  <mat-icon>engineering</mat-icon>
+                </div>
+                <div class="role-text">
+                  <strong>Professional</strong>
+                  <span>Offer expert services</span>
+                </div>
+                @if (registerForm.get('role')?.value === 'Professional') {
+                  <mat-icon class="role-check">check_circle</mat-icon>
+                }
+              </button>
+            </div>
+          </div>
+
+          <!-- Name Row (First Name & Last Name) -->
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field half">
+              <mat-label>First Name</mat-label>
+              <input
+                matInput
+                formControlName="firstName"
+                placeholder="e.g. Abebe"
+                autocomplete="given-name"
+                (input)="sanitizeNameInput('firstName')"
+              />
+              <mat-icon matPrefix>badge</mat-icon>
+              @if (registerForm.get('firstName')?.hasError('required') && registerForm.get('firstName')?.touched) {
+                <mat-error>First name is required</mat-error>
+              }
+              @if (registerForm.get('firstName')?.hasError('pattern') && registerForm.get('firstName')?.touched) {
+                <mat-error>Only letters allowed (no numbers/spaces)</mat-error>
+              }
+              @if (registerForm.get('firstName')?.hasError('minlength') && registerForm.get('firstName')?.touched) {
+                <mat-error>Minimum 2 letters required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field half">
+              <mat-label>Last Name</mat-label>
+              <input
+                matInput
+                formControlName="lastName"
+                placeholder="e.g. Kebede"
+                autocomplete="family-name"
+                (input)="sanitizeNameInput('lastName')"
+              />
+              <mat-icon matPrefix>badge</mat-icon>
+              @if (registerForm.get('lastName')?.hasError('required') && registerForm.get('lastName')?.touched) {
+                <mat-error>Last name is required</mat-error>
+              }
+              @if (registerForm.get('lastName')?.hasError('pattern') && registerForm.get('lastName')?.touched) {
+                <mat-error>Only letters allowed (no numbers/spaces)</mat-error>
+              }
+              @if (registerForm.get('lastName')?.hasError('minlength') && registerForm.get('lastName')?.touched) {
+                <mat-error>Minimum 2 letters required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <!-- Email Input -->
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Email Address</mat-label>
+            <input
+              matInput
+              type="email"
+              formControlName="email"
+              placeholder="e.g. name@domain.com"
+              autocomplete="email"
+            />
+            <mat-icon matPrefix>email</mat-icon>
+            @if (registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched) {
+              <mat-error>Email address is required</mat-error>
+            }
+            @if (registerForm.get('email')?.hasError('pattern') && registerForm.get('email')?.touched) {
+              <mat-error>Please enter a valid email format</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Phone Number Input (Strict 10 Digits) -->
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Phone Number (10 digits)</mat-label>
+            <input
+              matInput
+              type="tel"
+              formControlName="phoneNumber"
+              placeholder="e.g. 0912345678"
+              maxlength="10"
+              autocomplete="tel"
+              (input)="sanitizePhoneInput()"
+            />
+            <mat-icon matPrefix>phone</mat-icon>
+            @if (registerForm.get('phoneNumber')?.hasError('required') && registerForm.get('phoneNumber')?.touched) {
+              <mat-error>Phone number is required</mat-error>
+            }
+            @if (registerForm.get('phoneNumber')?.hasError('pattern') && registerForm.get('phoneNumber')?.touched) {
+              <mat-error>Must be exactly 10 digits (numbers only, e.g. 0912345678)</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Password Input -->
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Password</mat-label>
+            <input
+              matInput
+              [type]="hideRegisterPassword() ? 'password' : 'text'"
+              formControlName="password"
+              placeholder="Create a strong password"
+              autocomplete="new-password"
+            />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="hideRegisterPassword.set(!hideRegisterPassword())"
+              [attr.aria-label]="'Toggle password visibility'"
+            >
+              <mat-icon>{{ hideRegisterPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched) {
+              <mat-error>Password is required</mat-error>
+            }
+            @if (
+              (registerForm.get('password')?.hasError('minlength') ||
+                registerForm.get('password')?.hasError('maxlength') ||
+                registerForm.get('password')?.hasError('pattern')) &&
+              registerForm.get('password')?.touched
+            ) {
+              <mat-error>Password does not meet complexity requirements</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Confirm Password Input -->
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Confirm Password</mat-label>
+            <input
+              matInput
+              [type]="hideConfirmPassword() ? 'password' : 'text'"
+              formControlName="confirmPassword"
+              placeholder="Re-enter your password"
+              autocomplete="new-password"
+            />
+            <mat-icon matPrefix>lock_reset</mat-icon>
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="hideConfirmPassword.set(!hideConfirmPassword())"
+              [attr.aria-label]="'Toggle confirm password visibility'"
+            >
+              <mat-icon>{{ hideConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched) {
+              <mat-error>Please confirm your password</mat-error>
+            }
+            @if (registerForm.get('confirmPassword')?.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched) {
+              <mat-error>Passwords do not match</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Real-Time Password Complexity Checklist -->
+          @if (regPasswordValue || registerForm.get('password')?.touched) {
+            <div class="password-complexity-card">
+              <div class="complexity-title">
+                <mat-icon>security</mat-icon>
+                <span>Password Requirements:</span>
+              </div>
+              <div class="rules-grid">
+                <div class="rule-item" [class.passed]="hasMinLength">
+                  <mat-icon>{{ hasMinLength ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>8–32 Characters</span>
+                </div>
+                <div class="rule-item" [class.passed]="hasUppercase">
+                  <mat-icon>{{ hasUppercase ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>Uppercase Letter (A-Z)</span>
+                </div>
+                <div class="rule-item" [class.passed]="hasLowercase">
+                  <mat-icon>{{ hasLowercase ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>Lowercase Letter (a-z)</span>
+                </div>
+                <div class="rule-item" [class.passed]="hasNumber">
+                  <mat-icon>{{ hasNumber ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>Number (0-9)</span>
+                </div>
+                <div class="rule-item" [class.passed]="hasSpecialChar">
+                  <mat-icon>{{ hasSpecialChar ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>Special Character (!@#$%)</span>
+                </div>
+                <div class="rule-item" [class.passed]="passwordsMatch">
+                  <mat-icon>{{ passwordsMatch ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>Passwords Match</span>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Submit Button -->
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            class="submit-btn"
+            [disabled]="registerForm.invalid || loading()"
+          >
+            @if (loading()) {
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Creating Account...</span>
+            } @else {
+              <ng-container>
+                <mat-icon>person_add</mat-icon>
+                <span>Complete Registration</span>
+              </ng-container>
+            }
+          </button>
+        </form>
+      }
+
+      <!-- Bottom Switch Prompt -->
+      <div class="bottom-switch-row">
+        <span>{{ isRegisterMode() ? 'Already have an account?' : 'New to Callbet?' }}</span>
+        <button type="button" class="switch-link-btn" (click)="setMode(!isRegisterMode())">
+          {{ isRegisterMode() ? 'Sign In Here &rarr;' : 'Create an Account &rarr;' }}
+        </button>
+      </div>
+
+      <!-- Admin Registration Link -->
+      <div class="admin-reg-row">
+        <a routerLink="/admin-registration" class="admin-link">
+          <mat-icon>admin_panel_settings</mat-icon>
+          <span>System Administrator Portal &rarr;</span>
+        </a>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
