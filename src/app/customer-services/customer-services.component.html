@@ -1,0 +1,891 @@
+<div class="customer-marketplace-portal">
+  <!-- Top Hero Header Section -->
+  <header class="marketplace-hero-header">
+    <div class="hero-brand-wrap">
+      <div class="brand-shield-icon">
+        <mat-icon>home_repair_service</mat-icon>
+      </div>
+      <div class="brand-text">
+        <div class="title-row">
+          <h1>Verified Services Marketplace</h1>
+          <span class="trust-badge">
+            <mat-icon>verified</mat-icon> 100% Escrow Protected
+          </span>
+        </div>
+        <p class="hero-sub">
+          Hire certified master technicians, licensed plumbers, electricians & home specialists across Addis Ababa with instant GPS dispatch & escrow guarantee.
+        </p>
+      </div>
+    </div>
+
+    <!-- Header Actions & Notifications -->
+    <div class="hero-actions-row">
+      <!-- Notification Button -->
+      <button
+        mat-icon-button
+        type="button"
+        class="action-icon-btn bell-btn"
+        (click)="toggleNotifications()"
+        [matBadge]="notificationService.unreadCount()"
+        [matBadgeHidden]="notificationService.unreadCount() === 0"
+        matBadgeColor="warn"
+        aria-label="System Notifications"
+        title="View Notifications"
+      >
+        <mat-icon>notifications</mat-icon>
+      </button>
+
+      <!-- Bookmarks Navigation & Customer Dashboard Link -->
+      @if (!authService.isAuthenticated() || authService.hasAnyRole(['Customer', 'Admin'])) {
+        <a mat-stroked-button color="accent" routerLink="/customer-dashboard" class="action-btn-pill">
+          <mat-icon>favorite</mat-icon>
+          <span>My Saved ({{ bookmarkedServiceIds().size + bookmarkedProIds().size }})</span>
+        </a>
+
+        <a mat-stroked-button color="primary" routerLink="/customer-dashboard" class="action-btn-pill">
+          <mat-icon>dashboard</mat-icon>
+          <span>Customer Hub</span>
+        </a>
+      }
+
+      <!-- Technician Portal Link (Professional & Admin only) -->
+      @if (!authService.isAuthenticated() || authService.hasAnyRole(['Professional', 'Admin'])) {
+        <a mat-raised-button color="primary" routerLink="/service-selection" class="action-btn-pill primary-glow">
+          <mat-icon>engineering</mat-icon>
+          <span>Technician Hub</span>
+        </a>
+      }
+    </div>
+  </header>
+
+  <!-- Notification Dropdown Panel -->
+  @if (showNotificationsPanel()) {
+    <div class="notifications-panel-dropdown">
+      <div class="panel-header">
+        <div class="panel-title">
+          <mat-icon>notifications_active</mat-icon>
+          <strong>Notifications ({{ notificationService.unreadCount() }} unread)</strong>
+        </div>
+        <div class="panel-actions">
+          <button mat-button color="primary" (click)="notificationService.markAllAsRead()">
+            Mark all read
+          </button>
+          <button mat-icon-button (click)="toggleNotifications()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="notifications-list">
+        @for (item of notificationService.notifications().slice(0, 5); track item.id) {
+          <div class="notification-item" [class.unread]="!item.isRead">
+            <div class="notif-content">
+              <div class="notif-title">{{ item.title }}</div>
+              <div class="notif-msg">{{ item.message }}</div>
+              <div class="notif-time">{{ item.createdAt | date:'shortTime' }}</div>
+            </div>
+            @if (!item.isRead) {
+              <button mat-button color="accent" (click)="notificationService.markAsRead(item.id)">
+                Read
+              </button>
+            }
+          </div>
+        } @empty {
+          <div class="no-notifs">
+            <mat-icon>notifications_off</mat-icon>
+            <p>No new notifications right now.</p>
+          </div>
+        }
+      </div>
+
+      <div class="panel-footer">
+        <a mat-button color="primary" routerLink="/customer-dashboard" (click)="showNotificationsPanel.set(false)">
+          Open Full Customer Dashboard &rarr;
+        </a>
+      </div>
+    </div>
+  }
+
+  <!-- Trust & Safety Value Proposition Bar -->
+  <div class="trust-guarantee-bar">
+    <div class="trust-item">
+      <div class="trust-icon-wrap escrow-color"><mat-icon>shield</mat-icon></div>
+      <div class="trust-text">
+        <strong>100% Escrow Guarantee</strong>
+        <span>Funds released only upon job satisfaction</span>
+      </div>
+    </div>
+
+    <div class="trust-item">
+      <div class="trust-icon-wrap arrival-color"><mat-icon>bolt</mat-icon></div>
+      <div class="trust-text">
+        <strong>&lt;45 Min Fast Dispatch</strong>
+        <span>Nearby verified pros ready for rapid arrival</span>
+      </div>
+    </div>
+
+    <div class="trust-item">
+      <div class="trust-icon-wrap rating-color"><mat-icon>star</mat-icon></div>
+      <div class="trust-text">
+        <strong>4.95+ Star Verified Pros</strong>
+        <span>Vetted credentials, IDs & customer reviews</span>
+      </div>
+    </div>
+
+    <div class="trust-item">
+      <div class="trust-icon-wrap safety-color"><mat-icon>my_location</mat-icon></div>
+      <div class="trust-text">
+        <strong>GPS Proximity Matching</strong>
+        <span>Smart radius dispatch across 11 SubCities</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- LOCATION & GPS DISCOVERY HUB -->
+  <!-- ========================================================================= -->
+  <div class="location-discovery-card">
+    <div class="location-top-bar">
+      <!-- Active Location Status Banner -->
+      <div class="active-location-indicator">
+        @if (gpsActive()) {
+          <div class="loc-status-pill gps-active-pill">
+            <div class="pulse-dot"></div>
+            <mat-icon>near_me</mat-icon>
+            <div class="loc-status-details">
+              <span class="loc-status-title">Nearby Search Active (within {{ radiusKm() }} km)</span>
+              <span class="loc-coords">{{ gpsLocationLabel() }} &bull; {{ currentLatitude()?.toFixed(4) }}, {{ currentLongitude()?.toFixed(4) }}</span>
+            </div>
+          </div>
+          <div class="loc-action-buttons">
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-map-view"
+              (click)="openMapLocation(currentLatitude(), currentLongitude(), gpsLocationLabel(), 'Proximity: ' + radiusKm() + ' km radius')"
+            >
+              <mat-icon>map</mat-icon> Map View
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              class="btn-clear-loc"
+              (click)="clearGpsFilter()"
+              title="Clear GPS Proximity Filter"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        } @else if (selectedNeighborhoodId()) {
+          <div class="loc-status-pill neighborhood-active-pill">
+            <mat-icon>location_city</mat-icon>
+            <div class="loc-status-details">
+              <span class="loc-status-title">Neighborhood Filter Active</span>
+              <span class="loc-coords">{{ selectedNeighborhoodName() }} (ID: {{ selectedNeighborhoodId() }})</span>
+            </div>
+          </div>
+          <div class="loc-action-buttons">
+            <button
+              mat-icon-button
+              type="button"
+              class="btn-clear-loc"
+              (click)="clearNeighborhoodFilter()"
+              title="Clear Neighborhood Filter"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        } @else {
+          <div class="loc-status-pill all-city-pill">
+            <mat-icon>explore</mat-icon>
+            <div class="loc-status-details">
+              <span class="loc-status-title">Searching All Addis Ababa</span>
+              <span class="loc-coords">Showing verified pros across all 11 sub-cities & districts</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Quick Location Actions & Drawer Toggle -->
+      <div class="location-bar-controls">
+        <!-- Live GPS Button -->
+        <button
+          mat-stroked-button
+          color="primary"
+          type="button"
+          class="btn-near-me"
+          [class.active]="gpsActive() && gpsLocationLabel() === 'Live GPS Coordinates'"
+          [disabled]="gpsLoading()"
+          (click)="useCurrentGpsLocation()"
+        >
+          @if (gpsLoading()) {
+            <mat-spinner diameter="16"></mat-spinner>
+          } @else {
+            <mat-icon>my_location</mat-icon>
+          }
+          <span>{{ gpsLoading() ? 'Locating...' : 'Near Me (GPS)' }}</span>
+        </button>
+
+        <!-- Toggle Studio Drawer -->
+        <button
+          mat-stroked-button
+          type="button"
+          class="btn-toggle-studio"
+          [class.drawer-active]="locationDrawerOpen()"
+          (click)="toggleLocationDrawer()"
+        >
+          <mat-icon>{{ locationDrawerOpen() ? 'tune' : 'place' }}</mat-icon>
+          <span>{{ locationDrawerOpen() ? 'Hide Location Studio' : 'Filter by Location & Radius' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Error Banner if Geolocation fails -->
+    @if (gpsError()) {
+      <div class="gps-error-alert">
+        <mat-icon>info</mat-icon>
+        <span>{{ gpsError() }}</span>
+      </div>
+    }
+
+    <!-- Quick Location Preset Chips Bar -->
+    <div class="preset-locations-strip">
+      <span class="preset-label"><mat-icon>near_me</mat-icon> Popular Hubs:</span>
+      <div class="preset-chips-scroll">
+        @for (preset of addisPresets; track preset.name) {
+          <button
+            type="button"
+            class="preset-chip-btn"
+            [class.active]="gpsActive() && gpsLocationLabel() === preset.name"
+            (click)="selectPresetGps(preset)"
+          >
+            <mat-icon>{{ preset.icon || 'place' }}</mat-icon>
+            <span>{{ preset.name }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Expandable Location Studio Drawer -->
+    @if (locationDrawerOpen()) {
+      <div class="location-studio-drawer">
+        <div class="studio-grid">
+          <!-- 1. GPS Radius Slider & Distance Controls -->
+          <div class="studio-col radius-controls-col">
+            <div class="col-header">
+              <mat-icon>radar</mat-icon>
+              <h4>GPS Proximity Radius</h4>
+            </div>
+            <p class="col-desc">Adjust the maximum search distance from your chosen location.</p>
+
+            <div class="radius-chips-row">
+              @for (r of radiusOptions; track r) {
+                <button
+                  type="button"
+                  class="radius-pill"
+                  [class.active]="radiusKm() === r"
+                  (click)="setRadius(r)"
+                >
+                  {{ r }} km
+                </button>
+              }
+            </div>
+
+            <div class="radius-slider-wrap">
+              <label>Search Radius: <strong>{{ radiusKm() }} km</strong></label>
+              <input
+                type="range"
+                min="1"
+                max="2.5"
+                step="0.1"
+                [value]="radiusKm()"
+                (input)="setRadius(+$any($event.target).value)"
+                class="radius-range-slider"
+              />
+              <div class="slider-labels">
+                <span>1.0 km (Immediate)</span>
+                <span>1.75 km</span>
+                <span>2.5 km (Max Proximity)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. SubCity & Neighborhood Cascading Selector -->
+          <div class="studio-col neighborhood-selector-col">
+            <div class="col-header">
+              <mat-icon>location_city</mat-icon>
+              <h4>Filter by SubCity & Neighborhood</h4>
+            </div>
+            <p class="col-desc">Pinpoint services in a specific administrative zone or neighborhood.</p>
+
+            <div class="select-inputs-row">
+              <!-- SubCity Select -->
+              <div class="custom-select-box">
+                <label>Select SubCity</label>
+                <select
+                  [value]="selectedSubCityId() || ''"
+                  (change)="onSubCityChange($any($event.target).value ? +$any($event.target).value : null)"
+                  class="form-native-select"
+                >
+                  <option value="">All 11 SubCities</option>
+                  @for (sub of subCities(); track sub.id) {
+                    <option [value]="sub.id">{{ sub.name }} ({{ sub.neighborhoodsCount || sub.neighborhoods?.length || 0 }} areas)</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Neighborhood Select -->
+              <div class="custom-select-box">
+                <label>Select Neighborhood</label>
+                <select
+                  [value]="selectedNeighborhoodId() || ''"
+                  (change)="onNeighborhoodChange($any($event.target).value ? +$any($event.target).value : null)"
+                  [disabled]="!selectedSubCityId() && filteredNeighborhoods().length === 0"
+                  class="form-native-select"
+                >
+                  <option value="">All Neighborhoods in SubCity</option>
+                  @for (hood of filteredNeighborhoods(); track hood.id) {
+                    <option [value]="hood.id">{{ hood.name }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="studio-actions-row">
+              <button
+                mat-button
+                color="warn"
+                type="button"
+                (click)="clearAllLocationFilters()"
+              >
+                <mat-icon>restart_alt</mat-icon> Reset Location Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Category Filter Chips Ribbon -->
+  <div class="category-filter-section">
+    <div class="section-label-row">
+      <span class="label-text"><mat-icon>category</mat-icon> Trade Categories</span>
+      <span class="counter-badge">{{ categories().length }} Categories Available</span>
+    </div>
+
+    <div class="category-chips-scroll">
+      <button
+        type="button"
+        class="category-chip"
+        [class.active]="selectedCategoryId() === null"
+        (click)="selectCategory(null)"
+      >
+        <mat-icon>apps</mat-icon>
+        <span>All Trades ({{ totalCount() }})</span>
+      </button>
+
+      @for (cat of categories(); track cat.id) {
+        <button
+          type="button"
+          class="category-chip"
+          [class.active]="selectedCategoryId() === cat.id"
+          (click)="selectCategory(cat.id)"
+        >
+          <mat-icon>{{ getCategoryIcon(cat.name) }}</mat-icon>
+          <span>{{ cat.name }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Search & Refinement Studio Toolbar -->
+  <div class="filter-studio-card">
+    <div class="search-sort-row">
+      <!-- Search Input -->
+      <div class="search-input-wrapper" [formGroup]="filterForm">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          formControlName="search"
+          placeholder="Search trade or keyword (e.g. Electrician, Plumbing, Deep Cleaning)..."
+          (keyup.enter)="onFilterChange()"
+        />
+        @if (filterForm.get('search')?.value) {
+          <button
+            mat-icon-button
+            type="button"
+            class="clear-btn"
+            (click)="filterForm.patchValue({ search: '' }); onFilterChange()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+        <button mat-raised-button color="primary" type="button" class="btn-search-trigger" (click)="onFilterChange()">
+          Find Services
+        </button>
+      </div>
+
+
+    </div>
+
+    <!-- Quick Sort Chips Row -->
+    <div class="sort-chips-row">
+      <span class="sort-label"><mat-icon>sort</mat-icon> Sort By:</span>
+
+      <!-- Distance Sort Pill (Promoted & Highlighted when GPS is Active) -->
+      <button
+        type="button"
+        class="sort-pill distance-pill"
+        [class.active]="isSortActive('distance', false)"
+        [class.highlight-gps]="gpsActive()"
+        (click)="setSortOption('distance', false)"
+      >
+        <mat-icon>near_me</mat-icon> Nearest Distance (GPS)
+      </button>
+
+      <button
+        type="button"
+        class="sort-pill"
+        [class.active]="isSortActive('name', false)"
+        (click)="setSortOption('name', false)"
+      >
+        Recommended
+      </button>
+
+      <button
+        type="button"
+        class="sort-pill"
+        [class.active]="isSortActive('price', false)"
+        (click)="setSortOption('price', false)"
+      >
+        Price: Low &rarr; High
+      </button>
+
+      <button
+        type="button"
+        class="sort-pill"
+        [class.active]="isSortActive('price', true)"
+        (click)="setSortOption('price', true)"
+      >
+        Price: High &rarr; Low
+      </button>
+
+      <button
+        type="button"
+        class="sort-pill"
+        [class.active]="isSortActive('rating', true)"
+        (click)="setSortOption('rating', true)"
+      >
+        <mat-icon>star</mat-icon> Highest Rated
+      </button>
+
+      <button
+        type="button"
+        class="sort-pill"
+        [class.active]="isSortActive('experience', true)"
+        (click)="setSortOption('experience', true)"
+      >
+        <mat-icon>workspace_premium</mat-icon> Most Experienced
+      </button>
+
+      <button
+        type="button"
+        class="sort-pill"
+        [class.active]="isSortActive('jobs', true)"
+        (click)="setSortOption('jobs', true)"
+      >
+        <mat-icon>task_alt</mat-icon> Most Jobs Completed
+      </button>
+    </div>
+  </div>
+
+  <!-- Interactive 4-Stage Job Workflow Modal -->
+  @if (showWorkflowModal() && selectedServiceForBooking()) {
+    <app-job-workflow-modal
+      [initialService]="selectedServiceForBooking()"
+      (closeModal)="closeBooking()"
+    ></app-job-workflow-modal>
+  }
+
+  <!-- Interactive Map Modal Preview -->
+  @if (mapModalOpen()) {
+    <app-map-modal
+      [isOpen]="mapModalOpen()"
+      [latitude]="mapLat()"
+      [longitude]="mapLng()"
+      [title]="mapTitle()"
+      [subtitle]="mapSubtitle()"
+      (close)="closeMapModal()"
+    ></app-map-modal>
+  }
+
+  <!-- Favorite Toast Notification Banner -->
+  @if (favoriteNotification()) {
+    <div class="fav-toast-banner">
+      <div class="toast-content">
+        <mat-icon>favorite</mat-icon>
+        <span>{{ favoriteNotification() }}</span>
+      </div>
+      <a routerLink="/customer-dashboard" class="view-favs-link">
+        View in Saved Bookmarks &rarr;
+      </a>
+    </div>
+  }
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="44"></mat-spinner>
+      <span class="loading-text">Finding verified marketplace services matching your location...</span>
+    </div>
+  } @else {
+    <!-- Services Marketplace Grid -->
+    <div class="services-marketplace-grid">
+      @for (item of services(); track item.id) {
+        <div class="service-marketplace-card">
+          <!-- Card Header / Identity -->
+          <div class="card-identity-header">
+            <!-- Category Tag, Proximity Tag & Pricing Badge -->
+            <div class="tag-row">
+              <span class="category-tag">
+                <mat-icon>{{ getCategoryIcon(item.categoryName || '') }}</mat-icon>
+                {{ item.categoryName || 'General Trade' }}
+              </span>
+
+              @if (item.distanceKm !== undefined && item.distanceKm !== null) {
+                <span class="distance-badge" title="Distance from search location">
+                  <mat-icon>near_me</mat-icon> {{ item.distanceKm | number:'1.1-1' }} km
+                </span>
+              } @else if (gpsActive()) {
+                <span class="distance-badge in-radius" title="Within requested proximity radius">
+                  <mat-icon>near_me</mat-icon> &lt;{{ radiusKm() }} km
+                </span>
+              }
+
+              <span class="pricing-model-badge" [class.badge-hourly]="item.pricingType === 1">
+                {{ item.pricingType === 1 ? 'Hourly Rate' : 'Fixed Price' }}
+              </span>
+            </div>
+
+            <!-- Pro Avatar & Info -->
+            <div class="pro-info-row">
+              <div class="pro-avatar">
+                @if (item.profilePhotoUrl) {
+                  <img [src]="item.profilePhotoUrl" [alt]="item.professionalName" class="pro-avatar-img" />
+                } @else {
+                  <span>{{ getInitials(item.professionalName) }}</span>
+                }
+              </div>
+              <div class="pro-details">
+                <div class="name-verify-row">
+                  <a
+                    [routerLink]="['/professional-dashboard-detail', item.professionalProfileId || item.id]"
+                    class="pro-name-link"
+                    title="View Professional Profile"
+                  >
+                    {{ item.professionalName }}
+                  </a>
+                  @if (item.isVerified) {
+                    <span class="verified-icon-badge" title="Verified Trade Professional">
+                      <mat-icon>verified</mat-icon>
+                    </span>
+                  }
+                </div>
+                <span class="service-title-text">{{ item.serviceName }}</span>
+              </div>
+
+              <!-- Quick Service Bookmark Heart Button -->
+              <button
+                mat-icon-button
+                type="button"
+                class="heart-bookmark-btn"
+                [class.bookmarked]="isServiceBookmarked(item.serviceId || item.id)"
+                [title]="isServiceBookmarked(item.serviceId || item.id) ? 'Saved in favorites' : 'Bookmark this service'"
+                (click)="toggleFavoriteService(item, $event)"
+              >
+                <mat-icon>{{ isServiceBookmarked(item.serviceId || item.id) ? 'favorite' : 'favorite_border' }}</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Card Body: Description & Guarantees -->
+          <div class="card-body">
+            @if (item.professionalHeadline) {
+              <div class="headline-pill">
+                <mat-icon>verified_user</mat-icon>
+                <span>{{ item.professionalHeadline }}</span>
+              </div>
+            }
+
+            <p class="service-desc">
+              {{ item.serviceDescription || 'Certified trade professional offering high standard craftsmanship, safety compliance, and verified job satisfaction.' }}
+            </p>
+
+            <div class="guarantees-chip-row">
+              <span class="g-chip"><mat-icon>bolt</mat-icon> Fast Dispatch</span>
+              <span class="g-chip"><mat-icon>shield</mat-icon> Escrow Protected</span>
+              <span class="g-chip"><mat-icon>build</mat-icon> Tools Provided</span>
+            </div>
+          </div>
+
+          <!-- Card Metrics Strip -->
+          <div class="card-metrics-strip">
+            <div class="metric-block price-block">
+              <span class="price-amount">${{ item.effectivePrice }}</span>
+              <span class="price-sub">{{ item.pricingType === 1 ? 'per hour' : 'fixed total' }}</span>
+            </div>
+
+            <div class="metrics-sub-strip">
+              <div class="metric-item">
+                <mat-icon class="star-icon">star</mat-icon>
+                <strong>{{ item.overallRating > 0 ? (item.overallRating | number:'1.1-1') : '5.0' }}</strong>
+                <span class="metric-label">Rating</span>
+              </div>
+
+              <div class="metric-item">
+                <mat-icon class="jobs-icon">task_alt</mat-icon>
+                <strong>{{ item.completedJobsCount }}</strong>
+                <span class="metric-label">Jobs Done</span>
+              </div>
+
+              <div class="metric-item">
+                <mat-icon class="exp-icon">workspace_premium</mat-icon>
+                <strong>{{ item.serviceExperienceYears || item.professionalExperienceYears || 3 }}y</strong>
+                <span class="metric-label">Experience</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Actions Footer -->
+          <div class="card-footer-actions">
+            <!-- Bookmark Pro Button -->
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-pro-bookmark"
+              [class.active-fav]="isProBookmarked(item.professionalProfileId)"
+              (click)="toggleFavoriteProfessional(item, $event)"
+              [title]="'Bookmark ' + item.professionalName"
+            >
+              <mat-icon>{{ isProBookmarked(item.professionalProfileId) ? 'star' : 'star_border' }}</mat-icon>
+              <span>{{ isProBookmarked(item.professionalProfileId) ? 'Saved' : 'Save Pro' }}</span>
+            </button>
+
+            <!-- View Details Button -->
+            <a
+              mat-stroked-button
+              color="primary"
+              class="btn-view-pro"
+              [routerLink]="['/professional-dashboard-detail', item.professionalProfileId || item.id]"
+              title="View Professional Profile & Portfolio"
+            >
+              <mat-icon>person</mat-icon>
+              <span>Profile</span>
+            </a>
+
+            <!-- Chat with Pro Direct Action -->
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-chat-pro"
+              (click)="openChatWithProfessional(item, $event)"
+              [title]="'Live chat with ' + item.professionalName"
+            >
+              <mat-icon>chat</mat-icon>
+              <span>Chat</span>
+            </button>
+
+            <!-- Book Service Primary Action -->
+            <button
+              mat-raised-button
+              color="primary"
+              type="button"
+              class="btn-book-now"
+              (click)="openBooking(item)"
+            >
+              <mat-icon>bolt</mat-icon>
+              <span>Book Service</span>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-marketplace-box">
+          <div class="empty-icon-wrap">
+            <mat-icon>search_off</mat-icon>
+          </div>
+          <h3>No matching services found</h3>
+          <p>
+            @if (gpsActive()) {
+              No services found within {{ radiusKm() }} km of {{ gpsLocationLabel() }}. Try expanding your search radius up to 2.5 km.
+            } @else if (selectedNeighborhoodId()) {
+              No services currently registered in {{ selectedNeighborhoodName() }}. Try selecting a broader SubCity or all Addis Ababa.
+            } @else {
+              We couldn't find any professional services matching your search or trade filter.
+            }
+          </p>
+          <div class="empty-actions">
+            @if (gpsActive() && radiusKm() < 2.5) {
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                (click)="setRadius(2.5)"
+              >
+                <mat-icon>radar</mat-icon> Expand Radius to 2.5 km
+              </button>
+            }
+            <button
+              mat-raised-button
+              color="primary"
+              type="button"
+              (click)="clearAllLocationFilters(); selectCategory(null); filterForm.reset(); onFilterChange()"
+            >
+              Reset All Filters
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination Ribbon -->
+    @if (totalCount() > 0) {
+      <div class="marketplace-pagination-strip">
+        <div class="pagination-meta">
+          Showing Page <strong>{{ page() }}</strong> of <strong>{{ totalPages() }}</strong> ({{ totalCount() }} total verified services)
+        </div>
+
+        <div class="pagination-controls">
+          <button
+            mat-stroked-button
+            type="button"
+            class="page-nav-btn"
+            [disabled]="page() <= 1"
+            (click)="prevPage()"
+          >
+            <mat-icon>chevron_left</mat-icon> Previous
+          </button>
+
+          <span class="active-page-pill">{{ page() }}</span>
+
+          <button
+            mat-stroked-button
+            type="button"
+            class="page-nav-btn"
+            [disabled]="page() >= totalPages()"
+            (click)="nextPage()"
+          >
+            Next <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
+  }
+
+  <!-- ========================================================================= -->
+  <!-- DIRECT CUSTOMER <-> PROFESSIONAL LIVE CHAT MODAL -->
+  <!-- ========================================================================= -->
+  @if (isChatModalOpen()) {
+    <div class="direct-chat-modal-overlay" (click)="closeChatModal()">
+      <div class="direct-chat-modal-box" (click)="$event.stopPropagation()">
+        <!-- Chat Header -->
+        <div class="chat-modal-header">
+          <div class="chat-header-user">
+            <div class="user-avatar-wrap">
+              @if (selectedChatProfessional()?.profilePhotoUrl) {
+                <img [src]="selectedChatProfessional()?.profilePhotoUrl" [alt]="selectedChatProfessional()?.professionalName" />
+              } @else {
+                <span class="avatar-initials">{{ getInitials(selectedChatProfessional()?.professionalName || 'Pro') }}</span>
+              }
+            </div>
+            <div class="user-meta">
+              <h4>{{ selectedChatProfessional()?.professionalName || 'Trade Specialist' }}</h4>
+              <span class="sub-service-name">
+                <mat-icon>handyman</mat-icon>
+                {{ selectedChatProfessional()?.serviceName || 'Callbet Verified Professional' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="chat-header-actions">
+            <button mat-icon-button (click)="closeChatModal()" title="Close chat">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Conversation Messages Body -->
+        <div class="chat-modal-messages" #chatScrollContainer>
+          @if (chatLoading()) {
+            <div class="chat-loading-state">
+              <mat-spinner diameter="32"></mat-spinner>
+              <span>Connecting to direct secure channel...</span>
+            </div>
+          } @else {
+            <div class="chat-intro-banner">
+              <mat-icon>lock</mat-icon>
+              <span>Direct end-to-end encrypted channel with {{ selectedChatProfessional()?.professionalName }}. Coordinate job requirements, arrival times & estimates.</span>
+            </div>
+
+            @for (msg of chatService.activeMessages(); track msg.id || msg.sentAt) {
+              <div class="chat-bubble-row" [class.my-msg-row]="isMyChatMessage(msg)">
+                <div class="chat-bubble" [class.my-bubble]="isMyChatMessage(msg)">
+                  <div class="bubble-sender-name">{{ isMyChatMessage(msg) ? 'You' : (msg.senderName || selectedChatProfessional()?.professionalName) }}</div>
+                  <div class="bubble-text">{{ msg.content }}</div>
+                  <div class="bubble-time-row">
+                    <span>{{ formatMsgTime(msg.sentAt) }}</span>
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              <div class="empty-chat-state">
+                <div class="icon-circle"><mat-icon>chat_bubble_outline</mat-icon></div>
+                <h4>Start conversation with {{ selectedChatProfessional()?.professionalName }}</h4>
+                <p>Ask about availability, project estimates, or request custom requirements before booking.</p>
+                <div class="quick-prompts">
+                  <button type="button" class="prompt-chip" (click)="chatInputText.set('Hello! Are you available for service today?'); sendChatMessage()">
+                    "Are you available today?"
+                  </button>
+                  <button type="button" class="prompt-chip" (click)="chatInputText.set('Can you provide an estimate for my service requirement?'); sendChatMessage()">
+                    "What is your estimated arrival time?"
+                  </button>
+                </div>
+              </div>
+            }
+
+            @if (chatService.isOtherUserTyping()) {
+              <div class="typing-indicator-row">
+                <div class="typing-bubble">
+                  <span></span><span></span><span></span>
+                </div>
+                <span class="typing-text">{{ selectedChatProfessional()?.professionalName }} is typing...</span>
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Chat Input Footer -->
+        <div class="chat-modal-footer">
+          <input
+            type="text"
+            placeholder="Type a message to {{ selectedChatProfessional()?.professionalName }}..."
+            [ngModel]="chatInputText()"
+            (ngModelChange)="chatInputText.set($event)"
+            (input)="onChatTyping()"
+            (keyup.enter)="sendChatMessage()"
+            [disabled]="chatLoading()"
+          />
+          <button
+            mat-raised-button
+            color="primary"
+            class="send-btn"
+            [disabled]="!chatInputText().trim() || chatLoading()"
+            (click)="sendChatMessage()"
+          >
+            <mat-icon>send</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

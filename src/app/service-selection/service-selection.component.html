@@ -1,0 +1,415 @@
+<div class="service-selection-portal">
+  <!-- Top Navigation Header -->
+  <div class="portal-header">
+    <div class="header-left">
+      <div class="shield-badge">
+        <mat-icon>handyman</mat-icon>
+      </div>
+      <div>
+        <h2>Professional Service Marketplace & Assignment</h2>
+        <p class="subtitle">Select platform services, configure your custom rates, and publish offerings directly to your profile</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a mat-raised-button color="primary" routerLink="/professional-dashboard">
+        <mat-icon>dashboard</mat-icon> Pro Dashboard
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/professional-profile">
+        <mat-icon>badge</mat-icon> Edit Profile
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/portfolio-upload">
+        <mat-icon>collections</mat-icon> Portfolio
+      </a>
+      <a mat-stroked-button color="warn" routerLink="/certificate-upload">
+        <mat-icon>verified</mat-icon> Certifications
+      </a>
+    </div>
+  </div>
+
+  <!-- Authenticated Professional Security Strip (Auto-bound from Token) -->
+  <div class="auth-security-strip">
+    <div class="strip-left">
+      <div class="user-avatar-circle">
+        @if (proAvatarUrl()) {
+          <img [src]="proAvatarUrl()" [alt]="proName()" class="pro-avatar-img" (error)="onAvatarError()" />
+        } @else if (proInitials()) {
+          <span class="avatar-initials">{{ proInitials() }}</span>
+        } @else {
+          <mat-icon>person</mat-icon>
+        }
+      </div>
+      <div class="user-meta">
+        <h3>{{ proName() }}</h3>
+        <span class="sub-info">{{ proEmail() || 'Service Provider' }}</span>
+      </div>
+    </div>
+
+    <div class="strip-right">
+      <span class="assigned-count-badge">
+        <mat-icon>checklist</mat-icon>
+        <span>Catalog Services Selection</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Metric Overview Ribbon -->
+  <div class="metrics-ribbon">
+    <div class="metric-card">
+      <div class="icon-wrap cat-color"><mat-icon>category</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ categories().length }}</span>
+        <span class="metric-lbl">Trade Categories</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="icon-wrap srv-color"><mat-icon>engineering</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ allServices().length }}</span>
+        <span class="metric-lbl">Total Catalog Offerings</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="icon-wrap fixed-color"><mat-icon>payments</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ fixedCount() }}</span>
+        <span class="metric-lbl">Fixed Escrow Tiers</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="icon-wrap hr-color"><mat-icon>schedule</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ hourlyCount() }}</span>
+        <span class="metric-lbl">Hourly Rate Models</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- FULL-WIDTH SERVICE ACTIVATION STUDIO SECTION (NOT ON SIDE) -->
+  <!-- ============================================================== -->
+  <section id="activation-studio-section" class="studio-section">
+    <mat-card appearance="outlined" class="assignment-studio-card" [class.has-selection]="selectedService() !== null">
+      <!-- Studio Top Ribbon Header -->
+      <div class="studio-header">
+        <div class="studio-header-left">
+          <div class="studio-badge"><mat-icon>tune</mat-icon> Service Activation Studio</div>
+          <span class="studio-subtitle">Configure custom rates, experience credentials & publish trade offerings directly to your profile</span>
+        </div>
+        <div class="studio-header-right">
+          <span class="studio-status-pill">
+            <mat-icon>verified</mat-icon> Ready to Publish
+          </span>
+          @if (selectedService()) {
+            <button mat-stroked-button color="warn" class="btn-clear-selection" (click)="clearSelectedService()">
+              <mat-icon>close</mat-icon> Deselect
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (selectedService(); as selected) {
+        <div class="studio-workspace-grid">
+          <!-- LEFT PANEL: Service & Specialist Information -->
+          <div class="studio-info-panel">
+            <!-- Verified Professional Identity Card with Photo -->
+            <div class="pro-identity-card">
+              <div class="pro-avatar-wrap">
+                @if (proAvatarUrl()) {
+                  <img [src]="proAvatarUrl()" [alt]="proName()" class="pro-avatar-img" (error)="onAvatarError()" />
+                } @else {
+                  <div class="avatar-initials-box">{{ proInitials() }}</div>
+                }
+              </div>
+
+              <div class="pro-info">
+                <div class="name-row">
+                  <h4>{{ proName() }}</h4>
+                  <span class="verified-icon" title="Service Provider">
+                    <mat-icon>verified</mat-icon>
+                  </span>
+                </div>
+                <span class="pro-sub">{{ proEmail() || 'Licensed Home Trade Specialist' }}</span>
+                <div class="active-count-tag">
+                  <mat-icon>handyman</mat-icon>
+                  <span>Assign to Profile</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selected Service Card Details -->
+            <div class="selected-srv-preview">
+              <div class="preview-header">
+                <div class="srv-icon-bubble">
+                  <mat-icon>{{ selected.categoryIcon || 'home_repair_service' }}</mat-icon>
+                </div>
+                <div class="srv-meta">
+                  <div class="cat-chip">
+                    <mat-icon>label</mat-icon>
+                    <span>{{ selected.categoryName || 'Trade Offering' }}</span>
+                  </div>
+                  <h4>{{ selected.name }}</h4>
+                </div>
+              </div>
+
+              <p class="srv-desc-full">{{ selected.description }}</p>
+
+              <div class="benchmark-grid">
+                <div class="bench-item">
+                  <span class="bench-label">Pricing Model</span>
+                  <span class="bench-val model-pill" [class.hourly]="selected.pricingType === 1">
+                    {{ selected.pricingType === 1 ? 'Hourly Rate' : 'Fixed Price' }}
+                  </span>
+                </div>
+                <div class="bench-item">
+                  <span class="bench-label">Platform Benchmark</span>
+                  <span class="bench-val price-val">
+                    ${{ selected.basePrice }}<small>{{ selected.pricingType === 1 ? '/hr' : '' }}</small>
+                  </span>
+                </div>
+                <div class="bench-item">
+                  <span class="bench-label">Est. Duration</span>
+                  <span class="bench-val">
+                    <mat-icon>schedule</mat-icon> {{ selected.estimatedDurationMins }} mins
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT PANEL: Customization & Activation Form -->
+          <div class="studio-form-panel">
+            <!-- Alerts -->
+            @if (assignSuccess()) {
+              <div class="alert-box success-alert">
+                <mat-icon>check_circle</mat-icon>
+                <div>
+                  <strong>Service Successfully Assigned & Activated!</strong>
+                  <p>"{{ selected.name }}" is now live on your professional profile catalog.</p>
+                  <a routerLink="/professional-dashboard" class="btn-view-dash">View on Pro Dashboard &rarr;</a>
+                </div>
+              </div>
+            }
+
+            @if (assignError()) {
+              <div class="alert-box error-alert">
+                <mat-icon>error_outline</mat-icon>
+                <div>
+                  <strong>Failed to assign service</strong>
+                  <p>{{ assignError() }}</p>
+                </div>
+              </div>
+            }
+
+            <form [formGroup]="assignForm" (ngSubmit)="onAssignService()" class="studio-form">
+              <div class="form-inputs-row">
+                <!-- Custom Pricing -->
+                <mat-form-field appearance="outline" class="form-field-half">
+                  <mat-label>Your Custom Price ($ USD / ETB)</mat-label>
+                  <input matInput type="number" formControlName="customPrice" placeholder="e.g. 120" />
+                  <mat-icon matPrefix>attach_money</mat-icon>
+                  <mat-hint>Platform benchmark: ${{ selected.basePrice }} ({{ selected.pricingType === 0 ? 'Fixed' : 'Hourly' }})</mat-hint>
+                  @if (assignForm.get('customPrice')?.hasError('required')) {
+                    <mat-error>Custom price is required</mat-error>
+                  }
+                  @if (assignForm.get('customPrice')?.hasError('min')) {
+                    <mat-error>Price must be at least $1</mat-error>
+                  }
+                </mat-form-field>
+
+                <!-- Years of Experience in this Trade -->
+                <mat-form-field appearance="outline" class="form-field-half">
+                  <mat-label>Years of Experience in this Specialty</mat-label>
+                  <input matInput type="number" formControlName="experienceYears" placeholder="e.g. 5" />
+                  <mat-icon matPrefix>work_history</mat-icon>
+                  <mat-hint>Highlight specialized background to clients</mat-hint>
+                  @if (assignForm.get('experienceYears')?.hasError('required')) {
+                    <mat-error>Experience years is required</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="studio-actions">
+                <button mat-stroked-button type="button" (click)="clearSelectedService()">
+                  <mat-icon>arrow_downward</mat-icon> Choose Another Service
+                </button>
+                <button
+                  mat-raised-button
+                  color="primary"
+                  type="submit"
+                  class="btn-publish-service"
+                  [disabled]="assignForm.invalid || submitting()"
+                >
+                  @if (submitting()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                    <span>Publishing Offering...</span>
+                  } @else {
+                    <ng-container>
+                      <mat-icon>publish</mat-icon>
+                      <span>Publish Service to My Profile</span>
+                    </ng-container>
+                  }
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      } @else {
+        <!-- Empty Selection State directly inside Studio -->
+        <div class="studio-empty-selection">
+          <div class="empty-left">
+            <div class="placeholder-icon">
+              <mat-icon>touch_app</mat-icon>
+            </div>
+            <div class="empty-text">
+              <h3>Select a Trade Service from Catalog Below</h3>
+              <p>Choose any available service from the catalog directory to customize your personal rate, highlight experience, and publish directly to your professional profile.</p>
+            </div>
+          </div>
+
+          @if (filteredServices().length > 0) {
+            <div class="quick-pick-box">
+              <span class="quick-pick-title">Quick-Select Popular Trades:</span>
+              <div class="quick-pick-list">
+                @for (srv of filteredServices().slice(0, 4); track srv.id) {
+                  <button
+                    type="button"
+                    class="quick-pick-item"
+                                        (click)="selectService(srv)"
+                  >
+                    <mat-icon>{{ srv.categoryIcon || 'handyman' }}</mat-icon>
+                    <span class="srv-lbl">{{ srv.name }}</span>
+                    <span class="srv-price">${{ srv.basePrice }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </mat-card>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- FULL-WIDTH CATALOG & BROWSE DIRECTORY SECTION -->
+  <!-- ============================================================== -->
+  <section class="catalog-section">
+    <div class="section-title-row">
+      <div class="title-left">
+        <div class="sec-icon-wrap">
+          <mat-icon>storefront</mat-icon>
+        </div>
+        <div>
+          <h3>Available Platform Services Catalog</h3>
+          <p>Browse trade offerings across Addis Ababa. Select any offering to configure custom rates and publish.</p>
+        </div>
+      </div>
+
+      <div class="search-filter-box">
+        <div class="search-input-wrap">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            placeholder="Search service title, trade, or description..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+          />
+          @if (searchQuery()) {
+            <button mat-icon-button (click)="searchQuery.set('')" class="clear-btn">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Filter Chips -->
+    @if (categories().length > 0) {
+      <div class="category-chips-bar">
+        <button
+          class="filter-chip"
+          [class.active]="selectedCategoryId() === null"
+          (click)="selectCategory(null)"
+        >
+          <mat-icon>apps</mat-icon>
+          <span>All Services ({{ allServices().length }})</span>
+        </button>
+        @for (cat of categories(); track cat.id) {
+          <button
+            class="filter-chip"
+            [class.active]="selectedCategoryId() === cat.id"
+            (click)="selectCategory(cat.id)"
+          >
+            <mat-icon>{{ cat.iconUrl || 'handyman' }}</mat-icon>
+            <span>{{ cat.name }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Loading State -->
+    @if (loadingServices()) {
+      <div class="loading-state">
+        <mat-spinner diameter="40"></mat-spinner>
+        <span>Fetching platform services from admin catalog...</span>
+      </div>
+    } @else {
+      <!-- Services Cards Grid (Expansive, Multi-column, Full Width) -->
+      <div class="services-list-grid">
+        @for (service of filteredServices(); track service.id) {
+          <div
+            class="service-select-card"
+            [class.selected]="selectedService()?.id === service.id"
+                        (click)="selectService(service)"
+          >
+            <div class="card-header-row">
+              <span class="cat-badge">
+                <mat-icon>{{ service.categoryIcon || 'label' }}</mat-icon>
+                <span>{{ service.categoryName || 'General Trade' }}</span>
+              </span>
+              <span class="price-model-pill" [class.hourly]="service.pricingType === 1">
+                {{ service.pricingType === 1 ? 'Hourly Rate' : 'Fixed Price' }}
+              </span>
+            </div>
+
+            <div class="card-title-block">
+              <h4 class="srv-title">{{ service.name }}</h4>
+              <p class="srv-desc">{{ service.description }}</p>
+            </div>
+
+            <div class="card-footer-row">
+              <div class="price-tag">
+                <span class="lbl">Platform Base:</span>
+                <span class="amt">${{ service.basePrice }}<small>{{ service.pricingType === 1 ? '/hr' : '' }}</small></span>
+              </div>
+
+              <div class="duration-tag">
+                <mat-icon>timer</mat-icon>
+                <span>{{ service.estimatedDurationMins }} mins</span>
+              </div>
+
+              <div class="status-indicator">
+                <button mat-flat-button color="primary" class="btn-select" [class.selected-btn]="selectedService()?.id === service.id">
+                  {{ selectedService()?.id === service.id ? 'Selected' : 'Select Service' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state-card">
+            <mat-icon>search_off</mat-icon>
+            <h4>No services match your filter</h4>
+            <p>Try searching for different terms or switch categories.</p>
+            <button mat-stroked-button color="primary" (click)="selectCategory(null); searchQuery.set('')">
+              Reset Filters
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</div>
