@@ -1,0 +1,1113 @@
+<div class="customer-dashboard-container">
+  <!-- Top Navigation Header -->
+  <div class="dashboard-header">
+    <div class="user-meta">
+      <img [src]="customerProfile().avatarUrl" [alt]="customerProfile().name" class="user-avatar" />
+      <div class="user-info">
+        <div class="name-row">
+          <h2>{{ customerProfile().name }}</h2>
+          @if (customerProfile().isVerified) {
+            <span class="verified-pill"><mat-icon>verified</mat-icon> ID Verified Customer</span>
+          }
+        </div>
+        <p class="user-sub">{{ customerProfile().email }} &bull; {{ customerProfile().phone }} &bull; Member since {{ customerProfile().joinedDate }}</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Customer Notifications Bell Button -->
+      <a
+        mat-stroked-button
+        color="primary"
+        class="btn-notif-top"
+        routerLink="/customer-notifications"
+        title="Customer Notifications"
+      >
+        <mat-icon
+          [matBadge]="notificationService.unreadCustomerCount()"
+          [matBadgeHidden]="notificationService.unreadCustomerCount() === 0"
+          matBadgeColor="warn"
+          matBadgeSize="small"
+        >notifications</mat-icon>
+        <span>Notifications</span>
+      </a>
+
+      <!-- My Booked Services Dedicated Page Redirection Button -->
+      <a
+        mat-raised-button
+        color="primary"
+        class="btn-booked-top primary-glow"
+        routerLink="/customer-booked-services"
+        title="View My Booked Services & Escrow Orders"
+      >
+        <mat-icon>home_repair_service</mat-icon>
+        <span>My Booked Services</span>
+      </a>
+
+      <button mat-stroked-button color="accent" class="btn-fav-top" (click)="setTab('favorites')">
+        <mat-icon>favorite</mat-icon>
+        <span>Favorites ({{ favoriteServices().length + favoriteProfessionals().length }})</span>
+      </button>
+
+      <button mat-stroked-button color="primary" routerLink="/customer-services">
+        <mat-icon>search</mat-icon> Book Service
+      </button>
+
+      
+      <button
+        mat-stroked-button
+        color="warn"
+        class="btn-report-header"
+        type="button"
+        (click)="openReportModal()"
+        title="Report Abuse, Safety Concern or App Issue"
+      >
+        <mat-icon>report_problem</mat-icon>
+        <span>Report Abuse</span>
+      </button>
+<button
+        mat-stroked-button
+        color="warn"
+        class="btn-signout-header"
+        type="button"
+        (click)="openSignoutConfirm()"
+        title="Sign Out of Customer Dashboard"
+      >
+        <mat-icon>logout</mat-icon>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contextual Customer Record Banner -->
+  @if (routeCustomerId()) {
+    <div class="active-customer-banner">
+      <div class="banner-left">
+        <mat-icon>person_pin</mat-icon>
+        <div class="banner-text">
+          <span class="banner-title">Viewing Customer Dashboard Record</span>
+          <span class="banner-id">User / Service ID: <code>{{ routeCustomerId() }}</code></span>
+        </div>
+      </div>
+      <a routerLink="/customer-services" class="back-services-btn">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Services Catalog</span>
+      </a>
+    </div>
+  }
+
+  <!-- Feedback Banner -->
+  @if (feedbackMessage()) {
+    <div class="success-banner">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ feedbackMessage() }}</span>
+    </div>
+  }
+
+  <!-- Tab Navigation Strip -->
+  <div class="dashboard-nav-tabs">
+    <!-- Booked Services Redirection Link -->
+    <a
+      class="nav-tab-btn nav-tab-redirect"
+      routerLink="/customer-booked-services"
+      title="Open My Booked Services & Escrow Orders page"
+    >
+      <mat-icon>home_repair_service</mat-icon>
+      <span>Booked Services ↗</span>
+    </a>
+
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'profile'"
+      (click)="setTab('profile')"
+    >
+      <mat-icon>manage_accounts</mat-icon>
+      <span>Profile & Addresses</span>
+    </button>
+
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'favorites'"
+      (click)="setTab('favorites')"
+    >
+      <mat-icon>favorite</mat-icon>
+      <span>Favorites ({{ favoriteServices().length + favoriteProfessionals().length }})</span>
+    </button>
+
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'payments'"
+      (click)="setTab('payments')"
+    >
+      <mat-icon>account_balance_wallet</mat-icon>
+      <span>Payments & Invoices</span>
+    </button>
+
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'reviews'"
+      (click)="setTab('reviews')"
+    >
+      <mat-icon>rate_review</mat-icon>
+      <span>Reviews & Feedback</span>
+    </button>
+
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'chats'"
+      (click)="setTab('chats')"
+    >
+      <mat-icon>chat</mat-icon>
+      <span>Messages & Chats</span>
+    </button>
+
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'oversight'"
+      (click)="setTab('oversight')"
+    >
+      <mat-icon>security</mat-icon>
+      <span>Admin Oversight</span>
+    </button>
+  </div>
+
+  <!-- TAB: PROFILE & SAVED ADDRESSES -->
+  @if (activeTab() === 'profile') {
+    <div class="tab-content profile-grid">
+      <!-- Personal Info Card -->
+      <mat-card appearance="outlined" class="info-card">
+        <mat-card-header class="profile-card-header">
+          <div>
+            <mat-card-title>Personal Profile</mat-card-title>
+            <mat-card-subtitle>Manage contact info, photo and verification</mat-card-subtitle>
+          </div>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            class="btn-edit-profile"
+            (click)="openEditProfileModal()"
+          >
+            <mat-icon>edit</mat-icon>
+            <span>Edit Profile</span>
+          </button>
+        </mat-card-header>
+
+        <mat-card-content class="profile-details-content">
+          <!-- Profile Photo Uploader Hero -->
+          <div class="profile-avatar-row">
+            <div class="avatar-uploader-wrapper">
+              <img
+                [src]="customerProfile().avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80'"
+                [alt]="customerProfile().name"
+                class="avatar-preview-img"
+              />
+              @if (isUploadingPhoto()) {
+                <div class="avatar-upload-overlay">
+                  <mat-spinner diameter="32"></mat-spinner>
+                  <span>Uploading...</span>
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  class="avatar-change-badge"
+                  (click)="photoFileInput.click()"
+                  title="Upload New Profile Photo"
+                >
+                  <mat-icon>photo_camera</mat-icon>
+                </button>
+              }
+              <input
+                #photoFileInput
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                (change)="onPhotoSelected($event)"
+                style="display: none"
+              />
+            </div>
+            <div class="avatar-helper-text">
+              <strong>Profile Photo</strong>
+              <p>JPG, PNG, WebP or GIF up to 5MB. Clear face photo recommended for trust & safety.</p>
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                class="btn-upload-trigger"
+                (click)="photoFileInput.click()"
+                [disabled]="isUploadingPhoto()"
+              >
+                <mat-icon>cloud_upload</mat-icon>
+                <span>{{ isUploadingPhoto() ? 'Uploading Photo...' : 'Upload New Photo' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <span class="label">Full Name:</span>
+            <strong>{{ customerProfile().name }}</strong>
+          </div>
+          <div class="detail-row">
+            <span class="label">Email Address:</span>
+            <span>{{ customerProfile().email }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Phone Number:</span>
+            <span>{{ customerProfile().phone }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Customer ID:</span>
+            <code>{{ customerProfile().userId }}</code>
+          </div>
+          <div class="detail-row">
+            <span class="label">Verification Status:</span>
+            <span class="verified-text"><mat-icon>verified</mat-icon> e-KYC Identity Approved</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Saved Addresses Card -->
+      <mat-card appearance="outlined" class="addresses-card">
+        <mat-card-header class="address-header">
+          <div>
+            <mat-card-title>Saved Service Addresses</mat-card-title>
+            <mat-card-subtitle>Sub-City & Neighborhood destinations for technicians</mat-card-subtitle>
+          </div>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            (click)="showAddAddress.set(!showAddAddress())"
+          >
+            <mat-icon>{{ showAddAddress() ? 'close' : 'add' }}</mat-icon>
+            <span>{{ showAddAddress() ? 'Cancel' : 'Add Address' }}</span>
+          </button>
+        </mat-card-header>
+
+        <mat-card-content>
+          @if (showAddAddress()) {
+            <div class="add-address-wrapper">
+              <app-address-picker
+                [formTitle]="'Add New Service Address'"
+                [submitButtonText]="'Save Address'"
+                [showCancel]="true"
+                [defaultPhone]="customerProfile().phone"
+                (addressSaved)="onAddressSaved($event)"
+                (cancelClicked)="showAddAddress.set(false)"
+              ></app-address-picker>
+            </div>
+          }
+
+          <div class="address-items-list">
+            @if (locationService.loading()) {
+              <div class="loading-state">
+                <mat-spinner diameter="24"></mat-spinner>
+                <span>Loading saved addresses...</span>
+              </div>
+            } @else if (locationService.myAddresses().length === 0) {
+              <div class="empty-addr-state">
+                <mat-icon>location_off</mat-icon>
+                <p>No saved addresses yet. Add your sub-city and neighborhood to speed up booking.</p>
+              </div>
+            } @else {
+              @for (addr of locationService.myAddresses(); track (addr.id || $index)) {
+                <div class="address-item" [class.primary-addr]="addr.isDefault">
+                  <div class="addr-icon-wrap">
+                    <mat-icon>location_on</mat-icon>
+                  </div>
+                  <div class="addr-details">
+                    <div class="addr-title-row">
+                      <strong>{{ addr.label || 'Saved Address' }}</strong>
+                      @if (addr.subCityName) {
+                        <span class="subcity-badge">{{ addr.subCityName }}</span>
+                      }
+                      @if (addr.isDefault) {
+                        <span class="default-badge">Primary</span>
+                      }
+                    </div>
+                    <p class="addr-text">
+                      <strong>{{ addr.neighborhoodName || addr.neighborhoodId || 'Addis Ababa' }}</strong>
+                      @if (addr.landmark) {
+                        <span class="addr-landmark"> &bull; {{ addr.landmark }}</span>
+                      }
+                    </p>
+                    <div class="addr-meta-row">
+                      @if (addr.primaryPhone) {
+                        <span class="meta-item"><mat-icon>phone</mat-icon> {{ addr.primaryPhone }}</span>
+                      }
+                      @if (addr.latitude && addr.longitude) {
+                        <button
+                          type="button"
+                          class="meta-item map-interactive-btn"
+                          (click)="openAddressMap(addr)"
+                          title="Open Interactive Google Map inside Callbet"
+                        >
+                          <mat-icon>map</mat-icon> View Map ({{ addr.latitude.toFixed(4) }}, {{ addr.longitude.toFixed(4) }})
+                        </button>
+                        <a
+                          [href]="'https://www.google.com/maps/search/?api=1&query=' + addr.latitude + ',' + addr.longitude"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="meta-item map-link"
+                          title="Open in Google Maps App / Website"
+                        >
+                          <mat-icon>open_in_new</mat-icon> Google Maps ↗
+                        </a>
+                      }
+                    </div>
+                  </div>
+                  <button mat-icon-button color="warn" (click)="deleteAddress(addr.id!)" title="Delete address">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              }
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- TAB 3: PAYMENTS & ESCROW LEDGER -->
+  @if (activeTab() === 'payments') {
+    <div class="tab-content">
+      <!-- Escrow Balance Overview Cards -->
+      <div class="escrow-metrics-row">
+        <div class="metric-card held-card">
+          <div class="metric-val">${{ totalHeldInEscrow() }}</div>
+          <div class="metric-lbl">Safely Held in Escrow</div>
+          <span class="metric-desc">Released only upon your inspection and approval</span>
+        </div>
+        <div class="metric-card released-card">
+          <div class="metric-val">${{ totalReleased() }}</div>
+          <div class="metric-lbl">Total Completed & Released</div>
+          <span class="metric-desc">Disbursed to verified technicians for completed work</span>
+        </div>
+      </div>
+
+      <!-- Transaction History Table Card -->
+      <mat-card appearance="outlined" class="payments-table-card">
+        <mat-card-header>
+          <mat-card-title>Transaction & Escrow Ledger</mat-card-title>
+          <mat-card-subtitle>Detailed audit trail of all payments and escrow security holds</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <table class="dashboard-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Service & Job</th>
+                <th>Transaction ID</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Receipt</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (pay of payments(); track pay.id) {
+                <tr>
+                  <td>{{ pay.date }}</td>
+                  <td><strong>{{ pay.serviceName }}</strong></td>
+                  <td><code>{{ pay.transactionId }}</code></td>
+                  <td class="table-amount">${{ pay.amount }}</td>
+                  <td>
+                    <span
+                      class="pay-status-pill"
+                      [class.status-held]="pay.status === 'Held in Escrow'"
+                      [class.status-released]="pay.status === 'Released'"
+                    >
+                      {{ pay.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <button mat-stroked-button color="primary" class="btn-sm" (click)="viewReceipt(pay)">
+                      <mat-icon>receipt</mat-icon> Invoice
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- TAB 4: REVIEWS & FEEDBACK -->
+  @if (activeTab() === 'reviews') {
+    <div class="tab-content">
+      <mat-card appearance="outlined" class="reviews-history-card">
+        <mat-card-header>
+          <mat-card-title>My Verified Reviews & Ratings</mat-card-title>
+          <mat-card-subtitle>Feedback provided to service technicians and their responses</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="reviews-feed">
+            @for (rev of reviews(); track rev.id) {
+              <div class="review-item-card">
+                <div class="rev-header">
+                  <div>
+                    <h4 class="rev-service-title">{{ rev.serviceName }}</h4>
+                    <span class="rev-pro-name">Technician: <strong>{{ rev.professionalName }}</strong></span>
+                  </div>
+                  <div class="rev-rating">
+                    @for (star of [1, 2, 3, 4, 5]; track star) {
+                      <mat-icon [class.star-filled]="star <= rev.rating">star</mat-icon>
+                    }
+                    <span class="rating-num">({{ rev.rating }}.0)</span>
+                  </div>
+                </div>
+
+                <p class="rev-comment">"{{ rev.comment }}"</p>
+                <span class="rev-date">Posted on {{ rev.date }}</span>
+
+                @if (rev.reply) {
+                  <div class="pro-reply-box">
+                    <div class="reply-header">
+                      <mat-icon>reply</mat-icon>
+                      <strong>Reply from {{ rev.professionalName }}</strong>
+                      <span class="reply-date">{{ rev.reply.date }}</span>
+                    </div>
+                    <p class="reply-text">{{ rev.reply.comment }}</p>
+                  </div>
+                }
+              </div>
+            } @empty {
+              <div class="empty-state">
+                <mat-icon>star_border</mat-icon>
+                <h4>No reviews submitted yet</h4>
+                <p>Complete a job to leave genuine ratings and reviews for technicians.</p>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- TAB 5: CHATS & MESSAGES -->
+  @if (activeTab() === 'chats') {
+    <div class="tab-content chat-section-grid">
+      <!-- Active Conversations List -->
+      <mat-card appearance="outlined" class="conversations-sidebar">
+        <mat-card-header>
+          <mat-card-title>Conversations</mat-card-title>
+        </mat-card-header>
+        <div class="session-list">
+          @if (chatService.loadingSessions()) {
+            <div class="chat-loading"><mat-spinner diameter="28"></mat-spinner></div>
+          } @else if (chatService.sessions().length === 0) {
+            <div class="empty-sessions-notice">
+              <mat-icon>chat_bubble_outline</mat-icon>
+              <p>No active conversations yet.</p>
+              <span>Conversations start automatically when you book a job or message a technician.</span>
+            </div>
+          } @else {
+            @for (s of chatService.sessions(); track s.id) {
+              <div
+                class="chat-contact-item"
+                [class.active]="(selectedSession()?.id === s.id)"
+                (click)="selectChatSession(s)"
+              >
+                <div class="contact-avatar">
+                  @if (s.professionalAvatar) {
+                    <img [src]="s.professionalAvatar" alt="Avatar" class="avatar-img" />
+                  } @else {
+                    {{ (s.professionalName || 'Pro').substring(0, 2).toUpperCase() }}
+                  }
+                </div>
+                <div class="contact-info">
+                  <strong>{{ s.professionalName || 'Service Professional' }}</strong>
+                  <span class="last-msg-preview">{{ s.lastMessage || 'Click to open chat' }}</span>
+                </div>
+                @if (s.unreadCount && s.unreadCount > 0) {
+                  <span class="unread-pill">{{ s.unreadCount }}</span>
+                }
+              </div>
+            }
+          }
+        </div>
+      </mat-card>
+
+      <!-- Chat Conversation Box -->
+      <mat-card appearance="outlined" class="chat-box-card">
+        @if (selectedSession(); as activeSess) {
+          <div class="chat-box-header">
+            <div class="contact-header-info">
+              <strong>{{ activeSess.professionalName || 'Service Professional' }}</strong>
+            </div>
+          </div>
+
+          <div class="messages-stream">
+            @if (chatService.loadingMessages()) {
+              <div class="chat-loading"><mat-spinner diameter="28"></mat-spinner></div>
+            } @else if (chatService.activeMessages().length === 0) {
+              <div class="empty-chat-state">
+                <mat-icon>forum</mat-icon>
+                <p>No messages in this chat yet.</p>
+                <span>Type a message below to start communicating.</span>
+              </div>
+            } @else {
+              @for (msg of chatService.activeMessages(); track msg.id || $index) {
+                <div
+                  class="message-bubble-row"
+                  [class.outgoing]="isMyMessage(msg)"
+                >
+                  <div class="message-bubble">
+                    <p class="msg-text">{{ msg.content }}</p>
+                    <div class="msg-meta">
+                      <span class="msg-time">{{ formatMsgTime(msg.sentAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+              }
+            }
+
+            @if (chatService.isOtherUserTyping()) {
+              <div class="typing-indicator-row">
+                <div class="typing-bubble">
+                  <span class="t-dot"></span><span class="t-dot"></span><span class="t-dot"></span>
+                  <small>Technician is typing...</small>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="chat-input-bar">
+            <input
+              type="text"
+              [(ngModel)]="newChatMessage"
+              (input)="onTyping()"
+              placeholder="Type instructions or message for the technician..."
+              (keyup.enter)="sendChatMessage()"
+              [disabled]="chatService.sendingMessage()"
+            />
+            <button
+              mat-raised-button
+              color="primary"
+              type="button"
+              (click)="sendChatMessage()"
+              [disabled]="chatService.sendingMessage() || !newChatMessage().trim()"
+            >
+              @if (chatService.sendingMessage()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>send</mat-icon>
+              }
+            </button>
+          </div>
+        } @else {
+          <div class="empty-chat-state-full">
+            <mat-icon>chat</mat-icon>
+            <h3>No Conversation Selected</h3>
+            <p>Select a conversation from the list on the left to view messages.</p>
+          </div>
+        }
+      </mat-card>
+    </div>
+  }
+
+  <!-- TAB 6: ADMIN OVERSIGHT -->
+  @if (activeTab() === 'oversight') {
+    <div class="tab-content">
+      <mat-card appearance="outlined" class="oversight-card">
+        <mat-card-header>
+          <mat-card-title>Account Trust & Escrow Guarantee Audit</mat-card-title>
+          <mat-card-subtitle>Platform compliance, verified status, and escrow guarantee records</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="oversight-logs-list">
+            @for (log of oversightLogs(); track log.id) {
+              <div class="log-row">
+                <div class="log-icon-wrap"><mat-icon>verified</mat-icon></div>
+                <div class="log-body">
+                  <div class="log-title-row">
+                    <strong>{{ log.type }}</strong>
+                    <span class="log-status-badge">{{ log.status }}</span>
+                  </div>
+                  <p class="log-desc">{{ log.description }}</p>
+                  <span class="log-date">Verified on: {{ log.date }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- TAB 7: FAVORITES & BOOKMARKS -->
+  @if (activeTab() === 'favorites') {
+    <div class="tab-content">
+      <!-- Sub Tab Switcher -->
+      <div class="fav-sub-tabs-strip">
+        <button
+          class="fav-sub-pill"
+          [class.active]="favoriteSubTab() === 'services'"
+          (click)="setFavoriteSubTab('services')"
+        >
+          <mat-icon>home_repair_service</mat-icon>
+          <span>Bookmarked Services ({{ favoriteServices().length }})</span>
+        </button>
+
+        <button
+          class="fav-sub-pill"
+          [class.active]="favoriteSubTab() === 'professionals'"
+          (click)="setFavoriteSubTab('professionals')"
+        >
+          <mat-icon>engineering</mat-icon>
+          <span>Bookmarked Professionals ({{ favoriteProfessionals().length }})</span>
+        </button>
+      </div>
+
+      <!-- 1. FAVORITE SERVICES -->
+      @if (favoriteSubTab() === 'services') {
+        <div class="favorites-grid">
+          @for (srv of favoriteServices(); track srv.id) {
+            <mat-card appearance="outlined" class="fav-item-card">
+              <mat-card-header>
+                <mat-card-title>{{ srv.serviceName }}</mat-card-title>
+                <mat-card-subtitle>
+                  {{ srv.categoryName || 'Home Service' }} &bull; By
+                  <a [routerLink]="['/professional-dashboard-detail', srv.professionalProfileId || srv.id]" class="pro-link">
+                    {{ srv.professionalName }}
+                  </a>
+                </mat-card-subtitle>
+              </mat-card-header>
+
+              <mat-card-content>
+                <p class="fav-desc">{{ srv.serviceDescription || srv.description }}</p>
+                <div class="fav-meta-row">
+                  <div class="fav-price">
+                    <span class="price-val">ETB {{ srv.basePrice || srv.price || 0 }}</span>
+                    <span class="price-type">{{ srv.pricingType === 1 || srv.pricingType === 'Hourly' ? 'Hourly' : 'Fixed' }}</span>
+                  </div>
+                  @if (srv.estimatedDurationMins) {
+                    <div class="fav-duration-badge" title="Estimated service duration">
+                      <mat-icon>schedule</mat-icon>
+                      <span>{{ srv.estimatedDurationMins }} mins</span>
+                    </div>
+                  }
+                  <div class="fav-rating">
+                    <mat-icon>star</mat-icon>
+                    <span>{{ srv.rating || '5.0' }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+
+              <mat-card-actions align="end" class="fav-card-actions">
+                <button
+                  mat-icon-button
+                  color="warn"
+                  title="Remove from favorites"
+                  (click)="removeFavoriteService(srv.serviceId || srv.id)"
+                >
+                  <mat-icon>favorite</mat-icon>
+                </button>
+                <a
+                  mat-stroked-button
+                  color="primary"
+                  [routerLink]="['/professional-dashboard-detail', srv.professionalProfileId || srv.id]"
+                >
+                  <mat-icon>person_search</mat-icon> View Pro
+                </a>
+                <a
+                  mat-raised-button
+                  color="primary"
+                  routerLink="/customer-services"
+                >
+                  <mat-icon>bookmark_add</mat-icon> Book Service
+                </a>
+              </mat-card-actions>
+            </mat-card>
+          } @empty {
+            <div class="empty-fav-box">
+              <mat-icon>favorite_border</mat-icon>
+              <h4>No Favorite Services Saved Yet</h4>
+              <p>Explore the services catalog and click the heart icon to save services for quick booking.</p>
+              <a mat-raised-button color="primary" routerLink="/customer-services">
+                <mat-icon>search</mat-icon> Browse Services Catalog
+              </a>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- 2. FAVORITE PROFESSIONALS -->
+      @if (favoriteSubTab() === 'professionals') {
+        <div class="favorites-grid">
+          @for (pro of favoriteProfessionals(); track pro.id) {
+            <mat-card appearance="outlined" class="fav-item-card pro-fav-card">
+              <div class="pro-fav-header">
+                <img [src]="pro.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'" [alt]="pro.name" class="pro-fav-avatar" />
+                <div class="pro-fav-info">
+                  <div class="pro-name-row">
+                    <strong>{{ pro.name }}</strong>
+                    @if (pro.isVerified) {
+                      <span class="verified-tag"><mat-icon>verified</mat-icon> Verified</span>
+                    }
+                  </div>
+                  <p class="pro-headline-sub">{{ pro.headline }}</p>
+                  <span class="pro-loc-sub">{{ pro.location }}</span>
+                </div>
+              </div>
+
+              <mat-card-content>
+                <div class="pro-stats-strip">
+                  <div class="stat-pill"><mat-icon>star</mat-icon> {{ pro.rating }} Rating</div>
+                  <div class="stat-pill"><mat-icon>done_all</mat-icon> {{ pro.completedJobsCount }} Jobs</div>
+                  <div class="stat-pill"><mat-icon>payments</mat-icon> ${{ pro.hourlyRate }}/hr</div>
+                  <div class="stat-pill"><mat-icon>near_me</mat-icon> {{ pro.serviceRadiusKm }} km</div>
+                </div>
+              </mat-card-content>
+
+              <mat-card-actions align="end" class="fav-card-actions">
+                <button
+                  mat-icon-button
+                  color="warn"
+                  title="Remove from favorites"
+                  (click)="removeFavoriteProfessional(pro.professionalProfileId || pro.id)"
+                >
+                  <mat-icon>favorite</mat-icon>
+                </button>
+                <a
+                  mat-raised-button
+                  color="primary"
+                  [routerLink]="['/professional-dashboard-detail', pro.professionalProfileId || pro.id]"
+                >
+                  <mat-icon>badge</mat-icon> View Full Profile & Book
+                </a>
+              </mat-card-actions>
+            </mat-card>
+          } @empty {
+            <div class="empty-fav-box">
+              <mat-icon>favorite_border</mat-icon>
+              <h4>No Favorite Professionals Saved Yet</h4>
+              <p>Bookmark master technicians and artisans to easily rehire them anytime.</p>
+              <a mat-raised-button color="primary" routerLink="/customer-services">
+                <mat-icon>search</mat-icon> Explore Professionals
+              </a>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- LEAVE REVIEW MODAL OVERLAY -->
+  @if (selectedJobForReview(); as job) {
+    <div class="booking-modal-backdrop" (click)="closeReviewModal()">
+      <div class="booking-modal-content" (click)="$event.stopPropagation()">
+        <mat-card appearance="outlined" class="modal-card">
+          <mat-card-header>
+            <mat-card-title>Leave Review for {{ job.professionalName }}</mat-card-title>
+            <mat-card-subtitle>Service: {{ job.serviceName }} &bull; Escrow Amount: ${{ job.price }}</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <form [formGroup]="reviewForm" (ngSubmit)="submitReview()" class="review-form">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Overall Rating (1 to 5 Stars)</mat-label>
+                <mat-select formControlName="rating">
+                  <mat-option [value]="5">⭐⭐⭐⭐⭐ 5 Stars - Exceptional Work</mat-option>
+                  <mat-option [value]="4">⭐⭐⭐⭐ 4 Stars - Very Good</mat-option>
+                  <mat-option [value]="3">⭐⭐⭐ 3 Stars - Satisfactory</mat-option>
+                  <mat-option [value]="2">⭐⭐ 2 Stars - Needs Improvement</mat-option>
+                  <mat-option [value]="1">⭐ 1 Star - Unsatisfactory</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Your Review & Feedback</mat-label>
+                <textarea
+                  matInput
+                  formControlName="comment"
+                  rows="4"
+                  placeholder="Share details regarding timeliness, craftsmanship, cleanliness, and communication..."
+                ></textarea>
+              </mat-form-field>
+
+              <div class="modal-actions">
+                <button mat-button type="button" (click)="closeReviewModal()">Cancel</button>
+                <button mat-raised-button color="primary" type="submit" [disabled]="reviewForm.invalid">
+                  Submit Verified Review
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
+
+  <!-- VIEW RECEIPT MODAL OVERLAY -->
+  @if (selectedReceipt(); as r) {
+    <div class="booking-modal-backdrop" (click)="closeReceipt()">
+      <div class="booking-modal-content" (click)="$event.stopPropagation()">
+        <mat-card appearance="outlined" class="modal-card receipt-card">
+          <mat-card-header>
+            <mat-card-title>Official Escrow Receipt & Invoice</mat-card-title>
+            <mat-card-subtitle>Callbet Escrow Services Ethiopia</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="receipt-body">
+            <div class="receipt-meta-row">
+              <span>Transaction ID:</span>
+              <code>{{ r.transactionId }}</code>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Date:</span>
+              <strong>{{ r.date }}</strong>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Service:</span>
+              <strong>{{ r.serviceName }}</strong>
+            </div>
+            <div class="receipt-meta-row">
+              <span>Status:</span>
+              <span class="pay-status-pill status-released">{{ r.status }}</span>
+            </div>
+            <hr class="receipt-divider" />
+            <div class="receipt-total-row">
+              <span>Total Paid:</span>
+              <span class="receipt-total-amount">${{ r.amount }}</span>
+            </div>
+            <p class="receipt-footer-note">Payment processed and verified with Callbet Escrow ledger guarantee.</p>
+
+            <div class="modal-actions">
+              <button mat-raised-button color="primary" type="button" (click)="closeReceipt()">
+                Close Invoice
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
+
+  <!-- SIGN OUT CONFIRMATION MODAL OVERLAY -->
+  @if (showSignoutConfirm()) {
+    <div class="signout-modal-backdrop" (click)="closeSignoutConfirm()">
+      <div class="signout-modal-dialog" (click)="$event.stopPropagation()">
+        <!-- Icon Badge -->
+        <div class="signout-icon-shield">
+          <mat-icon>logout</mat-icon>
+        </div>
+
+        <!-- Header -->
+        <div class="signout-modal-head">
+          <h3>Do you want to sign out?</h3>
+          <p class="signout-modal-sub">
+            Are you sure you want to end your active customer session on Callbet?
+          </p>
+        </div>
+
+        <!-- Current User Session Summary Card -->
+        <div class="session-user-summary">
+          <div class="user-avatar-badge">
+            {{ customerProfile().name ? customerProfile().name.charAt(0).toUpperCase() : 'C' }}
+          </div>
+          <div class="user-identity">
+            <strong class="user-fullname">{{ customerProfile().name }}</strong>
+            <span class="user-email-address">{{ customerProfile().email }}</span>
+          </div>
+          <span class="active-session-pill">
+            <span class="pulse-dot"></span> Active Session
+          </span>
+        </div>
+
+        <!-- Security / Guarantee Notice -->
+        <div class="signout-security-notice">
+          <mat-icon>shield</mat-icon>
+          <span>Your escrow funds and active job bookings will remain securely protected until you sign in again.</span>
+        </div>
+
+        <!-- Modal Actions Grid -->
+        <div class="signout-modal-actions">
+          <button
+            mat-stroked-button
+            type="button"
+            class="btn-modal-cancel"
+            (click)="closeSignoutConfirm()"
+          >
+            <mat-icon>close</mat-icon>
+            <span>Stay Signed In</span>
+          </button>
+
+          <button
+            mat-raised-button
+            color="warn"
+            type="button"
+            class="btn-modal-confirm"
+            (click)="confirmSignout()"
+          >
+            <mat-icon>logout</mat-icon>
+            <span>Yes, Sign Out</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- EDIT PROFILE MODAL DIALOG -->
+  @if (showEditProfileModal()) {
+    <div class="profile-modal-backdrop" (click)="closeEditProfileModal()">
+      <div class="profile-modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <mat-icon class="header-icon">badge</mat-icon>
+            <div>
+              <h3>Edit Personal Profile</h3>
+              <p class="modal-subtitle">Update your full name and primary phone number</p>
+            </div>
+          </div>
+          <button mat-icon-button (click)="closeEditProfileModal()" type="button">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="profileEditForm" (ngSubmit)="submitEditProfile()" class="edit-profile-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field half">
+              <mat-label>First Name</mat-label>
+              <input matInput formControlName="firstName" placeholder="e.g. Abebech" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field half">
+              <mat-label>Last Name</mat-label>
+              <input matInput formControlName="lastName" placeholder="e.g. Tadesse" />
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Phone Number</mat-label>
+            <input matInput formControlName="phone" placeholder="e.g. +251 91 123 4567" />
+            <mat-icon matPrefix>phone</mat-icon>
+          </mat-form-field>
+
+          <div class="modal-actions">
+            <button mat-stroked-button type="button" (click)="closeEditProfileModal()">
+              Cancel
+            </button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="profileEditForm.invalid">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Interactive Location Map Modal -->
+  @if (activeMapModalAddress(); as mapAddr) {
+    <app-map-modal
+      [isOpen]="true"
+      [latitude]="mapAddr.latitude"
+      [longitude]="mapAddr.longitude"
+      [title]="mapAddr.label ? mapAddr.label + ' - Location Map' : 'Service Location Map'"
+      [subtitle]="(mapAddr.subCityName ? mapAddr.subCityName + ', ' : '') + (mapAddr.neighborhoodName || 'Addis Ababa') + (mapAddr.landmark ? ' • ' + mapAddr.landmark : '')"
+      (close)="closeAddressMap()"
+    ></app-map-modal>
+  }
+
+  <!-- Report Abuse / App Issue Modal -->
+  @if (showReportModal()) {
+    <div class="report-modal-backdrop" (click)="closeReportModal()">
+      <div class="report-modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="report-header-icon-wrap">
+              <mat-icon class="header-icon">flag</mat-icon>
+            </div>
+            <div>
+              <h3>Report Abuse or App Issue</h3>
+              <p class="modal-subtitle">Submit concerns regarding app behavior, user safety, or system issues</p>
+            </div>
+          </div>
+          <button mat-icon-button (click)="closeReportModal()" type="button" [disabled]="reportSubmitting()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        @if (reportSuccessMessage()) {
+          <div class="report-alert-banner success">
+            <mat-icon>check_circle</mat-icon>
+            <div>
+              <strong>Report Received!</strong>
+              <p>{{ reportSuccessMessage() }}</p>
+            </div>
+          </div>
+        }
+
+        @if (reportErrorMessage()) {
+          <div class="report-alert-banner error">
+            <mat-icon>error_outline</mat-icon>
+            <div>
+              <strong>Submission Failed</strong>
+              <p>{{ reportErrorMessage() }}</p>
+            </div>
+          </div>
+        }
+
+        <form [formGroup]="reportForm" (ngSubmit)="submitReportAbuse()" class="report-form">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Issue Category</mat-label>
+            <mat-select formControlName="category">
+              @for (cat of reportCategories; track cat) {
+                <mat-option [value]="cat">{{ cat }}</mat-option>
+              }
+            </mat-select>
+            <mat-icon matPrefix>category</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Subject / Short Reason</mat-label>
+            <input matInput formControlName="reason" placeholder="e.g. Broken escrow checkout or inappropriate profile content" maxlength="200" />
+            <mat-icon matPrefix>edit_note</mat-icon>
+            <mat-hint align="end">{{ reportForm.get('reason')?.value?.length || 0 }}/200</mat-hint>
+            @if (reportForm.get('reason')?.hasError('required') && reportForm.get('reason')?.touched) {
+              <mat-error>Subject or reason is required.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Detailed Description & Facts</mat-label>
+            <textarea
+              matInput
+              formControlName="details"
+              rows="4"
+              placeholder="Provide specific details about what happened, steps to reproduce, or incident description..."
+              maxlength="1000"
+            ></textarea>
+            <mat-hint align="end">{{ reportForm.get('details')?.value?.length || 0 }}/1000</mat-hint>
+            @if (reportForm.get('details')?.hasError('required') && reportForm.get('details')?.touched) {
+              <mat-error>Please provide details for the report.</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="modal-actions">
+            <button mat-stroked-button type="button" (click)="closeReportModal()" [disabled]="reportSubmitting()">
+              Cancel
+            </button>
+            <button
+              mat-raised-button
+              color="warn"
+              type="submit"
+              [disabled]="reportForm.invalid || reportSubmitting()"
+            >
+              @if (reportSubmitting()) {
+                <mat-spinner diameter="18"></mat-spinner>
+                <span>Submitting...</span>
+              } @else {
+                <mat-icon>send</mat-icon>
+                <span>Submit Report</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>
