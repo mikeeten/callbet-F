@@ -1,0 +1,144 @@
+<div class="admin-reg-container">
+  <div class="admin-reg-wrapper">
+    <!-- Brand Header -->
+    <div class="admin-reg-brand">
+      <div class="shield-icon-wrap">
+        <mat-icon>admin_panel_settings</mat-icon>
+      </div>
+      <h2>CALLBET ADMIN ONBOARDING</h2>
+      <p>Provision System Administrator credentials with full platform oversight permissions</p>
+    </div>
+
+    <!-- Alert Banners -->
+    @if (errorMessage()) {
+      <div class="alert-banner error-banner">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    @if (successMessage()) {
+      <div class="alert-banner success-banner">
+        <mat-icon>check_circle</mat-icon>
+        <span>{{ successMessage() }}</span>
+      </div>
+    }
+
+    <!-- Registration Card -->
+    <mat-card appearance="outlined" class="admin-card">
+      <mat-card-header class="card-header">
+        <mat-card-title>Register System Administrator</mat-card-title>
+        <mat-card-subtitle>Admin credentials will be granted full access to user management, escrow, and audit logs</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- One-click Demo Autofill Button -->
+        <div class="autofill-row">
+          <button mat-stroked-button color="accent" type="button" (click)="fillDemoAdmin()" class="btn-autofill">
+            <mat-icon>auto_fix_high</mat-icon>
+            <span>Fill Demo Admin Credentials</span>
+          </button>
+        </div>
+
+        <form [formGroup]="adminForm" (ngSubmit)="onSubmit()" class="admin-form">
+          <!-- Name Row -->
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-col">
+              <mat-label>First Name</mat-label>
+              <input matInput formControlName="firstName" placeholder="Head" />
+              <mat-icon matPrefix>badge</mat-icon>
+              @if (adminForm.get('firstName')?.hasError('required') && adminForm.get('firstName')?.touched) {
+                <mat-error>First name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-col">
+              <mat-label>Last Name</mat-label>
+              <input matInput formControlName="lastName" placeholder="Admin" />
+              <mat-icon matPrefix>badge</mat-icon>
+              @if (adminForm.get('lastName')?.hasError('required') && adminForm.get('lastName')?.touched) {
+                <mat-error>Last name is required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <!-- Email -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Administrator Email</mat-label>
+            <input matInput type="email" formControlName="email" placeholder="headadmin@callbet.et" />
+            <mat-icon matPrefix>alternate_email</mat-icon>
+            @if (adminForm.get('email')?.hasError('required') && adminForm.get('email')?.touched) {
+              <mat-error>Email address is required</mat-error>
+            }
+            @if (adminForm.get('email')?.hasError('email') && adminForm.get('email')?.touched) {
+              <mat-error>Please enter a valid email address</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Password -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Security Password</mat-label>
+            <input
+              matInput
+              [type]="hidePassword() ? 'password' : 'text'"
+              formControlName="password"
+              placeholder="AdminPassword123"
+            />
+            <mat-icon matPrefix>lock</mat-icon>
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="hidePassword.set(!hidePassword())"
+              [attr.aria-label]="'Hide password'"
+            >
+              <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (adminForm.get('password')?.hasError('required') && adminForm.get('password')?.touched) {
+              <mat-error>Password is required</mat-error>
+            }
+            @if (adminForm.get('password')?.hasError('minlength') && adminForm.get('password')?.touched) {
+              <mat-error>Password must be at least 6 characters</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Phone Number -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Official Phone Number</mat-label>
+            <input matInput formControlName="phoneNumber" placeholder="+251911000000" />
+            <mat-icon matPrefix>phone</mat-icon>
+            @if (adminForm.get('phoneNumber')?.hasError('required') && adminForm.get('phoneNumber')?.touched) {
+              <mat-error>Phone number is required</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Submit Button -->
+          <div class="submit-wrap">
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              class="btn-submit"
+              [disabled]="loading()"
+            >
+              @if (loading()) {
+                <mat-spinner diameter="20"></mat-spinner>
+                <span>Creating Admin Account...</span>
+              } @else {
+                <ng-container>
+                  <mat-icon>security</mat-icon>
+                  <span>Provision Admin Account</span>
+                </ng-container>
+              }
+            </button>
+          </div>
+        </form>
+
+        <div class="card-footer">
+          <span>Already have an admin account?</span>
+          <a routerLink="/login" class="link-login">Sign in here</a>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

@@ -1,0 +1,1444 @@
+<div class="admin-users-portal">
+  <!-- Top Portal Header -->
+  <div class="portal-header">
+    <div class="header-left">
+      <div class="shield-badge">
+        <mat-icon>manage_accounts</mat-icon>
+      </div>
+      <div>
+        <div class="title-row">
+          <h2>User Directory & Access Governance</h2>
+          <span class="portal-tag">Identity & Access Control</span>
+        </div>
+        <p class="subtitle">Comprehensive account registry, role assignment, account moderation, and platform activity oversight</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a mat-stroked-button routerLink="/admin-dashboard" class="btn-nav">
+        <mat-icon>admin_panel_settings</mat-icon> Admin Tower
+      </a>
+      <a mat-stroked-button routerLink="/verification-list" class="btn-nav">
+        <mat-icon>verified_user</mat-icon> Verification Queue
+      </a>
+      <a mat-stroked-button routerLink="/admin-services" class="btn-nav">
+        <mat-icon>category</mat-icon> Catalog Admin
+      </a>
+      <a mat-stroked-button routerLink="/admin-logs" class="btn-nav">
+        <mat-icon>manage_history</mat-icon> Audit Logs
+      </a>
+    </div>
+  </div>
+
+  <!-- Feedback Banner (Floating Toast Notification) -->
+  @if (feedbackMessage()) {
+    <div class="feedback-toast">
+      <div class="toast-left">
+        <mat-icon>check_circle</mat-icon>
+        <span>{{ feedbackMessage() }}</span>
+      </div>
+      <button mat-icon-button type="button" class="btn-close-toast" (click)="feedbackMessage.set(null)">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- View Switcher Tabs: Users Directory vs Professional Profiles -->
+  <div class="portal-view-switcher">
+    <button
+      type="button"
+      class="switcher-tab"
+      [class.active]="activeView() === 'users'"
+      (click)="setView('users')"
+    >
+      <mat-icon>groups</mat-icon>
+      <span class="tab-title">User Accounts Directory</span>
+      <span class="tab-badge">{{ totalCount() }}</span>
+    </button>
+    <button
+      type="button"
+      class="switcher-tab"
+      [class.active]="activeView() === 'professionals'"
+      (click)="setView('professionals')"
+    >
+      <mat-icon>badge</mat-icon>
+      <span class="tab-title">Professional Profiles Directory</span>
+      <span class="tab-badge">{{ proTotalCount() }}</span>
+    </button>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- VIEW: USERS DIRECTORY                                          -->
+  <!-- ============================================================== -->
+  @if (activeView() === 'users') {
+    <!-- Metric Overview Ribbon -->
+    <div class="metrics-ribbon">
+      <div
+        class="metric-card total-users-card"
+        [class.active-card]="selectedRoleFilter() === 'all' && selectedStatusFilter() === 'all'"
+        (click)="setRoleFilter('all'); setStatusFilter('all')"
+      >
+        <div class="icon-wrap total-color">
+          <mat-icon>groups</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalCount() }}</span>
+          <span class="metric-lbl">Total Registered Users</span>
+        </div>
+      </div>
+
+      <div
+        class="metric-card customer-card"
+        [class.active-card]="selectedRoleFilter() === 'Customer'"
+        (click)="setRoleFilter('Customer')"
+      >
+        <div class="icon-wrap customer-color">
+          <mat-icon>person</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalCustomersCount() }}</span>
+          <span class="metric-lbl">Active Customers</span>
+        </div>
+      </div>
+
+      <div
+        class="metric-card pro-card"
+        [class.active-card]="selectedRoleFilter() === 'Professional'"
+        (click)="setRoleFilter('Professional')"
+      >
+        <div class="icon-wrap pro-color">
+          <mat-icon>engineering</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalProfessionalsCount() }}</span>
+          <span class="metric-lbl">Trade Professionals</span>
+        </div>
+      </div>
+
+      <div
+        class="metric-card admin-card"
+        [class.active-card]="selectedRoleFilter() === 'Admin'"
+        (click)="setRoleFilter('Admin')"
+      >
+        <div class="icon-wrap admin-color">
+          <mat-icon>security</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalAdminsCount() }}</span>
+          <span class="metric-lbl">Super Admins</span>
+        </div>
+      </div>
+
+      <div
+        class="metric-card pending-card"
+        [class.active-card]="selectedStatusFilter() === 'PendingVerification'"
+        (click)="setStatusFilter('PendingVerification')"
+      >
+        <div class="icon-wrap pending-color">
+          <mat-icon>hourglass_top</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalPendingCount() }}</span>
+          <span class="metric-lbl">Pending Verification</span>
+        </div>
+      </div>
+
+      <div
+        class="metric-card suspended-card"
+        [class.active-card]="selectedStatusFilter() === 'Suspended'"
+        (click)="setStatusFilter('Suspended')"
+      >
+        <div class="icon-wrap suspended-color">
+          <mat-icon>block</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalSuspendedCount() }}</span>
+          <span class="metric-lbl">Suspended Accounts</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search & Filter Controls Card -->
+    <div class="search-filter-card">
+      <form [formGroup]="searchForm" (ngSubmit)="page.set(1); loadUsers()" class="filter-form-grid">
+        <!-- Search Input -->
+        <div class="search-input-wrap">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            formControlName="search"
+            placeholder="Search by name, email, phone number, or ID..."
+          />
+          @if (searchForm.get('search')?.value) {
+            <button mat-icon-button type="button" class="btn-clear-search" (click)="clearSearch()">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Role Filter Select -->
+        <div class="select-filter-group">
+          <label>Filter by Role</label>
+          <div class="select-wrap">
+            <select formControlName="role" (change)="page.set(1); loadUsers()">
+              <option value="all">All Roles</option>
+              <option value="Customer">Customers Only</option>
+              <option value="Professional">Professionals Only</option>
+              <option value="Admin">Administrators Only</option>
+            </select>
+            <mat-icon class="select-arrow">expand_more</mat-icon>
+          </div>
+        </div>
+
+        <!-- Status Filter Select -->
+        <div class="select-filter-group">
+          <label>Account Status</label>
+          <div class="select-wrap">
+            <select formControlName="status" (change)="page.set(1); loadUsers()">
+              <option value="all">All Statuses</option>
+              <option value="Active">Active Only</option>
+              <option value="PendingVerification">Pending Verification</option>
+              <option value="Suspended">Suspended Only</option>
+            </select>
+            <mat-icon class="select-arrow">expand_more</mat-icon>
+          </div>
+        </div>
+
+        <!-- Sort Field -->
+        <div class="select-filter-group">
+          <label>Sort By</label>
+          <div class="select-wrap">
+            <select formControlName="orderBy" (change)="page.set(1); loadUsers()">
+              <option value="CreatedAt">Joined Date</option>
+              <option value="FirstName">First Name</option>
+              <option value="LastName">Last Name</option>
+              <option value="Email">Email Address</option>
+              <option value="Role">Account Role</option>
+            </select>
+            <mat-icon class="select-arrow">expand_more</mat-icon>
+          </div>
+        </div>
+
+        <!-- Sort Direction -->
+        <div class="select-filter-group">
+          <label>Order</label>
+          <div class="select-wrap">
+            <select formControlName="descending" (change)="page.set(1); loadUsers()">
+              <option [ngValue]="true">Newest First</option>
+              <option [ngValue]="false">Oldest First</option>
+            </select>
+            <mat-icon class="select-arrow">expand_more</mat-icon>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="filter-actions">
+          <button mat-raised-button color="primary" type="submit" class="btn-apply-filters">
+            <mat-icon>filter_alt</mat-icon>
+            <span>Apply</span>
+          </button>
+          <button mat-stroked-button type="button" class="btn-reset-filters" (click)="clearSearch()">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Reset</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Quick Filter Chips -->
+      <div class="quick-chips-row">
+        <span class="chips-label"><mat-icon>tune</mat-icon> Quick View:</span>
+        <button
+          type="button"
+          class="chip-pill"
+          [class.active]="selectedRoleFilter() === 'all' && selectedStatusFilter() === 'all'"
+          (click)="setRoleFilter('all'); setStatusFilter('all')"
+        >
+          All Users <span class="pill-cnt">({{ totalCount() }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-pill"
+          [class.active]="selectedRoleFilter() === 'Customer'"
+          (click)="setRoleFilter('Customer')"
+        >
+          <mat-icon>person</mat-icon> Customers <span class="pill-cnt">({{ totalCustomersCount() }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-pill"
+          [class.active]="selectedRoleFilter() === 'Professional'"
+          (click)="setRoleFilter('Professional')"
+        >
+          <mat-icon>engineering</mat-icon> Verified Pros <span class="pill-cnt">({{ totalProfessionalsCount() }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-pill"
+          [class.active]="selectedRoleFilter() === 'Admin'"
+          (click)="setRoleFilter('Admin')"
+        >
+          <mat-icon>security</mat-icon> Admins <span class="pill-cnt">({{ totalAdminsCount() }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-pill chip-pending"
+          [class.active]="selectedStatusFilter() === 'PendingVerification'"
+          (click)="setStatusFilter('PendingVerification')"
+        >
+          <mat-icon>hourglass_empty</mat-icon> Pending <span class="pill-cnt">({{ totalPendingCount() }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-pill chip-suspended"
+          [class.active]="selectedStatusFilter() === 'Suspended'"
+          (click)="setStatusFilter('Suspended')"
+        >
+          <mat-icon>block</mat-icon> Suspended <span class="pill-cnt">({{ totalSuspendedCount() }})</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Table Card -->
+    <div class="table-container-card">
+      <div class="table-header-strip">
+        <div class="title-meta">
+          <mat-icon>people_outline</mat-icon>
+          <h3>User Directory ({{ filteredUsers().length }} of {{ totalCount() }} Accounts)</h3>
+        </div>
+
+        <div class="header-right-tools">
+          <button mat-stroked-button color="primary" type="button" (click)="loadUsers()" [disabled]="loading()">
+            <mat-icon [class.spin-icon]="loading()">refresh</mat-icon>
+            <span>Refresh Directory</span>
+          </button>
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="40"></mat-spinner>
+          <span>Loading user accounts from server...</span>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="custom-admin-table">
+            <thead>
+              <tr>
+                <th>User Identity</th>
+                <th>Contact Details</th>
+                <th>Account Role</th>
+                <th>Account Status</th>
+                <th>Member Since</th>
+                <th class="text-right">Administrative Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of filteredUsers(); track user.id) {
+                <tr class="user-row" [class.suspended-row]="isSuspended(user)" [class.pending-row]="isPending(user)">
+                  <!-- User Identity -->
+                  <td class="col-user">
+                    <div class="user-cell">
+                      <div class="avatar-wrap">
+                        @if (user.profilePhotoUrl) {
+                          <img [src]="user.profilePhotoUrl" [alt]="user.fullName" class="avatar-img" (error)="onImageError(user)" />
+                        } @else {
+                          <div class="avatar-initials" [ngClass]="'role-' + normalizeRole(user.role).toLowerCase()">
+                            {{ getInitials(user.fullName || user.name) }}
+                          </div>
+                        }
+                      </div>
+
+                      <div class="user-identity-text">
+                        <div class="name-row">
+                          <strong class="user-fullname">{{ user.fullName || user.name || 'Callbet User' }}</strong>
+                          @if (normalizeRole(user.role) === 'Professional') {
+                            <mat-icon class="verified-icon" matTooltip="Verified Trade Specialist">verified</mat-icon>
+                          }
+                        </div>
+                        <div class="id-snippet">
+                          <code>ID: {{ user.id.substring(0, 8) }}...</code>
+                          <button type="button" class="btn-copy-id" (click)="copyText(user.id, 'User ID')" matTooltip="Copy Full User ID">
+                            <mat-icon>content_copy</mat-icon>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Contact Details -->
+                  <td class="col-contact">
+                    <div class="contact-box">
+                      <a [href]="'mailto:' + user.email" class="email-link">
+                        <mat-icon>email</mat-icon>
+                        <span>{{ user.email }}</span>
+                      </a>
+                      @if (user.phone || user.phoneNumber) {
+                        <div class="phone-row">
+                          <mat-icon>phone</mat-icon>
+                          <span>{{ user.phone || user.phoneNumber }}</span>
+                        </div>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Account Role -->
+                  <td class="col-role">
+                    <span
+                      class="role-badge"
+                      [class.role-customer]="normalizeRole(user.role) === 'Customer'"
+                      [class.role-pro]="normalizeRole(user.role) === 'Professional'"
+                      [class.role-admin]="normalizeRole(user.role) === 'Admin'"
+                    >
+                      <mat-icon>
+                        {{
+                          normalizeRole(user.role) === 'Customer'
+                            ? 'person'
+                            : normalizeRole(user.role) === 'Professional'
+                            ? 'engineering'
+                            : 'admin_panel_settings'
+                        }}
+                      </mat-icon>
+                      <span>{{ normalizeRole(user.role) }}</span>
+                    </span>
+                  </td>
+
+                  <!-- Account Status -->
+                  <td class="col-status">
+                    @if (isSuspended(user)) {
+                      <span class="status-pill pill-suspended">
+                        <span class="dot"></span> Suspended
+                      </span>
+                    } @else if (isPending(user)) {
+                      <span class="status-pill pill-pending">
+                        <span class="dot"></span> Pending
+                      </span>
+                    } @else {
+                      <span class="status-pill pill-active">
+                        <span class="dot"></span> Active
+                      </span>
+                    }
+                  </td>
+
+                  <!-- Member Since -->
+                  <td class="col-date">
+                    <div class="date-box">
+                      <mat-icon>event</mat-icon>
+                      <span>{{ user.createdAt ? (user.createdAt | date:'mediumDate') : (user.joinedDate || '2026-01-01') }}</span>
+                    </div>
+                  </td>
+
+                  <!-- Administrative Actions -->
+                  <td class="col-actions text-right">
+                    <div class="actions-group">
+                      <!-- Inspect Details -->
+                      <button
+                        mat-stroked-button
+                        class="btn-action-view"
+                        type="button"
+                        (click)="openUserDetails(user)"
+                        matTooltip="Inspect Complete Account Dossier"
+                      >
+                        <mat-icon>visibility</mat-icon>
+                        <span>Inspect</span>
+                      </button>
+
+                      <!-- Public Profile Link for Professionals -->
+                      @if (normalizeRole(user.role) === 'Professional') {
+                        <a
+                          mat-icon-button
+                          class="btn-action-hub"
+                          [routerLink]="['/professional-dashboard-detail', user.id]"
+                          target="_blank"
+                          matTooltip="Open Public Profile View"
+                        >
+                          <mat-icon>open_in_new</mat-icon>
+                        </a>
+                      }
+
+                      <!-- Suspend / Reactivate / Activate -->
+                      @if (normalizeRole(user.role) !== 'Admin') {
+                        <button
+                          mat-stroked-button
+                          [class.btn-action-activate]="isSuspended(user) || isPending(user)"
+                          [class.btn-action-suspend]="!isSuspended(user) && !isPending(user)"
+                          type="button"
+                          (click)="openSuspendConfirm(user)"
+                          [matTooltip]="(isSuspended(user) || isPending(user)) ? 'Activate Account' : 'Suspend Account Privileges'"
+                        >
+                          <mat-icon>{{ (isSuspended(user) || isPending(user)) ? 'lock_open' : 'block' }}</mat-icon>
+                          <span>{{ (isSuspended(user) || isPending(user)) ? 'Activate' : 'Suspend' }}</span>
+                        </button>
+
+                        <!-- Delete User -->
+                        <button
+                          mat-icon-button
+                          class="btn-action-delete"
+                          type="button"
+                          (click)="openDeleteConfirm(user)"
+                          matTooltip="Permanently Delete Account"
+                        >
+                          <mat-icon>delete_outline</mat-icon>
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="empty-cell">
+                    <div class="empty-table-box">
+                      <mat-icon>search_off</mat-icon>
+                      <h4>No user accounts found</h4>
+                      <p>No records matched your current query or role/status filters.</p>
+                      <button mat-stroked-button color="primary" type="button" (click)="clearSearch()">
+                        Reset Filter Criteria
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="pagination-footer">
+          <div class="pagination-meta">
+            <span>
+              Showing Page <strong>{{ page() }}</strong> of <strong>{{ totalPages() }}</strong> ({{ totalCount() }} total users)
+            </span>
+            <div class="page-size-selector">
+              <label>Show:</label>
+              <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+                <option [value]="5">5 per page</option>
+                <option [value]="10">10 per page</option>
+                <option [value]="25">25 per page</option>
+                <option [value]="50">50 per page</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pagination-buttons">
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-page"
+              (click)="prevPage()"
+              [disabled]="page() === 1"
+            >
+              <mat-icon>chevron_left</mat-icon> Previous
+            </button>
+            <span class="current-page-pill">{{ page() }}</span>
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-page"
+              (click)="nextPage()"
+              [disabled]="page() >= totalPages()"
+            >
+              Next <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  } <!-- End @if (activeView() === 'users') -->
+
+  <!-- ============================================================== -->
+  <!-- VIEW: PROFESSIONAL PROFILES DIRECTORY                           -->
+  <!-- ============================================================== -->
+  @if (activeView() === 'professionals') {
+    <!-- Professional Metrics Ribbon -->
+    <div class="metrics-ribbon">
+      <div
+        class="metric-card total-users-card"
+        [class.active-card]="selectedProFilter() === 'all'"
+        (click)="setProVerificationFilter('all')"
+      >
+        <div class="icon-wrap pro-color">
+          <mat-icon>engineering</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ proTotalCount() }}</span>
+          <span class="metric-lbl">Total Professional Profiles</span>
+        </div>
+      </div>
+
+      <div
+        class="metric-card customer-card"
+        [class.active-card]="selectedProFilter() === 'verified'"
+        (click)="setProVerificationFilter('verified')"
+      >
+        <div class="icon-wrap admin-color">
+          <mat-icon>verified</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalVerifiedProsCount() }}</span>
+          <span class="metric-lbl">Verified Specialists</span>
+        </div>
+      </div>
+
+      <div
+        class="metric-card pending-card"
+        [class.active-card]="selectedProFilter() === 'unverified'"
+        (click)="setProVerificationFilter('unverified')"
+      >
+        <div class="icon-wrap pending-color">
+          <mat-icon>hourglass_top</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalUnverifiedProsCount() }}</span>
+          <span class="metric-lbl">Unverified Profiles</span>
+        </div>
+      </div>
+
+      <div class="metric-card pro-card">
+        <div class="icon-wrap pro-color">
+          <mat-icon>workspace_premium</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ totalHighExpProsCount() }}</span>
+          <span class="metric-lbl">High Experience (5+ Yrs)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Professional Search & Filter Controls Card -->
+    <div class="search-filter-card">
+      <form [formGroup]="proSearchForm" (ngSubmit)="proPage.set(1); loadProfessionalProfiles()" class="filter-form-grid">
+        <!-- Search Input -->
+        <div class="search-input-wrap">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            formControlName="search"
+            placeholder="Search by specialist name, email, trade headline, or ID..."
+          />
+          @if (proSearchForm.get('search')?.value) {
+            <button mat-icon-button type="button" class="btn-clear-search" (click)="clearProSearch()">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Verification Filter Select -->
+        <div class="select-filter-group">
+          <label>Verification Status</label>
+          <div class="select-wrap">
+            <select formControlName="isVerified" (change)="proPage.set(1); loadProfessionalProfiles()">
+              <option value="all">All Statuses</option>
+              <option value="verified">Verified Only</option>
+              <option value="unverified">Unverified Only</option>
+            </select>
+            <mat-icon class="select-arrow">expand_more</mat-icon>
+          </div>
+        </div>
+
+        <!-- Created Date Filter -->
+        <div class="select-filter-group">
+          <label>Registration Date</label>
+          <input
+            type="date"
+            formControlName="createdDate"
+            class="date-input-field"
+            (change)="proPage.set(1); loadProfessionalProfiles()"
+          />
+        </div>
+
+        <!-- Sort Field -->
+        <div class="select-filter-group">
+          <label>Sort By</label>
+          <div class="select-wrap">
+            <select formControlName="orderBy" (change)="proPage.set(1); loadProfessionalProfiles()">
+              <option value="CreatedAt">Joined Date</option>
+              <option value="YearsOfExperience">Years Experience</option>
+              <option value="OverallRating">Overall Rating</option>
+              <option value="CompletedJobsCount">Completed Jobs</option>
+              <option value="Name">Specialist Name</option>
+              <option value="Email">Email Address</option>
+              <option value="UpdatedAt">Last Updated</option>
+            </select>
+            <mat-icon class="select-arrow">expand_more</mat-icon>
+          </div>
+        </div>
+
+        <!-- Sort Direction -->
+        <div class="select-filter-group">
+          <label>Order</label>
+          <div class="select-wrap">
+            <select formControlName="descending" (change)="proPage.set(1); loadProfessionalProfiles()">
+              <option [ngValue]="true">Highest / Newest</option>
+              <option [ngValue]="false">Lowest / Oldest</option>
+            </select>
+            <mat-icon class="select-arrow">expand_more</mat-icon>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="filter-actions">
+          <button mat-raised-button color="primary" type="submit" class="btn-apply-filters">
+            <mat-icon>filter_alt</mat-icon>
+            <span>Apply</span>
+          </button>
+          <button mat-stroked-button type="button" class="btn-reset-filters" (click)="clearProSearch()">
+            <mat-icon>restart_alt</mat-icon>
+            <span>Reset</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Quick Chips Filter Row -->
+      <div class="quick-chips-row">
+        <span class="chips-label"><mat-icon>tune</mat-icon> Quick View:</span>
+        <button
+          type="button"
+          class="chip-pill"
+          [class.active]="selectedProFilter() === 'all'"
+          (click)="setProVerificationFilter('all')"
+        >
+          All Specialists <span class="pill-cnt">({{ proTotalCount() }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-pill chip-active-pro"
+          [class.active]="selectedProFilter() === 'verified'"
+          (click)="setProVerificationFilter('verified')"
+        >
+          <mat-icon>verified</mat-icon> Verified <span class="pill-cnt">({{ totalVerifiedProsCount() }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="chip-pill chip-pending"
+          [class.active]="selectedProFilter() === 'unverified'"
+          (click)="setProVerificationFilter('unverified')"
+        >
+          <mat-icon>hourglass_empty</mat-icon> Unverified <span class="pill-cnt">({{ totalUnverifiedProsCount() }})</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Professional Profiles Table Card -->
+    <div class="table-container-card">
+      <div class="table-header-strip">
+        <div class="title-meta">
+          <mat-icon>badge</mat-icon>
+          <div>
+            <h3>Professional Profiles Registry ({{ proProfiles().length }} of {{ proTotalCount() }} Specialists)</h3>
+          </div>
+        </div>
+
+        <div class="header-right-tools">
+          <button mat-stroked-button color="primary" type="button" (click)="loadProfessionalProfiles()" [disabled]="proLoading()">
+            <mat-icon [class.spin-icon]="proLoading()">refresh</mat-icon>
+            <span>Refresh Specialists</span>
+          </button>
+        </div>
+      </div>
+
+      @if (proLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="40"></mat-spinner>
+          <span>Loading professional profiles from server...</span>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="custom-admin-table">
+            <thead>
+              <tr>
+                <th>Specialist Identity</th>
+                <th>Professional Headline</th>
+                <th>Experience</th>
+                <th>Rating & Jobs</th>
+                <th>Verification Status</th>
+                <th>Registration & Updates</th>
+                <th class="text-right">Administrative Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (pro of proProfiles(); track pro.id) {
+                <tr class="user-row" [class.verified-row]="pro.isVerified">
+                  <!-- Specialist Identity -->
+                  <td class="col-user">
+                    <div class="user-cell">
+                      <div class="avatar-wrap">
+                        @if (pro.profilePhotoUrl) {
+                          <img [src]="pro.profilePhotoUrl" [alt]="pro.fullName" class="avatar-img" (error)="onProfileImageError(pro)" />
+                        } @else {
+                          <div class="avatar-initials role-professional">
+                            {{ getInitials(pro.fullName) }}
+                          </div>
+                        }
+                      </div>
+
+                      <div class="user-identity-text">
+                        <div class="name-row">
+                          <strong class="user-fullname">{{ pro.fullName }}</strong>
+                          @if (pro.isVerified) {
+                            <mat-icon class="verified-icon" matTooltip="Verified Trade Specialist">verified</mat-icon>
+                          }
+                        </div>
+                        <div class="contact-sub">
+                          <span class="email-sub"><mat-icon>email</mat-icon> {{ pro.email }}</span>
+                          @if (pro.phone && pro.phone !== 'Not provided') {
+                            <span class="phone-sub"><mat-icon>phone</mat-icon> {{ pro.phone }}</span>
+                          }
+                        </div>
+                        <div class="id-snippet">
+                          <code>UID: {{ pro.userId.substring(0, 8) }}...</code>
+                          <button type="button" class="btn-copy-id" (click)="copyText(pro.userId, 'User ID')" matTooltip="Copy User ID">
+                            <mat-icon>content_copy</mat-icon>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Professional Headline -->
+                  <td class="col-headline">
+                    <div class="headline-box">
+                      <strong class="headline-text">{{ pro.headline || 'General Specialist' }}</strong>
+                      @if (pro.bio) {
+                        <p class="bio-snippet">{{ pro.bio.substring(0, 70) }}...</p>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Years of Experience -->
+                  <td class="col-experience">
+                    <div class="exp-badge">
+                      <mat-icon>work_history</mat-icon>
+                      <span>{{ pro.yearsOfExperience }} Yrs Exp</span>
+                    </div>
+                  </td>
+
+                  <!-- Overall Rating & Completed Jobs -->
+                  <td class="col-rating-jobs">
+                    <div class="rating-box">
+                      <span class="star-rating">
+                        <mat-icon>star</mat-icon>
+                        <strong>{{ pro.overallRating | number:'1.1-2' }}</strong>
+                      </span>
+                      <span class="jobs-sub">{{ pro.completedJobsCount }} Completed Jobs</span>
+                    </div>
+                  </td>
+
+                  <!-- Verification Status -->
+                  <td class="col-status">
+                    @if (pro.isVerified) {
+                      <span class="status-pill pill-active">
+                        <span class="dot"></span> Verified
+                      </span>
+                    } @else {
+                      <span class="status-pill pill-pending">
+                        <span class="dot"></span> Unverified
+                      </span>
+                    }
+                  </td>
+
+                  <!-- Created At & Updated At -->
+                  <td class="col-date">
+                    <div class="date-stacked">
+                      <div class="date-row">
+                        <span class="date-label">Created:</span>
+                        <span>{{ pro.createdAt | date:'mediumDate' }}</span>
+                      </div>
+                      <div class="date-row">
+                        <span class="date-label">Updated:</span>
+                        <span>{{ pro.updatedAt | date:'mediumDate' }}</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- 4 Administrative Actions -->
+                  <td class="col-actions text-right">
+                    <div class="actions-group">
+                      <!-- 1. Inspect Dossier -->
+                      <button
+                        mat-stroked-button
+                        class="btn-action-view"
+                        type="button"
+                        (click)="openProfileDetails(pro)"
+                        matTooltip="Inspect Complete Specialist Dossier"
+                      >
+                        <mat-icon>visibility</mat-icon>
+                        <span>Inspect</span>
+                      </button>
+
+                      <!-- 2. Public Hub Link -->
+                      <a
+                        mat-icon-button
+                        class="btn-action-hub"
+                        [routerLink]="['/professional-dashboard-detail', pro.userId]"
+                        target="_blank"
+                        matTooltip="Open Public Specialist Hub"
+                      >
+                        <mat-icon>open_in_new</mat-icon>
+                      </a>
+
+                      <!-- 3. Verify / Revoke Verification -->
+                      <button
+                        mat-stroked-button
+                        [class.btn-action-revoke]="pro.isVerified"
+                        [class.btn-action-verify]="!pro.isVerified"
+                        type="button"
+                        (click)="openToggleVerifyConfirm(pro)"
+                        [matTooltip]="pro.isVerified ? 'Revoke Profile Verification' : 'Verify Professional Profile'"
+                      >
+                        <mat-icon>{{ pro.isVerified ? 'remove_moderator' : 'verified' }}</mat-icon>
+                        <span>{{ pro.isVerified ? 'Revoke' : 'Verify' }}</span>
+                      </button>
+
+                      <!-- 4. Delete Profile -->
+                      <button
+                        mat-icon-button
+                        class="btn-action-delete"
+                        type="button"
+                        (click)="openDeleteProfileConfirm(pro)"
+                        matTooltip="Delete Professional Profile Account"
+                      >
+                        <mat-icon>delete_outline</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="empty-cell">
+                    <div class="empty-table-box">
+                      <mat-icon>engineering</mat-icon>
+                      <h4>No Professional Profiles Found</h4>
+                      <p>No trade specialists matched your current filter criteria.</p>
+                      <button mat-stroked-button color="primary" (click)="clearProSearch()">
+                        Reset Filters
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-footer">
+          <div class="pagination-meta">
+            <span>
+              Showing Page <strong>{{ proPage() }}</strong> of <strong>{{ proTotalPages() }}</strong> ({{ proTotalCount() }} Total Profiles)
+            </span>
+          </div>
+
+          <div class="pagination-buttons">
+            <button
+              mat-stroked-button
+              class="btn-page"
+              (click)="prevProPage()"
+              [disabled]="proPage() <= 1"
+            >
+              <mat-icon>chevron_left</mat-icon> Previous
+            </button>
+            <span class="current-page-pill">{{ proPage() }}</span>
+            <button
+              mat-stroked-button
+              class="btn-page"
+              (click)="nextProPage()"
+              [disabled]="proPage() >= proTotalPages()"
+            >
+              Next <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  } <!-- End @if (activeView() === 'professionals') -->
+
+  <!-- ============================================================== -->
+  <!-- MODAL: PROFESSIONAL PROFILE INSPECTION DRAWER                   -->
+  <!-- ============================================================== -->
+  @if (selectedProfileForDetails(); as pro) {
+    <div class="modal-backdrop" (click)="closeProfileDetails()">
+      <div class="modal-dialog details-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+          <div class="head-left">
+            <div class="dossier-icon pro-color">
+              <mat-icon>engineering</mat-icon>
+            </div>
+            <div>
+              <h3>Specialist Profile Dossier</h3>
+              <p class="modal-sub">Verified trade credentials, bio, and operational metrics</p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" (click)="closeProfileDetails()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-body user-dossier-body">
+          <div class="dossier-profile-card">
+            <div class="dossier-avatar">
+              @if (pro.profilePhotoUrl) {
+                <img [src]="pro.profilePhotoUrl" [alt]="pro.fullName" (error)="onProfileImageError(pro)" />
+              } @else {
+                <div class="avatar-initials-lg role-professional">
+                  {{ getInitials(pro.fullName) }}
+                </div>
+              }
+            </div>
+
+            <div class="dossier-main-info">
+              <div class="name-badge-row">
+                <h4>{{ pro.fullName }}</h4>
+                <span class="role-badge role-pro">Professional</span>
+                @if (pro.isVerified) {
+                  <span class="verified-badge-pill"><mat-icon>verified</mat-icon> Verified Pro</span>
+                }
+              </div>
+              <p class="dossier-email">{{ pro.email }}</p>
+              <div class="dossier-status-pill">
+                Verification:
+                @if (pro.isVerified) {
+                  <strong class="text-success">Verified & Authorized</strong>
+                } @else {
+                  <strong class="text-warning">Pending Verification</strong>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Professional Fields Grid -->
+          <div class="dossier-fields-grid">
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>badge</mat-icon> Headline</span>
+              <strong class="field-val">{{ pro.headline || 'General Trade Specialist' }}</strong>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>work_history</mat-icon> Experience</span>
+              <strong class="field-val">{{ pro.yearsOfExperience }} Years Active Experience</strong>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>star</mat-icon> Overall Rating</span>
+              <strong class="field-val text-primary">★ {{ pro.overallRating | number:'1.1-2' }} / 5.00</strong>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>assignment_turned_in</mat-icon> Completed Platform Orders</span>
+              <strong class="field-val text-primary">{{ pro.completedJobsCount }} Completed Jobs</strong>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>fingerprint</mat-icon> User UUID</span>
+              <div class="field-val-copy">
+                <code>{{ pro.userId }}</code>
+                <button type="button" class="btn-copy-sm" (click)="copyText(pro.userId, 'User ID')">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>tag</mat-icon> Profile Record UUID</span>
+              <div class="field-val-copy">
+                <code>{{ pro.id }}</code>
+                <button type="button" class="btn-copy-sm" (click)="copyText(pro.id, 'Profile ID')">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>phone</mat-icon> Phone Number</span>
+              <strong class="field-val">{{ pro.phone }}</strong>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>near_me</mat-icon> Service Radius</span>
+              <strong class="field-val">{{ pro.serviceRadiusKm }} km Coverage</strong>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>calendar_today</mat-icon> Profile Created</span>
+              <span class="field-val">{{ pro.createdAt | date:'medium' }}</span>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>update</mat-icon> Last Updated</span>
+              <span class="field-val">{{ pro.updatedAt | date:'medium' }}</span>
+            </div>
+          </div>
+
+          @if (pro.bio) {
+            <div class="dossier-bio-section">
+              <span class="bio-label"><mat-icon>description</mat-icon> Professional Biography</span>
+              <p class="bio-content">{{ pro.bio }}</p>
+            </div>
+          }
+
+          <!-- Modal Actions -->
+          <div class="dossier-modal-actions">
+            <a
+              mat-raised-button
+              color="primary"
+              [routerLink]="['/professional-dashboard-detail', pro.userId]"
+              target="_blank"
+              (click)="closeProfileDetails()"
+            >
+              <mat-icon>open_in_new</mat-icon>
+              <span>View Full Public Hub</span>
+            </a>
+
+            <button
+              mat-stroked-button
+              [class.btn-action-revoke]="pro.isVerified"
+              [class.btn-action-verify]="!pro.isVerified"
+              type="button"
+              (click)="closeProfileDetails(); openToggleVerifyConfirm(pro)"
+            >
+              <mat-icon>{{ pro.isVerified ? 'remove_moderator' : 'verified' }}</mat-icon>
+              <span>{{ pro.isVerified ? 'Revoke Verification' : 'Verify Specialist' }}</span>
+            </button>
+
+            <button
+              mat-stroked-button
+              color="warn"
+              type="button"
+              (click)="closeProfileDetails(); openDeleteProfileConfirm(pro)"
+            >
+              <mat-icon>delete_forever</mat-icon>
+              <span>Delete Account</span>
+            </button>
+
+            <button mat-button type="button" class="btn-close-dossier" (click)="closeProfileDetails()">
+              Close Dossier
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: TOGGLE VERIFY CONFIRMATION                              -->
+  <!-- ============================================================== -->
+  @if (profileToToggleVerify(); as target) {
+    <div class="modal-backdrop" (click)="closeToggleVerifyConfirm()">
+      <div class="modal-dialog confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-icon-badge" [class.badge-warn]="target.isVerified" [class.badge-success]="!target.isVerified">
+          <mat-icon>{{ target.isVerified ? 'remove_moderator' : 'verified' }}</mat-icon>
+        </div>
+
+        <h3>{{ target.isVerified ? 'Revoke Verification Status?' : 'Approve & Verify Professional Profile?' }}</h3>
+        <p class="confirm-desc">
+          @if (target.isVerified) {
+            Revoking verification for <strong>{{ target.fullName }}</strong> will remove their verified badge and deprioritize them in client search queries.
+          } @else {
+            Verifying <strong>{{ target.fullName }}</strong> will award them the Verified Specialist badge and activate their trade dispatch privileges.
+          }
+        </p>
+
+        <div class="confirm-actions">
+          <button mat-stroked-button type="button" (click)="closeToggleVerifyConfirm()">
+            Cancel
+          </button>
+          <button
+            mat-raised-button
+            [color]="target.isVerified ? 'warn' : 'primary'"
+            type="button"
+            (click)="confirmToggleVerify()"
+            [disabled]="proActionLoading() === target.id"
+          >
+            @if (proActionLoading() === target.id) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>{{ target.isVerified ? 'block' : 'check' }}</mat-icon>
+            }
+            <span>{{ target.isVerified ? 'Yes, Revoke' : 'Yes, Verify Specialist' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: DELETE PROFESSIONAL PROFILE CONFIRMATION                -->
+  <!-- ============================================================== -->
+  @if (profileToDelete(); as target) {
+    <div class="modal-backdrop" (click)="closeDeleteProfileConfirm()">
+      <div class="modal-dialog confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-icon-badge badge-danger">
+          <mat-icon>delete_forever</mat-icon>
+        </div>
+
+        <h3>Permanently Delete Specialist Account?</h3>
+        <p class="confirm-desc">
+          Are you sure you want to permanently delete the professional account and profile for
+          <strong>{{ target.fullName }}</strong> ({{ target.email }})?
+        </p>
+        <div class="confirm-warning-note">
+          <mat-icon>warning</mat-icon>
+          <span>This action cannot be undone. Associated certificates, resumes, and availability schedules will be deleted.</span>
+        </div>
+
+        <div class="confirm-actions">
+          <button mat-stroked-button type="button" (click)="closeDeleteProfileConfirm()">
+            Cancel
+          </button>
+          <button
+            mat-raised-button
+            color="warn"
+            type="button"
+            (click)="confirmDeleteProfile()"
+            [disabled]="proActionLoading() === target.id"
+          >
+            @if (proActionLoading() === target.id) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>delete</mat-icon>
+            }
+            <span>Yes, Permanently Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: USER DETAILS INSPECTION DRAWER                          -->
+  <!-- ============================================================== -->
+  @if (selectedUserForDetails(); as user) {
+    <div class="modal-backdrop" (click)="closeUserDetails()">
+      <div class="modal-dialog details-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+          <div class="head-left">
+            <div class="dossier-icon">
+              <mat-icon>account_box</mat-icon>
+            </div>
+            <div>
+              <h3>User Account Dossier</h3>
+              <p class="modal-sub">Verified identity and authentication records</p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" (click)="closeUserDetails()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-body user-dossier-body">
+          <!-- Profile Card -->
+          <div class="dossier-profile-card">
+            <div class="dossier-avatar">
+              @if (user.profilePhotoUrl) {
+                <img [src]="user.profilePhotoUrl" [alt]="user.fullName" (error)="onImageError(user)" />
+              } @else {
+                <div class="avatar-initials-lg" [ngClass]="'role-' + normalizeRole(user.role).toLowerCase()">
+                  {{ getInitials(user.fullName || user.name) }}
+                </div>
+              }
+            </div>
+
+            <div class="dossier-main-info">
+              <div class="name-badge-row">
+                <h4>{{ user.fullName || user.name }}</h4>
+                <span
+                  class="role-badge"
+                  [class.role-customer]="normalizeRole(user.role) === 'Customer'"
+                  [class.role-pro]="normalizeRole(user.role) === 'Professional'"
+                  [class.role-admin]="normalizeRole(user.role) === 'Admin'"
+                >
+                  {{ normalizeRole(user.role) }}
+                </span>
+              </div>
+              <p class="dossier-email">{{ user.email }}</p>
+              <div class="dossier-status-pill">
+                Status:
+                @if (isSuspended(user)) {
+                  <strong class="text-danger">Suspended / Restricted</strong>
+                } @else if (isPending(user)) {
+                  <strong class="text-warning">Pending Verification</strong>
+                } @else {
+                  <strong class="text-success">Active & Compliant</strong>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Information Fields Grid -->
+          <div class="dossier-fields-grid">
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>fingerprint</mat-icon> System UUID</span>
+              <div class="field-val-copy">
+                <code>{{ user.id }}</code>
+                <button type="button" class="btn-copy-sm" (click)="copyText(user.id, 'User ID')">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>phone</mat-icon> Phone Number</span>
+              <strong class="field-val">{{ user.phone || user.phoneNumber || 'Not provided' }}</strong>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>calendar_today</mat-icon> Registration Date</span>
+              <span class="field-val">{{ user.createdAt ? (user.createdAt | date:'medium') : '2026-01-01' }}</span>
+            </div>
+
+            <div class="dossier-field">
+              <span class="field-lbl"><mat-icon>work_history</mat-icon> Platform Orders / Jobs</span>
+              <strong class="field-val text-primary">{{ user.completedJobsCount || 0 }} Completed Transactions</strong>
+            </div>
+          </div>
+
+          <!-- Actions Footer inside Modal -->
+          <div class="dossier-modal-actions">
+            @if (normalizeRole(user.role) === 'Professional') {
+              <a
+                mat-raised-button
+                color="primary"
+                [routerLink]="['/professional-dashboard-detail', user.id]"
+                target="_blank"
+                (click)="closeUserDetails()"
+              >
+                <mat-icon>open_in_new</mat-icon>
+                <span>View Full Professional Hub</span>
+              </a>
+            }
+
+            @if (normalizeRole(user.role) !== 'Admin') {
+              <button
+                mat-stroked-button
+                [class.btn-action-activate]="isSuspended(user) || isPending(user)"
+                [class.btn-action-suspend]="!isSuspended(user) && !isPending(user)"
+                type="button"
+                (click)="closeUserDetails(); openSuspendConfirm(user)"
+              >
+                <mat-icon>{{ (isSuspended(user) || isPending(user)) ? 'lock_open' : 'block' }}</mat-icon>
+                <span>{{ (isSuspended(user) || isPending(user)) ? 'Activate Account' : 'Suspend Account' }}</span>
+              </button>
+
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                (click)="closeUserDetails(); openDeleteConfirm(user)"
+              >
+                <mat-icon>delete_forever</mat-icon>
+                <span>Delete Account</span>
+              </button>
+            }
+
+            <button mat-button type="button" class="btn-close-dossier" (click)="closeUserDetails()">
+              Close Dossier
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: SUSPEND / REACTIVATE CONFIRMATION                       -->
+  <!-- ============================================================== -->
+  @if (userToSuspend(); as target) {
+    <div class="modal-backdrop" (click)="closeSuspendConfirm()">
+      <div class="modal-dialog confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-icon-badge" [class.badge-warn]="!isSuspended(target) && !isPending(target)" [class.badge-success]="isSuspended(target) || isPending(target)">
+          <mat-icon>{{ (isSuspended(target) || isPending(target)) ? 'lock_open' : 'block' }}</mat-icon>
+        </div>
+
+        <h3>{{ (isSuspended(target) || isPending(target)) ? 'Activate Account Privileges?' : 'Suspend User Account?' }}</h3>
+        <p class="confirm-desc">
+          @if (isPending(target)) {
+            Are you sure you want to approve and activate the account for <strong>{{ target.fullName || target.name }}</strong>? This will grant full platform access.
+          } @else if (isSuspended(target)) {
+            Are you sure you want to restore full platform access for <strong>{{ target.fullName || target.name }}</strong>?
+          } @else {
+            Suspending <strong>{{ target.fullName || target.name }}</strong> will restrict their login, booking authorizations, and active dispatch sessions.
+          }
+        </p>
+
+        @if (!isSuspended(target) && !isPending(target)) {
+          <div class="reason-input-wrap">
+            <label>Administrative Reason (Optional - Logged to Audit Trail):</label>
+            <input
+              type="text"
+              [(ngModel)]="suspendReasonText"
+              placeholder="e.g. Identity verification pending, policy breach, user request"
+            />
+          </div>
+        }
+
+        <div class="confirm-actions">
+          <button mat-stroked-button type="button" (click)="closeSuspendConfirm()">
+            Cancel
+          </button>
+          <button
+            mat-raised-button
+            [color]="(isSuspended(target) || isPending(target)) ? 'primary' : 'warn'"
+            type="button"
+            (click)="confirmToggleSuspend()"
+            [disabled]="actionLoading() === target.id"
+          >
+            @if (actionLoading() === target.id) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>{{ (isSuspended(target) || isPending(target)) ? 'check' : 'block' }}</mat-icon>
+            }
+            <span>{{ (isSuspended(target) || isPending(target)) ? 'Yes, Activate' : 'Confirm Suspension' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: DELETE USER CONFIRMATION                                -->
+  <!-- ============================================================== -->
+  @if (userToDelete(); as target) {
+    <div class="modal-backdrop" (click)="closeDeleteConfirm()">
+      <div class="modal-dialog confirm-dialog delete-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-icon-badge badge-danger">
+          <mat-icon>warning</mat-icon>
+        </div>
+
+        <h3>Permanently Delete User Account?</h3>
+        <p class="confirm-desc">
+          You are about to permanently delete <strong>{{ target.fullName || target.name }}</strong> (<code>{{ target.email }}</code>). This action is forensic and irreversible.
+        </p>
+
+        <div class="warning-callout">
+          <mat-icon>error_outline</mat-icon>
+          <span>All linked active service jobs, chat sessions, and KYC records for this user ID will be archived.</span>
+        </div>
+
+        <div class="confirm-actions">
+          <button mat-stroked-button type="button" (click)="closeDeleteConfirm()">
+            Cancel
+          </button>
+          <button
+            mat-raised-button
+            color="warn"
+            type="button"
+            (click)="confirmDeleteUser()"
+            [disabled]="actionLoading() === target.id"
+          >
+            @if (actionLoading() === target.id) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>delete_forever</mat-icon>
+            }
+            <span>Permanently Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
