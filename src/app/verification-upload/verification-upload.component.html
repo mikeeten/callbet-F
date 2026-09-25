@@ -1,0 +1,232 @@
+<div class="module-page-container">
+  <!-- Onboarding Stepper Navigation Bar -->
+  <div class="stepper-progress-bar">
+    <div class="step-item completed">
+      <span class="step-num">✓</span>
+      <span class="step-label">Profile & Rates</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item completed">
+      <span class="step-num">✓</span>
+      <span class="step-label">Resume / CV</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item completed">
+      <span class="step-num">✓</span>
+      <span class="step-label">Certificates</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item completed">
+      <span class="step-num">✓</span>
+      <span class="step-label">Portfolio</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item active">
+      <span class="step-num">5</span>
+      <span class="step-label">Verification</span>
+    </div>
+  </div>
+
+  <!-- Header Card -->
+  <div class="module-header-card">
+    <div class="header-left">
+      <div class="header-badge">
+        <mat-icon>security</mat-icon>
+        <span>Step 5 of 5: Trust & Compliance Suite</span>
+      </div>
+      <h2>e-KYC Identity Verification Center</h2>
+      <p class="subtitle">
+        Upload government identification or trade permits to verify your professional identity and complete your onboarding.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <!-- Back Button -->
+      <a routerLink="/portfolio-upload" class="btn-header-secondary btn-back-nav">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Portfolio</span>
+      </a>
+      <a routerLink="/service-selection" class="btn-header-secondary">
+        <mat-icon>engineering</mat-icon>
+        <span>Service Selection</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  @if (uploadSuccess()) {
+    <div class="success-banner-custom">
+      <mat-icon>check_circle</mat-icon>
+      <div>
+        <strong>Verification Document Submitted!</strong>
+        <p>Your ID has been submitted to the compliance queue. Redirecting to Service Activation & Selection...</p>
+      </div>
+      <div class="banner-quick-actions">
+        <button type="button" (click)="goToDashboard()" class="btn-banner-action">
+          <mat-icon>engineering</mat-icon> Go to Services &rarr;
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (uploadError()) {
+    <div class="error-banner-custom">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>Submission Error</strong>
+        <p>{{ uploadError() }}</p>
+      </div>
+    </div>
+  }
+
+  <!-- Main Grid -->
+  <div class="module-content-grid">
+    <!-- Form Side -->
+    <div class="form-container-card">
+      <!-- Quick Presets -->
+      <div class="presets-box">
+        <span class="presets-label"><mat-icon>auto_fix_high</mat-icon> Quick ID Type Presets:</span>
+        <div class="presets-list">
+          @for (sample of sampleDocuments; track sample.label) {
+            <button type="button" class="preset-pill" (click)="applyPreset(sample)">
+              {{ sample.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()" class="custom-form">
+        <!-- Document Type Selector -->
+        <div class="custom-field-group">
+          <label for="documentType">Government Document Type *</label>
+          <div class="custom-input-wrap">
+            <mat-icon class="field-icon">badge</mat-icon>
+            <select id="documentType" formControlName="documentType" class="custom-select">
+              @for (type of documentTypes; track type) {
+                <option [value]="type">{{ type }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- File Upload Drop Zone -->
+        <div class="custom-field-group">
+          <label>Identity Document File / Photo Scan *</label>
+          <div class="file-dropzone" (click)="fileInput.click()">
+            <input
+              #fileInput
+              type="file"
+              (change)="onFileSelected($event)"
+              accept=".jpg,.jpeg,.png,.webp,.pdf"
+              hidden
+            />
+            
+            @if (fileName()) {
+              <div class="file-selected-badge">
+                <mat-icon>{{ fileName()?.endsWith('.pdf') ? 'picture_as_pdf' : 'image' }}</mat-icon>
+                <div class="file-meta">
+                  <span class="file-name">{{ fileName() }}</span>
+                  <span class="file-sub">Click to change selected file</span>
+                </div>
+              </div>
+            } @else if (previewUrl()) {
+              <div class="preset-selected-badge">
+                <mat-icon>link</mat-icon>
+                <span>Using Preset Document Sample (Click to upload local file)</span>
+              </div>
+            } @else {
+              <div class="dropzone-placeholder">
+                <mat-icon class="upload-icon">cloud_upload</mat-icon>
+                <p class="upload-title">Click or drag your ID card image or PDF</p>
+                <span class="upload-hint">Allowed formats: JPG, PNG, WEBP, PDF (Max 10MB)</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Fallback URL Input (Optional) -->
+        <div class="custom-field-group">
+          <label for="documentUrl">Or Direct Document Image URL</label>
+          <div class="custom-input-wrap">
+            <mat-icon class="field-icon">link</mat-icon>
+            <input
+              id="documentUrl"
+              type="text"
+              formControlName="documentUrl"
+              placeholder="https://... (Populated automatically if you upload a file or choose preset)"
+            />
+          </div>
+        </div>
+
+        <!-- Submit & Back Buttons -->
+        <div class="form-actions-row">
+          <a routerLink="/portfolio-upload" class="btn-action-back">
+            <mat-icon>arrow_back</mat-icon> Back
+          </a>
+          <button
+            type="submit"
+            class="btn-submit-primary flex-grow"
+            [disabled]="submitting() || (!selectedFile() && !verificationForm.get('documentUrl')?.value)"
+          >
+            @if (submitting()) {
+              <span class="btn-spinner"></span>
+              <span>Submitting Verification...</span>
+            } @else {
+              <mat-icon>verified_user</mat-icon>
+              <span>Complete Onboarding & Submit &rarr;</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Live Preview Side -->
+    <div class="preview-container-card">
+      <div class="preview-header">
+        <mat-icon>visibility</mat-icon>
+        <span>Live Compliance Document Preview</span>
+      </div>
+
+      <div class="kyc-preview-card">
+        <div class="kyc-card-top">
+          <div class="kyc-seal">
+            <mat-icon>shield</mat-icon>
+          </div>
+          <div class="kyc-badge-pill">
+            <span class="dot"></span>
+            <span>ENCRYPTED KYC SUBMISSION</span>
+          </div>
+        </div>
+
+        <h3 class="kyc-doc-title">
+          {{ verificationForm.get('documentType')?.value || 'Official Identity Document' }}
+        </h3>
+        <p class="kyc-user-sub">
+          Authenticated Account: <code>{{ authService.currentUser()?.email || 'Active User Session' }}</code>
+        </p>
+
+        <div class="kyc-doc-image-wrap">
+          @if (previewUrl()) {
+            <img [src]="previewUrl()" alt="ID Document Scan" class="kyc-img" />
+          } @else if (fileName() && fileName()?.endsWith('.pdf')) {
+            <div class="kyc-pdf-placeholder">
+              <mat-icon>picture_as_pdf</mat-icon>
+              <span>{{ fileName() }}</span>
+              <small>PDF Document Ready for Transmission</small>
+            </div>
+          } @else {
+            <div class="kyc-img-placeholder">
+              <mat-icon>badge</mat-icon>
+              <span>Document scan preview will render here</span>
+            </div>
+          }
+        </div>
+
+        <div class="kyc-trust-footer">
+          <mat-icon>lock</mat-icon>
+          <span>End-to-End Encrypted Storage & Compliance Audit Trail</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

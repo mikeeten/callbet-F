@@ -1,0 +1,260 @@
+<div class="module-page-container">
+  <!-- Onboarding Stepper Navigation Bar -->
+  <div class="stepper-progress-bar">
+    <div class="step-item completed">
+      <span class="step-num">✓</span>
+      <span class="step-label">Profile & Rates</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item completed">
+      <span class="step-num">✓</span>
+      <span class="step-label">Resume / CV</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item completed">
+      <span class="step-num">✓</span>
+      <span class="step-label">Certificates</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item active">
+      <span class="step-num">4</span>
+      <span class="step-label">Portfolio</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <span class="step-num">5</span>
+      <span class="step-label">Verification</span>
+    </div>
+  </div>
+
+  <!-- Top Header Card -->
+  <div class="module-header-card">
+    <div class="header-left">
+      <div class="header-badge">
+        <mat-icon>photo_library</mat-icon>
+        <span>Step 4 of 5: Visual Proof of Work</span>
+      </div>
+      <h2>Upload Portfolio Project</h2>
+      <p class="subtitle">
+        Showcase real before-and-after work samples to build customer trust and convert inquiries into booked jobs.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <!-- Back Button -->
+      <a routerLink="/certificate-upload" class="btn-header-secondary btn-back-nav">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Certificates</span>
+      </a>
+      <a routerLink="/verification-upload" class="btn-header-secondary">
+        <mat-icon>arrow_forward</mat-icon>
+        <span>Skip to Verification &rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  @if (uploadSuccess()) {
+    <div class="success-banner-custom">
+      <mat-icon>check_circle</mat-icon>
+      <div>
+        <strong>Portfolio Project Added!</strong>
+        <p>Redirecting you to Step 5: Identity & Verification (e-KYC) in a moment...</p>
+      </div>
+      <div class="banner-quick-actions">
+        <button type="button" (click)="continueToVerification()" class="btn-banner-action">
+          <mat-icon>arrow_forward</mat-icon> Continue Now &rarr;
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (uploadError()) {
+    <div class="error-banner-custom">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>Upload Error</strong>
+        <p>{{ uploadError() }}</p>
+      </div>
+    </div>
+  }
+
+  <!-- Main Grid -->
+  <div class="module-content-grid">
+    <!-- Form Side -->
+    <div class="form-container-card">
+      <!-- Quick Presets -->
+      <div class="presets-box">
+        <span class="presets-label"><mat-icon>auto_fix_high</mat-icon> One-Click Sample Presets:</span>
+        <div class="presets-list">
+          @for (sample of sampleProjects; track sample.title) {
+            <button type="button" class="preset-pill" (click)="applyPreset(sample)">
+              {{ sample.category }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <form [formGroup]="portfolioForm" (ngSubmit)="onSubmit()" class="custom-form">
+        <!-- Project Title -->
+        <div class="custom-field-group">
+          <label for="title">Project / Work Title *</label>
+          <div class="custom-input-wrap" [class.has-error]="portfolioForm.get('title')?.invalid && portfolioForm.get('title')?.touched">
+            <mat-icon class="field-icon">title</mat-icon>
+            <input
+              id="title"
+              type="text"
+              formControlName="title"
+              placeholder="e.g. Modern Bathroom Renovation"
+            />
+          </div>
+          @if (portfolioForm.get('title')?.hasError('required') && portfolioForm.get('title')?.touched) {
+            <span class="error-text">Project title is required</span>
+          }
+          @if (portfolioForm.get('title')?.hasError('maxlength')) {
+            <span class="error-text">Maximum 100 characters allowed</span>
+          }
+        </div>
+
+        <!-- Description -->
+        <div class="custom-field-group">
+          <label for="description">Detailed Description & Materials Used *</label>
+          <div class="custom-textarea-wrap" [class.has-error]="portfolioForm.get('description')?.invalid && portfolioForm.get('description')?.touched">
+            <textarea
+              id="description"
+              formControlName="description"
+              rows="4"
+              placeholder="Explain the problem, work performed, equipment used, and final result..."
+            ></textarea>
+          </div>
+          @if (portfolioForm.get('description')?.hasError('required') && portfolioForm.get('description')?.touched) {
+            <span class="error-text">Description is required</span>
+          }
+        </div>
+
+        <!-- Project Photo / Image Selection -->
+        <div class="custom-field-group">
+          <label for="imageUrl">Project Photo (File Upload or URL) *</label>
+          
+          <div class="file-picker-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <input
+              #fileInput
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              (change)="onFileSelected($event)"
+              style="display: none"
+            />
+            <button
+              type="button"
+              class="btn-file-select"
+              (click)="fileInput.click()"
+              style="display: inline-flex; align-items: center; gap: 6px; padding: 0.5rem 1rem; background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; border-radius: 8px; font-weight: 600; cursor: pointer;"
+            >
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px;">cloud_upload</mat-icon>
+              <span>{{ selectedFile() ? selectedFile()!.name : 'Choose Image File...' }}</span>
+            </button>
+            @if (selectedFile()) {
+              <button
+                type="button"
+                (click)="selectedFile.set(null); portfolioForm.patchValue({ imageUrl: '' })"
+                style="background: transparent; border: none; color: #dc2626; cursor: pointer; display: flex; align-items: center;"
+                title="Clear selected file"
+              >
+                <mat-icon style="font-size: 18px; width: 18px; height: 18px;">close</mat-icon>
+              </button>
+            }
+          </div>
+
+          <div class="custom-input-wrap" [class.has-error]="portfolioForm.get('imageUrl')?.invalid && portfolioForm.get('imageUrl')?.touched">
+            <mat-icon class="field-icon">add_photo_alternate</mat-icon>
+            <input
+              id="imageUrl"
+              type="text"
+              formControlName="imageUrl"
+              placeholder="Or paste image URL (https://...)"
+            />
+          </div>
+          @if (portfolioForm.get('imageUrl')?.hasError('required') && portfolioForm.get('imageUrl')?.touched) {
+            <span class="error-text">Please upload an image or provide an image URL</span>
+          }
+        </div>
+
+        <!-- Date Completed -->
+        <div class="custom-field-group">
+          <label for="dateCompleted">Date Completed *</label>
+          <div class="custom-input-wrap" [class.has-error]="portfolioForm.get('dateCompleted')?.invalid && portfolioForm.get('dateCompleted')?.touched">
+            <mat-icon class="field-icon">calendar_today</mat-icon>
+            <input
+              id="dateCompleted"
+              type="date"
+              formControlName="dateCompleted"
+            />
+          </div>
+          @if (portfolioForm.get('dateCompleted')?.hasError('required') && portfolioForm.get('dateCompleted')?.touched) {
+            <span class="error-text">Date completed is required</span>
+          }
+        </div>
+
+        <!-- Submit & Back Buttons -->
+        <div class="form-actions-row">
+          <a routerLink="/certificate-upload" class="btn-action-back">
+            <mat-icon>arrow_back</mat-icon> Back
+          </a>
+          <button
+            type="submit"
+            class="btn-submit-primary flex-grow"
+            [disabled]="portfolioForm.invalid || submitting()"
+          >
+            @if (submitting()) {
+              <span class="btn-spinner"></span>
+              <span>Uploading Project...</span>
+            } @else {
+              <mat-icon>add_circle</mat-icon>
+              <span>Save & Continue to Step 5 &rarr;</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Live Preview Side -->
+    <div class="preview-container-card">
+      <div class="preview-header">
+        <mat-icon>visibility</mat-icon>
+        <span>Live Customer Card Preview</span>
+      </div>
+
+      <div class="portfolio-preview-card">
+        <div class="preview-image-wrap">
+          @if (portfolioForm.get('imageUrl')?.value) {
+            <img [src]="portfolioForm.get('imageUrl')?.value" alt="Project Preview" class="preview-img" />
+          } @else {
+            <div class="image-empty-placeholder">
+              <mat-icon>image</mat-icon>
+              <span>Work sample photo preview</span>
+            </div>
+          }
+          <div class="date-badge">
+            <mat-icon>check</mat-icon>
+            <span>{{ portfolioForm.get('dateCompleted')?.value || 'Recent Project' }}</span>
+          </div>
+        </div>
+
+        <div class="preview-card-body">
+          <div class="preview-tag">COMPLETED WORK PROOF</div>
+          <h3 class="preview-title">
+            {{ portfolioForm.get('title')?.value || 'Title of Your Completed Project' }}
+          </h3>
+          <p class="preview-desc">
+            {{ portfolioForm.get('description')?.value || 'Project description and highlights will display here for potential clients.' }}
+          </p>
+
+          <div class="preview-trust-bar">
+            <mat-icon>verified</mat-icon>
+            <span>Verified Customer Service Execution</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,489 @@
+<div class="module-page-container">
+  <!-- Onboarding Stepper Navigation Bar -->
+  <div class="stepper-progress-bar">
+    <a routerLink="/professional-profile" class="step-item completed" title="Go to Step 1: Profile & Rates">
+      <span class="step-num"><mat-icon>check</mat-icon></span>
+      <span class="step-label">1. Profile & Rates</span>
+    </a>
+    <div class="step-line completed"></div>
+
+    <div class="step-item active">
+      <span class="step-num">2</span>
+      <span class="step-label">2. Resume / CV</span>
+    </div>
+    <div class="step-line"></div>
+
+    <a routerLink="/certificate-upload" class="step-item" title="Go to Step 3: Certificates">
+      <span class="step-num">3</span>
+      <span class="step-label">3. Certificates</span>
+    </a>
+    <div class="step-line"></div>
+
+    <a routerLink="/portfolio-upload" class="step-item" title="Go to Step 4: Portfolio">
+      <span class="step-num">4</span>
+      <span class="step-label">4. Portfolio</span>
+    </a>
+    <div class="step-line"></div>
+
+    <a routerLink="/verification-upload" class="step-item" title="Go to Step 5: Verification">
+      <span class="step-num">5</span>
+      <span class="step-label">5. Verification</span>
+    </a>
+  </div>
+
+  <!-- Header Card -->
+  <div class="module-header-card">
+    <div class="header-left">
+      <div class="header-badge">
+        <mat-icon>description</mat-icon>
+        <span>Step 2 of 5 &bull; Structured Digital CV</span>
+      </div>
+      <h2>Build Your Professional Resume</h2>
+      <p class="subtitle">
+        Structured CV data powers Callbet's smart search engine to match and recommend you to high-paying client requests based on specific verified skills and languages.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <a routerLink="/professional-profile" class="btn-header-secondary btn-back-nav">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Profile</span>
+      </a>
+      <a routerLink="/certificate-upload" class="btn-header-secondary btn-skip-nav">
+        <span>Skip to Certificates</span>
+        <mat-icon>arrow_forward</mat-icon>
+      </a>
+    </div>
+  </div>
+
+  <!-- Status Messages -->
+  @if (uploadSuccess()) {
+    <div class="success-banner-custom">
+      <div class="banner-icon-wrap">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="banner-text-wrap">
+        <strong>Structured CV Published Successfully!</strong>
+        <p>Your resume data is now live. Redirecting to Step 3: Trade License & Certificate Upload...</p>
+      </div>
+      <button type="button" (click)="continueToCertificates()" class="btn-banner-action">
+        <span>Continue Now</span>
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+    </div>
+  }
+
+  @if (uploadError()) {
+    <div class="error-banner-custom">
+      <div class="banner-icon-wrap error">
+        <mat-icon>error_outline</mat-icon>
+      </div>
+      <div class="banner-text-wrap">
+        <strong>Upload Issue</strong>
+        <p>{{ uploadError() }}</p>
+      </div>
+    </div>
+  }
+
+  <!-- Main Grid: Form (Left) + Live Digital CV Preview (Right) -->
+  <div class="module-content-grid">
+    <!-- Form Side -->
+    <div class="form-container-card">
+      <!-- Quick Presets -->
+      <div class="presets-box">
+        <div class="presets-header">
+          <mat-icon>auto_fix_high</mat-icon>
+          <span>Quick Auto-Fill Presets (Click to test):</span>
+        </div>
+        <div class="presets-list">
+          <button type="button" class="preset-pill" (click)="applyPreset('electrician')">
+            ⚡ Master Electrician
+          </button>
+          <button type="button" class="preset-pill" (click)="applyPreset('cleaner')">
+            🧹 Deep Cleaning Pro
+          </button>
+          <button type="button" class="preset-pill" (click)="applyPreset('plumber')">
+            🔧 Sanitary Plumber
+          </button>
+          <button type="button" class="preset-pill" (click)="applyPreset('hvac')">
+            ❄️ HVAC Diagnostics
+          </button>
+        </div>
+      </div>
+
+      <form [formGroup]="resumeForm" (ngSubmit)="onSubmit()" class="custom-form">
+        <!-- Professional Summary -->
+        <div class="custom-field-group">
+          <div class="field-label-row">
+            <label for="summary">Professional Summary *</label>
+            <span class="field-hint">{{ (resumeForm.get('summary')?.value || '').length }} / 500 chars</span>
+          </div>
+          <div class="custom-textarea-wrap" [class.has-error]="resumeForm.get('summary')?.invalid && resumeForm.get('summary')?.touched">
+            <textarea
+              id="summary"
+              formControlName="summary"
+              rows="3"
+              placeholder="Highlight your core expertise, key competencies, years in the trade, and client commitment..."
+            ></textarea>
+          </div>
+          @if (resumeForm.get('summary')?.hasError('required') && resumeForm.get('summary')?.touched) {
+            <span class="error-text">Professional summary is required</span>
+          }
+        </div>
+
+        <!-- Skills with Interactive Suggestion Pills -->
+        <div class="custom-field-group">
+          <div class="field-label-row">
+            <label for="skills">Key Skills & Technical Proficiencies *</label>
+            <span class="field-hint">Type comma-separated or click suggestions</span>
+          </div>
+
+          <div class="custom-input-wrap" [class.has-error]="resumeForm.get('skills')?.invalid && resumeForm.get('skills')?.touched">
+            <mat-icon class="field-icon">build</mat-icon>
+            <input
+              id="skills"
+              type="text"
+              formControlName="skills"
+              placeholder="e.g. Smart Wiring, Breaker Panels, Solar Inverters"
+            />
+          </div>
+
+          <!-- Active Selected Skills Cloud -->
+          @if (getParsedSkills().length > 0) {
+            <div class="selected-tags-cloud">
+              @for (skill of getParsedSkills(); track skill) {
+                <span class="selected-tag-pill">
+                  <span>{{ skill }}</span>
+                  <button type="button" (click)="removeSkill(skill)" title="Remove skill">&times;</button>
+                </span>
+              }
+            </div>
+          }
+
+          <!-- Quick Skill Tag Suggestion Pills -->
+          <div class="suggest-pills-wrap">
+            <span class="suggest-label">Suggestions:</span>
+            @for (skill of popularSkillTags; track skill) {
+              <button
+                type="button"
+                class="suggest-chip"
+                [class.selected]="isSkillSelected(skill)"
+                (click)="toggleSkillTag(skill)"
+              >
+                {{ isSkillSelected(skill) ? '✓ ' + skill : '+ ' + skill }}
+              </button>
+            }
+          </div>
+
+          @if (resumeForm.get('skills')?.hasError('required') && resumeForm.get('skills')?.touched) {
+            <span class="error-text">At least one skill is required</span>
+          }
+        </div>
+
+        <!-- Languages with Interactive Suggestion Pills -->
+        <div class="custom-field-group">
+          <div class="field-label-row">
+            <label for="languages">Working Languages *</label>
+            <span class="field-hint">Languages you communicate in</span>
+          </div>
+
+          <div class="custom-input-wrap" [class.has-error]="resumeForm.get('languages')?.invalid && resumeForm.get('languages')?.touched">
+            <mat-icon class="field-icon">translate</mat-icon>
+            <input
+              id="languages"
+              type="text"
+              formControlName="languages"
+              placeholder="e.g. Amharic, English, Afaan Oromoo"
+            />
+          </div>
+
+          <!-- Active Selected Languages Cloud -->
+          @if (getParsedLanguages().length > 0) {
+            <div class="selected-tags-cloud languages">
+              @for (lang of getParsedLanguages(); track lang) {
+                <span class="selected-tag-pill lang-pill">
+                  <span>{{ lang }}</span>
+                  <button type="button" (click)="removeLanguage(lang)" title="Remove language">&times;</button>
+                </span>
+              }
+            </div>
+          }
+
+          <div class="suggest-pills-wrap">
+            <span class="suggest-label">Suggestions:</span>
+            @for (lang of popularLanguages; track lang) {
+              <button
+                type="button"
+                class="suggest-chip"
+                [class.selected]="isLanguageSelected(lang)"
+                (click)="toggleLanguageTag(lang)"
+              >
+                {{ isLanguageSelected(lang) ? '✓ ' + lang : '+ ' + lang }}
+              </button>
+            }
+          </div>
+
+          @if (resumeForm.get('languages')?.hasError('required') && resumeForm.get('languages')?.touched) {
+            <span class="error-text">Working languages are required</span>
+          }
+        </div>
+
+        <!-- Education & Degrees -->
+        <div class="custom-field-group">
+          <div class="field-label-row">
+            <label for="educationJson">Education & Degrees *</label>
+            <span class="field-hint">Degrees, diplomas, or vocational certifications</span>
+          </div>
+          <div class="custom-input-wrap" [class.has-error]="resumeForm.get('educationJson')?.invalid && resumeForm.get('educationJson')?.touched">
+            <mat-icon class="field-icon">school</mat-icon>
+            <input
+              id="educationJson"
+              type="text"
+              formControlName="educationJson"
+              placeholder="e.g. BSc in Electrical Engineering, Addis Ababa University"
+            />
+          </div>
+          @if (resumeForm.get('educationJson')?.hasError('required') && resumeForm.get('educationJson')?.touched) {
+            <span class="error-text">Education information is required</span>
+          }
+        </div>
+
+        <!-- Work Experience -->
+        <div class="custom-field-group">
+          <div class="field-label-row">
+            <label for="experienceJson">Past Employment & Roles *</label>
+            <span class="field-hint">Recent company, supervisor, or freelance history</span>
+          </div>
+          <div class="custom-input-wrap" [class.has-error]="resumeForm.get('experienceJson')?.invalid && resumeForm.get('experienceJson')?.touched">
+            <mat-icon class="field-icon">work_history</mat-icon>
+            <input
+              id="experienceJson"
+              type="text"
+              formControlName="experienceJson"
+              placeholder="e.g. Senior Field Electrician at Apex Power (2018 - 2024)"
+            />
+          </div>
+          @if (resumeForm.get('experienceJson')?.hasError('required') && resumeForm.get('experienceJson')?.touched) {
+            <span class="error-text">Work experience is required</span>
+          }
+        </div>
+
+        <!-- Resume File Drag-and-Drop Upload Area -->
+        <div class="custom-field-group">
+          <div class="field-label-row">
+            <label>Printable CV Document (PDF / Word) *</label>
+            <span class="field-hint">Max 10MB &bull; .pdf, .docx, .doc</span>
+          </div>
+
+          <div
+            class="file-upload-dropzone"
+            [class.dragging]="isDraggingFile()"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+          >
+            <input
+              #pdfInput
+              type="file"
+              accept=".pdf,.docx,.doc"
+              (change)="onFileSelected($event)"
+              style="display: none"
+            />
+
+            <div class="dropzone-inner">
+              <div class="dropzone-icon">
+                <mat-icon>cloud_upload</mat-icon>
+              </div>
+
+              <div class="dropzone-text">
+                <strong>Drag and drop your CV file here</strong>
+                <p>or click below to choose a file from your computer</p>
+              </div>
+
+              <button
+                type="button"
+                class="btn-file-select"
+                (click)="pdfInput.click()"
+                [disabled]="isUploadingPdf()"
+              >
+                <mat-icon>folder_open</mat-icon>
+                <span>{{ isUploadingPdf() ? 'Uploading Document...' : 'Browse Computer Files' }}</span>
+              </button>
+            </div>
+
+            <!-- Attached File Pill -->
+            @if (selectedFile()) {
+              <div class="attached-file-pill">
+                <mat-icon class="file-icon">description</mat-icon>
+                <div class="file-info">
+                  <span class="file-name">{{ selectedFile()?.name }}</span>
+                  <span class="file-size">{{ (selectedFile()!.size / (1024 * 1024)).toFixed(2) }} MB &bull; Uploaded</span>
+                </div>
+                <button type="button" class="btn-remove-file" (click)="clearFile()" title="Remove file">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Direct URL Option -->
+          <div class="url-input-wrapper">
+            <div class="custom-input-wrap" [class.has-error]="resumeForm.get('resumeFileUrl')?.invalid && resumeForm.get('resumeFileUrl')?.touched">
+              <mat-icon class="field-icon">link</mat-icon>
+              <input
+                id="resumeFileUrl"
+                type="text"
+                formControlName="resumeFileUrl"
+                placeholder="Or paste online resume URL (https://...)"
+              />
+            </div>
+            @if (resumeForm.get('resumeFileUrl')?.value) {
+              <a
+                [href]="resumeForm.get('resumeFileUrl')?.value"
+                target="_blank"
+                class="btn-view-document"
+              >
+                <mat-icon>open_in_new</mat-icon>
+                <span>Preview Document</span>
+              </a>
+            }
+          </div>
+
+          @if (resumeForm.get('resumeFileUrl')?.hasError('required') && resumeForm.get('resumeFileUrl')?.touched) {
+            <span class="error-text">Please attach a CV document or provide a document URL</span>
+          }
+        </div>
+
+        <!-- Submit & Navigation Buttons -->
+        <div class="form-actions-row">
+          <a routerLink="/professional-profile" class="btn-action-back">
+            <mat-icon>arrow_back</mat-icon>
+            <span>Back</span>
+          </a>
+          <button
+            type="submit"
+            class="btn-submit-primary flex-grow"
+            [disabled]="resumeForm.invalid || submitting()"
+          >
+            @if (submitting()) {
+              <span class="btn-spinner"></span>
+              <span>Publishing Digital CV...</span>
+            } @else {
+              <mat-icon>verified</mat-icon>
+              <span>Save & Continue to Step 3 (Certificates) &rarr;</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Live Preview Card: Digital CV View -->
+    <div class="preview-container-card">
+      <div class="preview-header">
+        <div class="header-title-wrap">
+          <mat-icon>visibility</mat-icon>
+          <span>Live Digital CV Preview</span>
+        </div>
+        <span class="live-pill">Live Client View</span>
+      </div>
+
+      <div class="digital-cv-card">
+        <!-- CV Header Profile Banner -->
+        <div class="cv-card-header">
+          <div class="cv-user-badge">
+            <img [src]="proAvatarUrl()" [alt]="proDisplayName()" class="cv-avatar-img" />
+            <div class="cv-user-meta">
+              <h3 class="cv-name">{{ proDisplayName() }}</h3>
+              <p class="cv-headline">{{ proHeadline() }}</p>
+              <span class="cv-status-pill">
+                <span class="dot"></span> Active Verified Professional
+              </span>
+            </div>
+          </div>
+
+          @if (resumeForm.get('resumeFileUrl')?.value) {
+            <a [href]="resumeForm.get('resumeFileUrl')?.value" target="_blank" class="cv-pdf-link" title="Open printable document">
+              <mat-icon>picture_as_pdf</mat-icon>
+              <span>Attached CV</span>
+            </a>
+          }
+        </div>
+
+        <!-- Summary Section -->
+        <div class="cv-section">
+          <h4 class="cv-section-title">
+            <mat-icon>badge</mat-icon>
+            <span>Professional Summary</span>
+          </h4>
+          <div class="cv-summary-box">
+            <p class="cv-summary-text">
+              "{{ resumeForm.get('summary')?.value || 'Your summary will display here to introduce your trade craftsmanship and experience to clients.' }}"
+            </p>
+          </div>
+        </div>
+
+        <!-- Skills Section -->
+        <div class="cv-section">
+          <h4 class="cv-section-title">
+            <mat-icon>construction</mat-icon>
+            <span>Verified Proficiencies ({{ getParsedSkills().length }})</span>
+          </h4>
+          <div class="cv-chips-wrap">
+            @if (getParsedSkills().length > 0) {
+              @for (skill of getParsedSkills(); track skill) {
+                <span class="cv-skill-chip">{{ skill }}</span>
+              }
+            } @else {
+              <span class="cv-placeholder-text">Skills will appear as searchable tags</span>
+            }
+          </div>
+        </div>
+
+        <!-- Languages Section -->
+        <div class="cv-section">
+          <h4 class="cv-section-title">
+            <mat-icon>language</mat-icon>
+            <span>Working Languages ({{ getParsedLanguages().length }})</span>
+          </h4>
+          <div class="cv-chips-wrap">
+            @if (getParsedLanguages().length > 0) {
+              @for (lang of getParsedLanguages(); track lang) {
+                <span class="cv-lang-chip">{{ lang }}</span>
+              }
+            } @else {
+              <span class="cv-placeholder-text">Working languages will appear here</span>
+            }
+          </div>
+        </div>
+
+        <!-- Education & Experience Grid -->
+        <div class="cv-two-col-grid">
+          <div class="cv-sub-card">
+            <h5>
+              <mat-icon>school</mat-icon>
+              <span>Education</span>
+            </h5>
+            <p>{{ resumeForm.get('educationJson')?.value || 'Academic & trade certifications' }}</p>
+          </div>
+
+          <div class="cv-sub-card">
+            <h5>
+              <mat-icon>work</mat-icon>
+              <span>Experience</span>
+            </h5>
+            <p>{{ resumeForm.get('experienceJson')?.value || 'Field roles & commercial history' }}</p>
+          </div>
+        </div>
+
+        <!-- Verified Guarantee Footer -->
+        <div class="cv-footer-guarantee">
+          <mat-icon>shield</mat-icon>
+          <div>
+            <strong>Indexed for Smart Matching & Escrow Protection</strong>
+            <p>Direct bookings on Callbet are backed by 100% platform escrow guarantee.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
