@@ -1,0 +1,143 @@
+<div class="profile-container">
+  <!-- Profile Header Card -->
+  <div class="header-section">
+    <div>
+      <h2>User Profile</h2>
+      <p class="subtitle">Manage your account activities and stay updated with notifications</p>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button color="primary" routerLink="/customer-services">
+        <mat-icon>search</mat-icon> Browse Services
+      </button>
+      <button mat-button color="accent" routerLink="/login" [queryParams]="{mode: 'register'}">
+        Registration
+      </button>
+    </div>
+  </div>
+
+  <!-- Notifications Center -->
+  <mat-card appearance="outlined" class="notifications-card">
+    <mat-card-header class="card-header">
+      <div class="header-title-row">
+        <div class="title-with-badge">
+          <mat-icon class="bell-icon">notifications</mat-icon>
+          <h3>Notifications Center</h3>
+          @if (notificationService.unreadCount() > 0) {
+            <span class="unread-pill">{{ notificationService.unreadCount() }} New</span>
+          }
+        </div>
+
+        <div class="action-buttons">
+          <button
+            mat-button
+            color="primary"
+            type="button"
+            [disabled]="notificationService.unreadCount() === 0"
+            (click)="markAllAsRead()"
+          >
+            Mark All Read
+          </button>
+          <button
+            mat-button
+            color="warn"
+            type="button"
+            [disabled]="notificationService.notifications().length === 0"
+            (click)="clearAll()"
+          >
+            Clear All
+          </button>
+        </div>
+      </div>
+    </mat-card-header>
+
+    <!-- Filter Buttons Bar -->
+    <div class="filter-tabs">
+      <button
+        mat-stroked-button
+        type="button"
+        [class.active-tab]="activeFilter() === 'all'"
+        (click)="setFilter('all')"
+      >
+        All ({{ notificationService.notifications().length }})
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        [class.active-tab]="activeFilter() === 'unread'"
+        (click)="setFilter('unread')"
+      >
+        Unread ({{ notificationService.unreadCount() }})
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        [class.active-tab]="activeFilter() === 'read'"
+        (click)="setFilter('read')"
+      >
+        Read ({{ notificationService.notifications().length - notificationService.unreadCount() }})
+      </button>
+    </div>
+
+    <mat-card-content class="card-content">
+      <!-- Notification Items List -->
+      <div class="notifications-feed">
+        @for (item of filteredNotifications(); track item.id) {
+          <div class="notification-row" [class.unread]="!item.isRead">
+            <div class="notif-icon-col">
+              <div class="icon-circle" [class.booking-icon]="item.type === 'booking'" [class.job-icon]="item.type === 'job'">
+                @if (item.type === 'booking') {
+                  <mat-icon>bookmark_added</mat-icon>
+                } @else if (item.type === 'job') {
+                  <mat-icon>work</mat-icon>
+                } @else {
+                  <mat-icon>info</mat-icon>
+                }
+              </div>
+            </div>
+
+            <div class="notif-body">
+              <div class="notif-header">
+                <span class="notif-title">{{ item.title }}</span>
+                <span class="notif-time">{{ item.createdAt | date:'medium' }}</span>
+              </div>
+              <p class="notif-message">{{ item.message }}</p>
+              @if (item.link) {
+                <a [routerLink]="item.link" class="notif-link">View Details &rarr;</a>
+              }
+            </div>
+
+            <div class="notif-actions">
+              @if (!item.isRead) {
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  class="action-btn"
+                  (click)="markAsRead(item.id)"
+                >
+                  Mark as Read
+                </button>
+              }
+              <button
+                mat-icon-button
+                color="warn"
+                type="button"
+                aria-label="Delete notification"
+                title="Delete"
+                (click)="deleteNotification(item.id)"
+              >
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-notifications">
+            <mat-icon class="empty-icon">notifications_off</mat-icon>
+            <h4>No notifications</h4>
+            <p>You are all caught up! Updates about your bookings and jobs will appear here.</p>
+          </div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

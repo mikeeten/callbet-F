@@ -1,0 +1,287 @@
+<div class="module-page-container">
+  <!-- Onboarding Stepper Navigation Bar -->
+  <div class="stepper-progress-bar">
+    <div class="step-item active">
+      <span class="step-num">1</span>
+      <span class="step-label">Profile Details</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <span class="step-num">2</span>
+      <span class="step-label">Resume / CV</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <span class="step-num">3</span>
+      <span class="step-label">Certificates</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <span class="step-num">4</span>
+      <span class="step-label">Portfolio</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <span class="step-num">5</span>
+      <span class="step-label">Verification</span>
+    </div>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <div class="module-header-card">
+    <div class="header-left">
+      <div class="header-badge">
+        <mat-icon>engineering</mat-icon>
+        <span>Step 1 of 5: Profile Parameters</span>
+      </div>
+      <h2>Professional Profile & Business Setup</h2>
+      <p class="subtitle">
+        Configure your professional headline, biography, years of experience, and service dispatch radius. Saving will automatically guide you to the next onboarding steps.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <!-- Back Button -->
+      <a routerLink="/professional-dashboard" class="btn-header-secondary btn-back-nav">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Dashboard</span>
+      </a>
+      <a routerLink="/resume-upload" class="btn-header-secondary">
+        <mat-icon>arrow_forward</mat-icon>
+        <span>Skip to Resume &rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  @if (createdSuccess()) {
+    <div class="success-banner-custom">
+      <mat-icon>check_circle</mat-icon>
+      <div>
+        <strong>Professional Profile Saved!</strong>
+        <p>Redirecting you to Step 2: Digital Resume Builder in a moment...</p>
+      </div>
+      <div class="banner-quick-actions">
+        <button type="button" (click)="continueToResume()" class="btn-banner-action">
+          <mat-icon>arrow_forward</mat-icon> Continue Now &rarr;
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="error-banner-custom">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>Profile Setup Error</strong>
+        <p>{{ errorMessage() }}</p>
+      </div>
+    </div>
+  }
+
+  <!-- Main Grid: Form on Left, Live Pro Card on Right -->
+  <div class="module-content-grid">
+    <!-- Form Side -->
+    <div class="form-container-card">
+      <!-- Quick Presets -->
+      <div class="presets-box">
+        <span class="presets-label"><mat-icon>auto_fix_high</mat-icon> One-Click Trade Templates:</span>
+        <div class="presets-list">
+          @for (preset of samplePresets; track preset.label) {
+            <button type="button" class="preset-pill" (click)="applyPreset(preset)">
+              {{ preset.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="custom-form">
+        <!-- Headline -->
+        <div class="custom-field-group">
+          <label for="headline">Professional Headline *</label>
+          <div class="custom-input-wrap" [class.has-error]="profileForm.get('headline')?.invalid && profileForm.get('headline')?.touched">
+            <mat-icon class="field-icon">subtitles</mat-icon>
+            <input
+              id="headline"
+              type="text"
+              formControlName="headline"
+              placeholder="e.g. Certified Master Electrician & Smart Home Specialist"
+            />
+          </div>
+          @if (profileForm.get('headline')?.hasError('required') && profileForm.get('headline')?.touched) {
+            <span class="error-text">Headline is required</span>
+          }
+        </div>
+
+        <!-- Bio -->
+        <div class="custom-field-group">
+          <label for="bio">Biography & Trade Experience *</label>
+          <div class="custom-textarea-wrap" [class.has-error]="profileForm.get('bio')?.invalid && profileForm.get('bio')?.touched">
+            <textarea
+              id="bio"
+              formControlName="bio"
+              rows="4"
+              placeholder="Describe your specializations, tools, work philosophy, and past projects..."
+            ></textarea>
+          </div>
+          @if (profileForm.get('bio')?.hasError('required') && profileForm.get('bio')?.touched) {
+            <span class="error-text">Bio is required</span>
+          }
+        </div>
+
+        <!-- Numbers Row: Experience & Radius -->
+        <div class="numbers-double-row">
+          <!-- Experience -->
+          <div class="custom-field-group">
+            <label for="yearsOfExperience">Experience (Years) *</label>
+            <div class="custom-input-wrap" [class.has-error]="profileForm.get('yearsOfExperience')?.invalid && profileForm.get('yearsOfExperience')?.touched">
+              <mat-icon class="field-icon">history</mat-icon>
+              <input
+                id="yearsOfExperience"
+                type="number"
+                formControlName="yearsOfExperience"
+                min="0"
+                placeholder="e.g. 8"
+              />
+            </div>
+          </div>
+
+          <!-- Radius -->
+          <div class="custom-field-group">
+            <label for="serviceRadiusKm">Service Radius (km) *</label>
+            <div class="custom-input-wrap" [class.has-error]="profileForm.get('serviceRadiusKm')?.invalid && profileForm.get('serviceRadiusKm')?.touched">
+              <mat-icon class="field-icon">radar</mat-icon>
+              <input
+                id="serviceRadiusKm"
+                type="number"
+                formControlName="serviceRadiusKm"
+                min="1"
+                max="2.5"
+                step="0.1"
+                placeholder="e.g. 2.5"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions-row">
+          <a routerLink="/professional-dashboard" class="btn-action-back">
+            <mat-icon>arrow_back</mat-icon> Back
+          </a>
+          <button
+            type="submit"
+            class="btn-submit-primary flex-grow"
+            [disabled]="profileForm.invalid || submitting()"
+          >
+            @if (submitting()) {
+              <span class="btn-spinner"></span>
+              <span>Saving Profile...</span>
+            } @else {
+              <mat-icon>save</mat-icon>
+              <span>Save & Continue to Step 2 &rarr;</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Live Preview Card & Pro Suite Hub Side -->
+    <div class="preview-container-card">
+      <div class="preview-header">
+        <mat-icon>visibility</mat-icon>
+        <span>Live Public Profile Preview</span>
+      </div>
+
+      <!-- Pro Card Preview -->
+      <div class="pro-preview-card">
+        <div class="preview-top-row">
+          <div class="pro-avatar-badge-wrap">
+            <div class="pro-avatar-circle">
+              <mat-icon>person</mat-icon>
+            </div>
+            <div class="verified-seal-badge">
+              <mat-icon>verified</mat-icon>
+            </div>
+          </div>
+
+          <div class="pro-head-details">
+            <h3 class="pro-preview-name">Professional Worker</h3>
+            <p class="pro-preview-headline">
+              {{ profileForm.get('headline')?.value || 'Your Trade Headline' }}
+            </p>
+            <div class="pro-subcity-badge">
+              <mat-icon>near_me</mat-icon>
+              <span>{{ profileForm.get('serviceRadiusKm')?.value || 2.5 }} km Active Dispatch Radius</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bio Preview -->
+        <p class="pro-bio-preview">
+          {{ profileForm.get('bio')?.value || 'Your trade biography and service philosophy will display here to potential clients.' }}
+        </p>
+
+        <!-- Stats Bar -->
+        <div class="pro-stats-preview-bar">
+          <div class="stat-cell">
+            <span class="stat-num">{{ profileForm.get('yearsOfExperience')?.value || 0 }} Yrs</span>
+            <span class="stat-lbl">Experience</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num">{{ profileForm.get('serviceRadiusKm')?.value || 2.5 }} km</span>
+            <span class="stat-lbl">Coverage Radius</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num rating-cell"><mat-icon>star</mat-icon> 5.0</span>
+            <span class="stat-lbl">New Pro Rating</span>
+          </div>
+        </div>
+
+        <!-- Escrow Protection Guarantee -->
+        <div class="pro-escrow-pill">
+          <mat-icon>lock</mat-icon>
+          <span>Escrow Protected Payouts: 85% Guaranteed Net Rate</span>
+        </div>
+      </div>
+
+      <!-- Next Steps Pro Suite Hub -->
+      <div class="pro-suite-hub-card">
+        <h4 class="hub-title"><mat-icon>apps</mat-icon> Complete Your Pro Profile Suite:</h4>
+        <div class="hub-links-grid">
+          <a routerLink="/resume-upload" class="hub-tile">
+            <mat-icon>description</mat-icon>
+            <div class="tile-text">
+              <strong>Step 2: Digital CV</strong>
+              <span>Add skills & education</span>
+            </div>
+          </a>
+
+          <a routerLink="/certificate-upload" class="hub-tile">
+            <mat-icon>school</mat-icon>
+            <div class="tile-text">
+              <strong>Step 3: Certificates</strong>
+              <span>Upload licenses & permits</span>
+            </div>
+          </a>
+
+          <a routerLink="/portfolio-upload" class="hub-tile">
+            <mat-icon>photo_library</mat-icon>
+            <div class="tile-text">
+              <strong>Step 4: Portfolio</strong>
+              <span>Add project photos</span>
+            </div>
+          </a>
+
+          <a routerLink="/verification-upload" class="hub-tile">
+            <mat-icon>security</mat-icon>
+            <div class="tile-text">
+              <strong>Step 5: e-KYC ID</strong>
+              <span>Submit government ID</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
