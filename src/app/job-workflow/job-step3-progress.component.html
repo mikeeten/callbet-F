@@ -1,0 +1,64 @@
+<div class="step-container">
+  <div class="step-header">
+    <div class="stage-tag">STAGE 3 OF 4 &bull; LIVE WORK IN PROGRESS</div>
+    <h3>Technician Performing Service On-Site</h3>
+    <p>Track live execution time, view safety milestone checklist, and monitor on-site progress</p>
+  </div>
+
+  <!-- Live Active Technician & Stopwatch Banner -->
+  <div class="live-progress-card">
+    <div class="timer-column">
+      <span class="timer-label"><mat-icon>timer</mat-icon> Active Work Timer</span>
+      <div class="digital-clock">{{ formattedTime }}</div>
+      <span class="pulse-indicator"><span class="pulse-dot"></span> In Progress On-Site</span>
+    </div>
+
+    <div class="pro-assigned-box">
+      <img
+        [src]="jobData.professionalAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'"
+        alt="Technician"
+        class="pro-thumb"
+      />
+      <div>
+        <span class="badge-active"><mat-icon>engineering</mat-icon> Active Technician</span>
+        <h4>{{ jobData.professionalName || 'Tenagasha Wollela' }}</h4>
+        <p class="service-name">{{ jobData.serviceName }} &bull; ${{ jobData.price }} Escrow Locked</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-time Milestone Checklist -->
+  <div class="checklist-section">
+    <h4>Service Quality & Safety Milestones</h4>
+    <div class="milestones-list">
+      @for (item of checklist(); track item.id) {
+        <div class="milestone-row" [class.done]="item.done" (click)="toggleCheck(item.id)">
+          <mat-icon class="check-icon">{{ item.done ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+          <span class="milestone-text">{{ item.text }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Action Row -->
+  <div class="actions-row">
+    <button
+      mat-raised-button
+      color="accent"
+      type="button"
+      class="btn-proceed"
+      [disabled]="loading()"
+      (click)="onCompleteWork()"
+    >
+      @if (loading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+        <span>Updating Status...</span>
+      } @else {
+        <ng-container>
+          <mat-icon>task</mat-icon>
+          <span>Mark Work Finished & Ready for Inspection &rarr;</span>
+        </ng-container>
+      }
+    </button>
+  </div>
+</div>

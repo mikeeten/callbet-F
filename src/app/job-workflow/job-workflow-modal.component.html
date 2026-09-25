@@ -1,0 +1,73 @@
+<div class="modal-backdrop" (click)="onClose()">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <!-- Modal Top Header -->
+    <div class="modal-header">
+      <div class="header-title-wrap">
+        <div class="brand-chip">
+          <mat-icon>verified</mat-icon>
+          <span>BOOK SERVICE</span>
+        </div>
+        <h2>{{ isCompleted() ? 'Service Booking Confirmed' : 'Book ' + jobData().serviceName }}</h2>
+      </div>
+
+      <button mat-icon-button (click)="onClose()" class="btn-close" title="Close modal">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Modal Content Body -->
+    <div class="modal-body">
+      @if (!isCompleted()) {
+        <!-- STAGE 1: BOOK SERVICE -->
+        <app-job-step1-booking
+          [jobData]="jobData()"
+          (bookingSubmitted)="onStep1Done($event)"
+        ></app-job-step1-booking>
+      } @else {
+        <!-- CELEBRATION / BOOKING SUCCESS SCREEN -->
+        <div class="celebration-view">
+          <div class="confetti-icon">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+          <h3>Service Booking Placed Successfully!</h3>
+          <p class="summary-text">
+            Your booking for <strong>{{ jobData().serviceName }}</strong> has been registered with
+            <strong>{{ jobData().professionalName || 'Verified Professional' }}</strong>.
+          </p>
+
+          <div class="completed-meta-box">
+            <div class="meta-row">
+              <span class="meta-lbl">Job ID</span>
+              <span class="meta-val"><code>{{ jobData().jobId }}</code></span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-lbl">Scheduled Date & Time</span>
+              <span class="meta-val">{{ jobData().scheduledDate }} &bull; {{ jobData().scheduledTime || '10:00 AM' }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-lbl">Service Location</span>
+              <span class="meta-val">{{ jobData().address || 'Addis Ababa' }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-lbl">Price</span>
+              <span class="meta-val"><strong>${{ jobData().price }}</strong> ({{ jobData().pricingType || 'Fixed Total' }})</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-lbl">Booking Status</span>
+              <span class="meta-val verified-badge"><mat-icon>verified</mat-icon> Confirmed & Pending Dispatch</span>
+            </div>
+          </div>
+
+          <div class="celebration-actions">
+            <a mat-raised-button color="primary" routerLink="/customer-dashboard" (click)="onClose()">
+              <mat-icon>dashboard</mat-icon> Go to Customer Dashboard
+            </a>
+            <button mat-stroked-button color="accent" type="button" (click)="onClose()">
+              <mat-icon>search</mat-icon> Browse More Services
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

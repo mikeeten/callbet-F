@@ -1,0 +1,936 @@
+<div class="pro-jobs-portal-container">
+  <!-- Top Portal Header & Breadcrumbs -->
+  <header class="jobs-portal-header">
+    <div class="header-left">
+      <div class="portal-badge-icon">
+        <mat-icon>handyman</mat-icon>
+      </div>
+      <div class="portal-title-wrap">
+        <div class="title-row">
+          <h1>Work Orders & Assigned Jobs</h1>
+          <span class="portal-role-pill">
+            <mat-icon>verified</mat-icon> Certified Trade Dispatch
+          </span>
+        </div>
+        <p class="portal-sub">
+          Manage your assigned service requests, track live job milestones, submit work completion proofs, and monitor your 85% net escrow payouts.
+        </p>
+      </div>
+    </div>
+
+    <!-- Header Quick Actions -->
+    <div class="header-actions">
+      <!-- Back to Pro Profile & Services -->
+      <a mat-stroked-button color="primary" routerLink="/professional-dashboard" class="action-btn">
+        <mat-icon>badge</mat-icon>
+        <span>Pro Dashboard</span>
+      </a>
+      <!-- Switch to Customer Dashboard -->
+      <a
+        mat-stroked-button
+        color="primary"
+        routerLink="/customer-dashboard"
+        class="action-btn"
+        title="Switch to Customer Dashboard"
+      >
+        <mat-icon>person</mat-icon>
+        <span>Customer Dashboard</span>
+      </a>
+
+
+      <!-- Notifications -->
+      <a
+        mat-stroked-button
+        color="accent"
+        routerLink="/professional-notifications"
+        class="action-btn"
+        title="View Notifications"
+      >
+        <mat-icon
+          [matBadge]="notificationService.unreadProfessionalCount()"
+          [matBadgeHidden]="notificationService.unreadProfessionalCount() === 0"
+          matBadgeColor="warn"
+          matBadgeSize="small"
+        >notifications</mat-icon>
+        <span>Notifications</span>
+      </a>
+
+      <!-- Direct Chats Hub -->
+      <button
+        mat-stroked-button
+        color="primary"
+        class="action-btn"
+        (click)="openDirectChatHub()"
+        title="Open Direct Client Chats"
+      >
+        <mat-icon
+          [matBadge]="unreadChatCount()"
+          [matBadgeHidden]="unreadChatCount() === 0"
+          matBadgeColor="accent"
+          matBadgeSize="small"
+        >chat</mat-icon>
+        <span>Client Chats</span>
+      </button>
+
+      <!-- Services Selection -->
+      <a mat-raised-button color="primary" routerLink="/service-selection" class="action-btn primary-glow">
+        <mat-icon>add_business</mat-icon>
+        <span>My Services</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Feedback Banner -->
+  @if (feedbackMessage()) {
+    <div class="feedback-banner">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ feedbackMessage() }}</span>
+    </div>
+  }
+
+  <!-- Interactive 5-Metric Overview Ribbon -->
+  <div class="metrics-ribbon-grid">
+    <!-- Metric 1: Total Jobs -->
+    <div
+      class="metric-card clickable"
+      [class.active-metric]="statusFilter() === 'all'"
+      (click)="statusFilter.set('all')"
+    >
+      <div class="metric-icon total-icon">
+        <mat-icon>assignment</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ metrics().total }}</span>
+        <span class="metric-label">Total Assigned Jobs</span>
+      </div>
+    </div>
+
+    <!-- Metric 2: Ready / Assigned -->
+    <div
+      class="metric-card clickable"
+      [class.active-metric]="statusFilter() === 'assigned'"
+      (click)="statusFilter.set('assigned')"
+    >
+      <div class="metric-icon assigned-icon">
+        <mat-icon>pending_actions</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ metrics().assigned }}</span>
+        <span class="metric-label">Ready to Start</span>
+      </div>
+    </div>
+
+    <!-- Metric 3: In Progress -->
+    <div
+      class="metric-card clickable"
+      [class.active-metric]="statusFilter() === 'in_progress'"
+      (click)="statusFilter.set('in_progress')"
+    >
+      <div class="metric-icon progress-icon">
+        <mat-icon>engineering</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ metrics().inProgress }}</span>
+        <span class="metric-label">Work in Progress</span>
+      </div>
+    </div>
+
+    <!-- Metric 4: Completed Pending Approval -->
+    <div
+      class="metric-card clickable"
+      [class.active-metric]="statusFilter() === 'completed'"
+      (click)="statusFilter.set('completed')"
+    >
+      <div class="metric-icon approval-icon">
+        <mat-icon>hourglass_top</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ metrics().completed }}</span>
+        <span class="metric-label">Pending Approval</span>
+      </div>
+    </div>
+
+    <!-- Metric 5: Total Net Escrow Value -->
+    <div class="metric-card escrow-total-card">
+      <div class="metric-icon escrow-icon">
+        <mat-icon>account_balance_wallet</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">${{ metrics().totalNet | number:'1.2-2' }}</span>
+        <span class="metric-label">Total Net Pipeline (85%)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar Card -->
+  <div class="jobs-toolbar-card">
+    <div class="toolbar-search-row">
+      <!-- Search Input -->
+      <div class="search-input-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Search jobs by trade, customer name, location or Job ID..."
+        />
+        @if (searchQuery()) {
+          <button mat-icon-button type="button" class="btn-clear-search" (click)="searchQuery.set('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <!-- Sort Dropdown -->
+      <div class="sort-select-box">
+        <label>Sort By:</label>
+        <select
+          [value]="sortBy()"
+          (change)="sortBy.set($any($event.target).value)"
+          class="native-select"
+        >
+          <option value="scheduledDate">Scheduled Date (Newest)</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="price_asc">Price: Low to High</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Status Filter Pills Row -->
+    <div class="status-pills-row">
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'all'"
+        (click)="statusFilter.set('all')"
+      >
+        <mat-icon>list_alt</mat-icon>
+        <span>All Jobs ({{ metrics().total }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'assigned'"
+        (click)="statusFilter.set('assigned')"
+      >
+        <mat-icon>play_circle_outline</mat-icon>
+        <span>Assigned / Ready ({{ metrics().assigned }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'in_progress'"
+        (click)="statusFilter.set('in_progress')"
+      >
+        <mat-icon>bolt</mat-icon>
+        <span>In Progress ({{ metrics().inProgress }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'completed'"
+        (click)="statusFilter.set('completed')"
+      >
+        <mat-icon>fact_check</mat-icon>
+        <span>Awaiting Approval ({{ metrics().completed }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'closed'"
+        (click)="statusFilter.set('closed')"
+      >
+        <mat-icon>task_alt</mat-icon>
+        <span>Closed & Paid ({{ metrics().closed }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'cancelled'"
+        (click)="statusFilter.set('cancelled')"
+      >
+        <mat-icon>cancel</mat-icon>
+        <span>Cancelled ({{ metrics().cancelled }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="jobs-loading-box">
+      <mat-spinner diameter="44"></mat-spinner>
+      <p>Loading assigned work orders...</p>
+    </div>
+  } @else {
+    <!-- Jobs List Grid -->
+    <div class="jobs-grid">
+      @for (job of filteredJobs(); track job.id) {
+        <mat-card appearance="outlined" class="job-work-card">
+          <!-- Card Header / Title Row -->
+          <div class="card-header-strip">
+            <div class="header-main-info">
+              <div class="trade-title-row">
+                <h3>{{ job.serviceName }}</h3>
+                <span
+                  class="job-status-chip"
+                  [class.status-assigned]="job.status === 'Assigned'"
+                  [class.status-progress]="job.status === 'InProgress'"
+                  [class.status-completed]="job.status === 'CompletedPendingApproval'"
+                  [class.status-closed]="job.status === 'Closed'"
+                >
+                  <mat-icon>
+                    {{
+                      job.status === 'Assigned'
+                        ? 'pending_actions'
+                        : job.status === 'InProgress'
+                        ? 'engineering'
+                        : job.status === 'CompletedPendingApproval'
+                        ? 'hourglass_top'
+                        : 'check_circle'
+                    }}
+                  </mat-icon>
+                  <span>
+                    {{
+                      job.status === 'Assigned'
+                        ? 'Assigned / Ready'
+                        : job.status === 'InProgress'
+                        ? 'In Progress'
+                        : job.status === 'CompletedPendingApproval'
+                        ? 'Completed (Pending Approval)'
+                        : 'Closed & Paid'
+                    }}
+                  </span>
+                </span>
+              </div>
+
+              <!-- Customer Info Snippet -->
+              <div class="customer-info-line">
+                <mat-icon>person</mat-icon>
+                <span>Customer: <strong>{{ job.customerName }}</strong></span>
+                <span class="dot-sep">&bull;</span>
+                <span class="job-id-copy" (click)="copyJobId(job.id, $event)" title="Click to copy Job UUID">
+                  <code>#{{ job.id.slice(0, 8) }}...</code>
+                  <mat-icon>content_copy</mat-icon>
+                </span>
+              </div>
+            </div>
+
+            <!-- Escrow Financial Tag -->
+            <div class="escrow-financial-box">
+              <span class="escrow-badge-label">100% Escrow Protected</span>
+              <div class="financial-amounts">
+                <span class="gross-val">${{ job.price }} Gross</span>
+                <span class="net-payout-highlight">
+                  Net: <strong>${{ (job.price * 0.85) | number:'1.2-2' }}</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Body: Description & Details -->
+          <mat-card-content class="card-content-body">
+            <p class="job-description-text">
+              {{ job.description || 'No additional work description provided for this booking request.' }}
+            </p>
+
+            <div class="job-specs-grid">
+              <!-- Scheduled Date -->
+              <div class="spec-tile">
+                <mat-icon class="spec-icon date-icon">event</mat-icon>
+                <div class="spec-text">
+                  <span class="spec-label">Scheduled Date</span>
+                  <span class="spec-value">{{ job.scheduledDate }}</span>
+                </div>
+              </div>
+
+              <!-- Service Location -->
+              <div class="spec-tile clickable-tile" (click)="openMapLocation(job, $event)" title="Click to view on Map">
+                <mat-icon class="spec-icon loc-icon">location_on</mat-icon>
+                <div class="spec-text">
+                  <span class="spec-label">Service Address (Click for Map)</span>
+                  <span class="spec-value loc-value">{{ job.address }}</span>
+                </div>
+              </div>
+
+              <!-- Financial Breakdown -->
+              <div class="spec-tile">
+                <mat-icon class="spec-icon fee-icon">payments</mat-icon>
+                <div class="spec-text">
+                  <span class="spec-label">Platform Fee Breakdown</span>
+                  <span class="spec-value fee-value">15% Fee (${{ (job.price * 0.15) | number:'1.2-2' }}) &bull; 85% Payout</span>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+
+          <!-- Card Actions Footer -->
+          <mat-card-actions class="card-actions-bar">
+            <!-- Action 1: Start Job (When Assigned) -->
+            @if (job.status === 'Assigned') {
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                class="btn-action-primary start-btn"
+                [disabled]="actionLoading() === job.id"
+                (click)="startJob(job, $event)"
+              >
+                @if (actionLoading() === job.id) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <mat-icon>play_arrow</mat-icon>
+                }
+                <span>Start Working on Job</span>
+              </button>
+
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                class="btn-cancel-action"
+                [disabled]="actionLoading() === job.id"
+                (click)="cancelJob(job, $event)"
+                title="Decline this job assignment"
+              >
+                <mat-icon>cancel</mat-icon>
+                <span>Decline Job</span>
+              </button>
+            }
+
+            @if (job.status === 'InProgress') {
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                class="btn-cancel-action"
+                [disabled]="actionLoading() === job.id"
+                (click)="cancelJob(job, $event)"
+                title="Cancel job in progress"
+              >
+                <mat-icon>cancel</mat-icon>
+                <span>Cancel</span>
+              </button>
+            }
+
+            @if (job.status === 'Cancelled' || job.status === 'Closed') {
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                class="btn-remove-action"
+                (click)="deleteJob(job, $event)"
+                title="Remove from history"
+              >
+                <mat-icon>delete_outline</mat-icon>
+                <span>Remove</span>
+              </button>
+            }
+
+            <!-- Action 2: Complete Job (When InProgress) -->
+            @if (job.status === 'InProgress') {
+              <button
+                mat-raised-button
+                color="accent"
+                type="button"
+                class="btn-action-primary complete-btn"
+                [disabled]="actionLoading() === job.id"
+                (click)="completeJob(job, $event)"
+              >
+                @if (actionLoading() === job.id) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <mat-icon>done_all</mat-icon>
+                }
+                <span>Mark Completed (Submit for Approval)</span>
+              </button>
+            }
+
+            <!-- Action 3: Awaiting Customer Inspection -->
+            @if (job.status === 'CompletedPendingApproval') {
+              <div class="status-notice-tag approval-notice">
+                <mat-icon>hourglass_top</mat-icon>
+                <span>Submitted. Waiting for Customer Escrow Release.</span>
+              </div>
+            }
+
+            <!-- Action 4: Closed / Completed -->
+            @if (job.status === 'Closed') {
+              <div class="status-notice-tag closed-notice">
+                <mat-icon>check_circle</mat-icon>
+                <span>Escrow Released & Disbursed.</span>
+              </div>
+            }
+
+            <!-- Chat with Client -->
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              class="btn-chat-action"
+              (click)="openChatForJob(job, $event)"
+              title="Open Chat with Customer"
+            >
+              <mat-icon>chat</mat-icon>
+              <span>Chat</span>
+            </button>
+
+            <!-- Inspect Work Order Dossier -->
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-inspect-action"
+              (click)="openJobDossier(job)"
+              title="Inspect Full Work Order Dossier"
+            >
+              <mat-icon>visibility</mat-icon>
+              <span>Inspect</span>
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      } @empty {
+        <div class="empty-jobs-box">
+          <div class="empty-icon-wrap">
+            <mat-icon>assignment_turned_in</mat-icon>
+          </div>
+          <h3>No matching jobs found</h3>
+          <p>
+            @if (statusFilter() !== 'all') {
+              No jobs currently in "{{ statusFilter() }}" status.
+            } @else if (searchQuery()) {
+              No jobs matching your search query "{{ searchQuery() }}".
+            } @else {
+              You currently have no assigned job requests. New bookings from customers across Addis Ababa will appear here instantly.
+            }
+          </p>
+          <div class="empty-actions">
+            @if (statusFilter() !== 'all' || searchQuery()) {
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                (click)="statusFilter.set('all'); searchQuery.set('')"
+              >
+                Reset Filters
+              </button>
+            }
+            <a mat-raised-button color="primary" routerLink="/customer-services">
+              Browse Customer Marketplace
+            </a>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- WORK ORDER DOSSIER MODAL -->
+  <!-- ============================================================== -->
+  @if (selectedJobForInspection(); as selectedJob) {
+    <div class="modal-overlay" (click)="closeJobDossier()">
+      <div class="modal-dialog dossier-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon">
+              <mat-icon>description</mat-icon>
+            </div>
+            <div>
+              <h3>Work Order Dossier</h3>
+              <p>UUID: <code>{{ selectedJob.id }}</code></p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" class="btn-close-modal" (click)="closeJobDossier()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="dossier-grid">
+            <!-- Service & Status Section -->
+            <div class="dossier-card">
+              <h4>Service & Dispatch State</h4>
+              <div class="dossier-row">
+                <span class="d-label">Trade Service:</span>
+                <strong>{{ selectedJob.serviceName }}</strong>
+              </div>
+              <div class="dossier-row">
+                <span class="d-label">Current Status:</span>
+                <span class="dossier-status-pill">{{ selectedJob.status }}</span>
+              </div>
+              <div class="dossier-row">
+                <span class="d-label">Scheduled Date:</span>
+                <span>{{ selectedJob.scheduledDate }}</span>
+              </div>
+            </div>
+
+            <!-- Customer & Location Section -->
+            <div class="dossier-card">
+              <h4>Customer & Location</h4>
+              <div class="dossier-row">
+                <span class="d-label">Customer Name:</span>
+                <strong>{{ selectedJob.customerName }}</strong>
+              </div>
+              @if (selectedJob.customerPhone) {
+                <div class="dossier-row">
+                  <span class="d-label">Contact Phone:</span>
+                  <a [href]="'tel:' + selectedJob.customerPhone" class="contact-link">{{ selectedJob.customerPhone }}</a>
+                </div>
+              }
+              <div class="dossier-row">
+                <span class="d-label">Service Site Address:</span>
+                <span>{{ selectedJob.address }}</span>
+              </div>
+              @if (selectedJob.landmark) {
+                <div class="dossier-row">
+                  <span class="d-label">Landmark:</span>
+                  <span>Near {{ selectedJob.landmark }}</span>
+                </div>
+              }
+              <div class="dossier-actions-row">
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  (click)="openMapLocation(selectedJob)"
+                >
+                  <mat-icon>map</mat-icon> View Site on Map
+                </button>
+              </div>
+            </div>
+
+            <!-- Escrow & Financials Section -->
+            <div class="dossier-card full-span">
+              <h4>Escrow Guarantee & Financials</h4>
+              <div class="financial-table">
+                <div class="f-row">
+                  <span>Gross Escrow Value (Customer Deposited):</span>
+                  <strong>${{ selectedJob.price }}</strong>
+                </div>
+                <div class="f-row fee-row">
+                  <span>Platform Commission (15%):</span>
+                  <span>-${{ (selectedJob.price * 0.15) | number:'1.2-2' }}</span>
+                </div>
+                <div class="f-row net-row">
+                  <span>Your Net Professional Payout (85%):</span>
+                  <strong class="net-payout">${{ (selectedJob.price * 0.85) | number:'1.2-2' }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="dossier-card full-span">
+              <h4>Client Job Description</h4>
+              <p class="dossier-description">{{ selectedJob.description || 'No description provided.' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          @if (selectedJob.status === 'Assigned') {
+            <button
+              mat-raised-button
+              color="primary"
+              type="button"
+              [disabled]="actionLoading() === selectedJob.id"
+              (click)="startJob(selectedJob)"
+            >
+              <mat-icon>play_arrow</mat-icon> Start Job
+            </button>
+          }
+
+          @if (selectedJob.status === 'InProgress') {
+            <button
+              mat-raised-button
+              color="accent"
+              type="button"
+              [disabled]="actionLoading() === selectedJob.id"
+              (click)="completeJob(selectedJob)"
+            >
+              <mat-icon>done_all</mat-icon> Mark Job Completed
+            </button>
+          }
+
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            (click)="openChatForJob(selectedJob)"
+          >
+            <mat-icon>chat</mat-icon> Chat with Client
+          </button>
+
+          <button mat-button type="button" (click)="closeJobDossier()">
+            Close Dossier
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- IN-PAGE DIRECT CLIENT CHAT MODAL / DRAWER -->
+  <!-- ============================================================== -->
+  @if (isChatModalOpen()) {
+    <div class="modal-overlay chat-modal-overlay" (click)="closeChatModal()">
+      <div class="modal-dialog chat-modal-dialog" (click)="$event.stopPropagation()">
+        
+        <!-- Chat Modal Header -->
+        <div class="chat-modal-header">
+          <div class="chat-header-meta">
+            <div class="chat-avatar-icon">
+              <mat-icon>chat</mat-icon>
+            </div>
+            <div>
+              <div class="chat-title-row">
+                <h3>Live Client Communications</h3>
+                <span class="signalr-pill" [class.connected]="chatService.signalr.connectionStatus() === 'Connected'">
+                  <span class="dot"></span> {{ chatService.signalr.connectionStatus() }}
+                </span>
+              </div>
+              <p class="chat-sub">
+                Real-time messaging with your assigned job customers across Addis Ababa.
+              </p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" class="btn-close-modal" (click)="closeChatModal()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <!-- Chat Modal Body (Split: Sidebar + Conversation) -->
+        <div class="chat-modal-body">
+          <!-- Left Sidebar: Conversations list -->
+          <div class="chat-sidebar">
+            <div class="chat-search-box">
+              <mat-icon>search</mat-icon>
+              <input
+                type="text"
+                [value]="chatSearchQuery()"
+                (input)="chatSearchQuery.set($any($event.target).value)"
+                placeholder="Search conversations..."
+              />
+              @if (chatSearchQuery()) {
+                <button mat-icon-button type="button" class="btn-clear-sm" (click)="chatSearchQuery.set('')">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </div>
+
+            <div class="chat-sessions-list">
+              @if (chatService.loadingSessions()) {
+                <div class="chat-loading-mini">
+                  <mat-spinner diameter="24"></mat-spinner>
+                  <span>Loading conversations...</span>
+                </div>
+              } @else if (filteredChatSessions().length === 0) {
+                <div class="empty-sessions-box">
+                  <mat-icon>forum</mat-icon>
+                  <p>No chat sessions found</p>
+                  <span>Click "Chat" on any job card to start a direct message with that customer.</span>
+                </div>
+              } @else {
+                @for (session of filteredChatSessions(); track session.id) {
+                  <div
+                    class="session-item"
+                    [class.active-session]="selectedSession()?.id === session.id"
+                    (click)="selectChatSession(session)"
+                  >
+                    <div class="session-avatar">
+                      @if (session.customerAvatar) {
+                        <img [src]="formatAvatarUrl(session.customerAvatar)" alt="Avatar" />
+                      } @else {
+                        <span>{{ (session.customerName || 'Cust').substring(0, 2).toUpperCase() }}</span>
+                      }
+                      <span class="online-indicator"></span>
+                    </div>
+
+                    <div class="session-info">
+                      <div class="session-name-row">
+                        <strong class="session-name">{{ session.customerName || 'Customer' }}</strong>
+                        @if (session.lastMessageTime) {
+                          <span class="session-time">{{ formatMsgTime(session.lastMessageTime) }}</span>
+                        }
+                      </div>
+                      <div class="session-preview-row">
+                        <p class="last-msg-text">{{ session.lastMessage || 'Open conversation...' }}</p>
+                        @if (session.unreadCount && session.unreadCount > 0) {
+                          <span class="unread-badge">{{ session.unreadCount }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+
+          <!-- Right Pane: Active Chat Conversation -->
+          <div class="chat-main-pane">
+            @if (selectedSession(); as activeSess) {
+              <!-- Active Chat Top Bar -->
+              <div class="active-chat-topbar">
+                <div class="active-contact-info">
+                  <div class="contact-avatar-lg">
+                    @if (activeSess.customerAvatar) {
+                      <img [src]="formatAvatarUrl(activeSess.customerAvatar)" alt="Avatar" />
+                    } @else {
+                      <span>{{ (activeSess.customerName || 'Cust').substring(0, 2).toUpperCase() }}</span>
+                    }
+                  </div>
+                  <div>
+                    <h4 class="contact-name">{{ activeSess.customerName || 'Customer' }}</h4>
+                    @if (selectedChatJob()) {
+                      <span class="job-context-pill">
+                        <mat-icon>handyman</mat-icon>
+                        Job: {{ selectedChatJob()?.serviceName }} (#{{ selectedChatJob()?.id?.slice(0, 8) }}...)
+                      </span>
+                    } @else {
+                      <span class="online-label">Active Customer</span>
+                    }
+                  </div>
+                </div>
+
+                @if (selectedChatJob()) {
+                  <button
+                    mat-stroked-button
+                    color="primary"
+                    type="button"
+                    class="btn-view-job-ctx"
+                    (click)="openJobDossier(selectedChatJob()!)"
+                  >
+                    <mat-icon>description</mat-icon>
+                    <span>View Dossier</span>
+                  </button>
+                }
+              </div>
+
+              <!-- Messages Stream -->
+              <div class="messages-stream-container">
+                @if (chatService.loadingMessages()) {
+                  <div class="chat-loading-mini">
+                    <mat-spinner diameter="32"></mat-spinner>
+                    <span>Retrieving messages...</span>
+                  </div>
+                } @else if (chatService.activeMessages().length === 0) {
+                  <div class="empty-conversation-state">
+                    <div class="chat-empty-icon">
+                      <mat-icon>chat_bubble_outline</mat-icon>
+                    </div>
+                    <h4>Direct Client Channel Ready</h4>
+                    <p>Send a message below or tap a quick status update to notify {{ activeSess.customerName || 'the customer' }}.</p>
+                  </div>
+                } @else {
+                  @for (msg of chatService.activeMessages(); track msg.id || $index) {
+                    <div
+                      class="chat-bubble-row"
+                      [class.outgoing]="isMyMessage(msg)"
+                    >
+                      <div class="chat-bubble">
+                        <div class="bubble-sender-name">
+                          {{ isMyMessage(msg) ? 'You (Specialist)' : (msg.senderName || activeSess.customerName || 'Customer') }}
+                        </div>
+                        <p class="bubble-text">{{ msg.content }}</p>
+                        <div class="bubble-meta">
+                          <span class="msg-timestamp">{{ formatMsgTime(msg.sentAt) }}</span>
+                          @if (isMyMessage(msg)) {
+                            <mat-icon class="read-status-icon" [class.read]="msg.isRead">
+                              {{ msg.isRead ? 'done_all' : 'done' }}
+                            </mat-icon>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                }
+
+                <!-- Typing indicator -->
+                @if (chatService.isOtherUserTyping()) {
+                  <div class="typing-indicator-row">
+                    <div class="typing-pill">
+                      <span class="typing-dot"></span>
+                      <span class="typing-dot"></span>
+                      <span class="typing-dot"></span>
+                      <small>{{ activeSess.customerName || 'Customer' }} is typing...</small>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Quick Canned Replies -->
+              <div class="quick-replies-bar">
+                <span class="quick-label"><mat-icon>bolt</mat-icon> Quick Updates:</span>
+                <button type="button" class="quick-chip" (click)="sendChatMessage('🚗 I am currently on my way to your service location.')">
+                  🚗 On my way
+                </button>
+                <button type="button" class="quick-chip" (click)="sendChatMessage('📍 I have arrived at your service address.')">
+                  📍 Arrived at site
+                </button>
+                <button type="button" class="quick-chip" (click)="sendChatMessage('🛠️ Work is underway on your fixtures.')">
+                  🛠️ Work in progress
+                </button>
+                <button type="button" class="quick-chip" (click)="sendChatMessage('✅ Job is completed! Please inspect and approve on Callbet.')">
+                  ✅ Work completed
+                </button>
+              </div>
+
+              <!-- Chat Input Footer -->
+              <div class="chat-input-footer">
+                <div class="input-wrap">
+                  <input
+                    type="text"
+                    [value]="chatInputText()"
+                    (input)="chatInputText.set($any($event.target).value); onChatTyping()"
+                    (keyup.enter)="sendChatMessage()"
+                    placeholder="Type message to {{ activeSess.customerName || 'customer' }}..."
+                    [disabled]="chatService.sendingMessage()"
+                  />
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    type="button"
+                    class="btn-send-chat"
+                    [disabled]="!chatInputText().trim() || chatService.sendingMessage()"
+                    (click)="sendChatMessage()"
+                  >
+                    @if (chatService.sendingMessage()) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                    } @else {
+                      <span class="btn-inner-content">
+                        <mat-icon>send</mat-icon>
+                        <span>Send</span>
+                      </span>
+                    }
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <!-- No Session Selected State -->
+              <div class="no-session-selected">
+                <mat-icon>forum</mat-icon>
+                <h3>Select a conversation</h3>
+                <p>Choose a customer from the left list to view messages and send updates.</p>
+              </div>
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- Interactive Map Modal Preview -->
+  @if (mapModalOpen()) {
+    <app-map-modal
+      [isOpen]="mapModalOpen()"
+      [latitude]="mapLat()"
+      [longitude]="mapLng()"
+      [title]="mapTitle()"
+      [subtitle]="mapSubtitle()"
+      (close)="closeMapModal()"
+    ></app-map-modal>
+  }
+</div>

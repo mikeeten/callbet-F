@@ -1,0 +1,109 @@
+<div class="step-container">
+  <div class="step-header">
+    <div class="stage-tag">STAGE 4 OF 4 &bull; CUSTOMER SIDE</div>
+    <h3>Approve Work, Release Escrow & Review</h3>
+    <p>Confirm the service meets your standards, release funds to the technician, and leave your verified feedback</p>
+  </div>
+
+  @if (!escrowReleased()) {
+    <!-- Step 4A: Approve Work & Release Payment Card -->
+    <div class="inspection-card">
+      <div class="card-icon-wrap">
+        <mat-icon>verified</mat-icon>
+      </div>
+      <div class="inspection-details">
+        <h4>Work Completed by {{ jobData.professionalName || 'Technician' }}</h4>
+        <p>The technician has marked the job finished. Please inspect your property to ensure everything works properly before releasing payment.</p>
+        <div class="escrow-payout-box">
+          <span class="escrow-lbl"><mat-icon>lock_open</mat-icon> Escrow Payout:</span>
+          <span class="escrow-amt">${{ jobData.price }} USD / ETB</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions-row">
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="btn-approve"
+        [disabled]="loading()"
+        (click)="onApproveAndRelease()"
+      >
+        @if (loading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Releasing Escrow Payment...</span>
+        } @else {
+          <ng-container>
+            <mat-icon>check_circle</mat-icon>
+            <span>Approve Work & Release Escrow Payment &rarr;</span>
+          </ng-container>
+        }
+      </button>
+    </div>
+  } @else {
+    <!-- Step 4B: Payment Released! Rate & Review Form -->
+    <div class="review-wrapper">
+      <div class="success-banner">
+        <mat-icon>check_circle</mat-icon>
+        <div>
+          <strong>Escrow Payment of ${{ jobData.price }} Released!</strong>
+          <p>Thank you for choosing Callbet. Please rate your technician's performance to help maintain high platform standards.</p>
+        </div>
+      </div>
+
+      <form [formGroup]="reviewForm" (ngSubmit)="onSubmitReview()" class="review-form">
+        <!-- 5-Star Rating Selector -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Quality Rating</mat-label>
+          <mat-select formControlName="rating">
+            <mat-option [value]="5">⭐⭐⭐⭐⭐ 5 Stars (Exceptional Quality & Punctual)</mat-option>
+            <mat-option [value]="4">⭐⭐⭐⭐ 4 Stars (Good Quality)</mat-option>
+            <mat-option [value]="3">⭐⭐⭐ 3 Stars (Satisfactory)</mat-option>
+            <mat-option [value]="2">⭐⭐ 2 Stars (Needs Improvement)</mat-option>
+            <mat-option [value]="1">⭐ 1 Star (Unsatisfactory)</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Review Comment -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Verified Review Feedback</mat-label>
+          <textarea
+            matInput
+            formControlName="comment"
+            rows="3"
+            placeholder="Describe the technician's professionalism, cleanliness, speed, and overall service..."
+          ></textarea>
+        </mat-form-field>
+
+        <!-- Bookmark Checkbox -->
+        <div class="bookmark-check">
+          <mat-checkbox formControlName="bookmarkPro" color="primary">
+            <span>Add {{ jobData.professionalName || 'Technician' }} to My Favorite Professionals (Bookmark)</span>
+          </mat-checkbox>
+        </div>
+
+        <!-- Submit Review -->
+        <div class="actions-row">
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            class="btn-finish"
+            [disabled]="loading() || reviewForm.invalid"
+          >
+            @if (loading()) {
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Submitting Review...</span>
+            } @else {
+              <ng-container>
+                <mat-icon>stars</mat-icon>
+                <span>Publish Review & Complete Job &rarr;</span>
+              </ng-container>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+</div>

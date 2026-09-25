@@ -1,0 +1,68 @@
+<div class="step-container">
+  <div class="step-header">
+    <div class="stage-tag">STAGE 2 OF 4 &bull; PROFESSIONAL DISPATCH & ASSIGNMENT</div>
+    <h3>Assign Verified Trade Professional</h3>
+    <p>Matches licensed and background-checked technicians located near your address</p>
+  </div>
+
+  <!-- Job Reference Header -->
+  <div class="job-ref-bar">
+    <div class="ref-left">
+      <mat-icon>task_alt</mat-icon>
+      <span>Job ID: <code>{{ jobData.jobId?.substring(0, 13) }}...</code></span>
+    </div>
+    <span class="status-pill">Status: Booking Created &bull; Escrow Held</span>
+  </div>
+
+  <!-- Professional Cards Selection -->
+  <div class="pros-list">
+    @for (pro of availablePros; track pro.id) {
+      <div
+        class="pro-card"
+        [class.selected]="selectedProId() === pro.id"
+        (click)="selectPro(pro.id)"
+      >
+        <img [src]="pro.avatar" [alt]="pro.name" class="pro-avatar" />
+        <div class="pro-info">
+          <div class="name-row">
+            <h4>{{ pro.name }}</h4>
+            @if (pro.isVerified) {
+              <span class="verified-tag"><mat-icon>verified</mat-icon> Licensed Pro</span>
+            }
+          </div>
+          <p class="pro-headline">{{ pro.headline }}</p>
+          <div class="meta-row">
+            <span class="rating-badge"><mat-icon>star</mat-icon> {{ pro.rating }} ({{ pro.completedJobs }} jobs)</span>
+            <span class="exp-badge">{{ pro.experienceYears }} yrs exp</span>
+            <span class="eta-badge"><mat-icon>near_me</mat-icon> {{ pro.eta }}</span>
+          </div>
+        </div>
+        <div class="select-indicator">
+          <mat-icon>{{ selectedProId() === pro.id ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Action Row -->
+  <div class="actions-row">
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      class="btn-proceed"
+      [disabled]="loading()"
+      (click)="onAssign()"
+    >
+      @if (loading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+        <span>Assigning Technician...</span>
+      } @else {
+        <ng-container>
+          <mat-icon>person_add</mat-icon>
+          <span>Confirm & Assign Professional &rarr;</span>
+        </ng-container>
+      }
+    </button>
+  </div>
+</div>

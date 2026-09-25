@@ -1,0 +1,944 @@
+<div class="customer-booked-services-container">
+  <!-- Top Portal Header & Breadcrumbs -->
+  <header class="booked-portal-header">
+    <div class="header-left">
+      <div class="portal-badge-icon">
+        <mat-icon>home_repair_service</mat-icon>
+      </div>
+      <div class="portal-title-wrap">
+        <div class="title-row">
+          <h1>My Booked Services & Escrow Orders</h1>
+          <span class="portal-role-pill">
+            <mat-icon>verified_user</mat-icon> Homeowner Escrow Dispatch
+          </span>
+        </div>
+        <p class="portal-sub">
+          Track your scheduled trade specialists across Addis Ababa, monitor live repair milestones, approve completed work to release escrow, and chat directly with your assigned technicians.
+        </p>
+      </div>
+    </div>
+
+    <!-- Header Quick Actions -->
+    <div class="header-actions">
+      <!-- Return to Customer Profile / Dashboard -->
+      <a mat-stroked-button color="primary" routerLink="/customer-dashboard" class="action-btn">
+        <mat-icon>dashboard</mat-icon>
+        <span>Customer Dashboard</span>
+      </a>
+
+      <!-- Notifications -->
+      <a
+        mat-stroked-button
+        color="accent"
+        routerLink="/customer-notifications"
+        class="action-btn"
+        title="View Notifications"
+      >
+        <mat-icon
+          [matBadge]="notificationService.unreadCustomerCount()"
+          [matBadgeHidden]="notificationService.unreadCustomerCount() === 0"
+          matBadgeColor="warn"
+          matBadgeSize="small"
+        >notifications</mat-icon>
+        <span>Notifications</span>
+      </a>
+
+      <!-- Direct Chats Hub -->
+      <button
+        mat-stroked-button
+        color="primary"
+        class="action-btn"
+        (click)="openDirectChatHub()"
+        title="Open Direct Specialist Chats"
+      >
+        <mat-icon
+          [matBadge]="unreadChatCount()"
+          [matBadgeHidden]="unreadChatCount() === 0"
+          matBadgeColor="accent"
+          matBadgeSize="small"
+        >chat</mat-icon>
+        <span>Specialist Chats</span>
+      </button>
+
+      <!-- Browse Marketplace -->
+      <a mat-raised-button color="primary" routerLink="/customer-services" class="action-btn primary-glow">
+        <mat-icon>add_shopping_cart</mat-icon>
+        <span>Book New Service</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Feedback Banner -->
+  @if (feedbackMessage()) {
+    <div class="feedback-banner">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ feedbackMessage() }}</span>
+    </div>
+  }
+
+  <!-- Interactive 5-Metric Overview Ribbon -->
+  <div class="metrics-ribbon-grid">
+    <!-- Metric 1: Total Bookings -->
+    <div
+      class="metric-card clickable"
+      [class.active-metric]="statusFilter() === 'all'"
+      (click)="statusFilter.set('all')"
+    >
+      <div class="metric-icon total-icon">
+        <mat-icon>assignment</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ metrics().total }}</span>
+        <span class="metric-label">Total Bookings</span>
+      </div>
+    </div>
+
+    <!-- Metric 2: Assigned / Scheduled -->
+    <div
+      class="metric-card clickable"
+      [class.active-metric]="statusFilter() === 'assigned'"
+      (click)="statusFilter.set('assigned')"
+    >
+      <div class="metric-icon assigned-icon">
+        <mat-icon>pending_actions</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ metrics().assigned }}</span>
+        <span class="metric-label">Assigned / Scheduled</span>
+      </div>
+    </div>
+
+    <!-- Metric 3: In Progress -->
+    <div
+      class="metric-card clickable"
+      [class.active-metric]="statusFilter() === 'in_progress'"
+      (click)="statusFilter.set('in_progress')"
+    >
+      <div class="metric-icon progress-icon">
+        <mat-icon>engineering</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ metrics().inProgress }}</span>
+        <span class="metric-label">Work In Progress</span>
+      </div>
+    </div>
+
+    <!-- Metric 4: Awaiting Approval -->
+    <div
+      class="metric-card clickable"
+      [class.active-metric]="statusFilter() === 'completed'"
+      (click)="statusFilter.set('completed')"
+    >
+      <div class="metric-icon approval-icon">
+        <mat-icon>hourglass_top</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ metrics().completed }}</span>
+        <span class="metric-label">Awaiting Approval</span>
+      </div>
+    </div>
+
+    <!-- Metric 5: Escrow Financial Protection -->
+    <div class="metric-card financial-card">
+      <div class="metric-icon escrow-icon">
+        <mat-icon>shield</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">${{ metrics().totalEscrowDeposited | number:'1.2-2' }}</span>
+        <span class="metric-label">100% Escrow Protected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filters Toolbar -->
+  <div class="toolbar-filter-panel">
+    <div class="search-sort-row">
+      <!-- Search Input -->
+      <div class="search-input-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Search bookings by service, specialist name, address or Order ID..."
+        />
+        @if (searchQuery()) {
+          <button mat-icon-button type="button" class="btn-clear-search" (click)="searchQuery.set('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <!-- Sort Dropdown -->
+      <div class="sort-select-box">
+        <label>Sort By:</label>
+        <select
+          [value]="sortBy()"
+          (change)="sortBy.set($any($event.target).value)"
+          class="native-select"
+        >
+          <option value="scheduledDate">Scheduled Date (Newest)</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="price_asc">Price: Low to High</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Status Filter Pills Row -->
+    <div class="status-pills-row">
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'all'"
+        (click)="statusFilter.set('all')"
+      >
+        <mat-icon>list_alt</mat-icon>
+        <span>All Bookings ({{ metrics().total }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'assigned'"
+        (click)="statusFilter.set('assigned')"
+      >
+        <mat-icon>play_circle_outline</mat-icon>
+        <span>Assigned / Scheduled ({{ metrics().assigned }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'in_progress'"
+        (click)="statusFilter.set('in_progress')"
+      >
+        <mat-icon>bolt</mat-icon>
+        <span>In Progress ({{ metrics().inProgress }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'completed'"
+        (click)="statusFilter.set('completed')"
+      >
+        <mat-icon>fact_check</mat-icon>
+        <span>Awaiting Approval ({{ metrics().completed }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'closed'"
+        (click)="statusFilter.set('closed')"
+      >
+        <mat-icon>task_alt</mat-icon>
+        <span>Closed & Released ({{ metrics().closed }})</span>
+      </button>
+
+      <button
+        type="button"
+        class="status-pill-btn"
+        [class.active]="statusFilter() === 'cancelled'"
+        (click)="statusFilter.set('cancelled')"
+      >
+        <mat-icon>cancel</mat-icon>
+        <span>Cancelled ({{ metrics().cancelled }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="jobs-loading-box">
+      <mat-spinner diameter="44"></mat-spinner>
+      <p>Loading your booked services & escrow orders...</p>
+    </div>
+  } @else {
+    <!-- Jobs List Grid -->
+    <div class="jobs-grid">
+      @for (job of filteredBookedJobs(); track job.id) {
+        <mat-card appearance="outlined" class="job-work-card">
+          <!-- Card Header / Title Row -->
+          <div class="card-header-strip">
+            <div class="header-main-info">
+              <div class="trade-title-row">
+                <h3>{{ job.serviceName }}</h3>
+                <span
+                  class="job-status-chip"
+                  [class.status-assigned]="job.status === 'Assigned' || job.status === 'Draft'"
+                  [class.status-progress]="job.status === 'InProgress'"
+                  [class.status-completed]="job.status === 'CompletedPendingApproval'"
+                  [class.status-closed]="job.status === 'Closed'"
+                  [class.status-cancelled]="job.status === 'Cancelled'"
+                >
+                  <mat-icon>
+                    {{
+                      job.status === 'Assigned' || job.status === 'Draft'
+                        ? 'pending_actions'
+                        : job.status === 'InProgress'
+                        ? 'engineering'
+                        : job.status === 'CompletedPendingApproval'
+                        ? 'hourglass_top'
+                        : job.status === 'Closed'
+                        ? 'check_circle'
+                        : 'cancel'
+                    }}
+                  </mat-icon>
+                  <span>
+                    {{
+                      job.status === 'Assigned' || job.status === 'Draft'
+                        ? 'Assigned / Scheduled'
+                        : job.status === 'InProgress'
+                        ? 'Work In Progress'
+                        : job.status === 'CompletedPendingApproval'
+                        ? 'Completed (Approval Needed)'
+                        : job.status === 'Closed'
+                        ? 'Closed & Escrow Released'
+                        : 'Cancelled'
+                    }}
+                  </span>
+                </span>
+              </div>
+
+              <!-- Professional Info Snippet -->
+              <div class="customer-info-line">
+                <mat-icon>verified</mat-icon>
+                <span>Specialist: <strong>{{ job.professionalName }}</strong></span>
+                <span class="dot-sep">&bull;</span>
+                <span class="job-id-copy" (click)="copyJobId(job.id, $event)" title="Click to copy Order ID">
+                  <code>#{{ job.id.slice(0, 8) }}...</code>
+                  <mat-icon>content_copy</mat-icon>
+                </span>
+              </div>
+            </div>
+
+            <!-- Escrow Financial Tag -->
+            <div class="escrow-financial-box">
+              <span class="escrow-badge-label">100% Escrow Protected</span>
+              <div class="financial-amounts">
+                <span class="gross-val">${{ job.price }} Deposit</span>
+                <span class="net-payout-highlight">
+                  Status: <strong>{{ job.status === 'Closed' ? 'Released' : 'Held Safe' }}</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Body: Description & Details -->
+          <mat-card-content class="card-content-body">
+            <p class="job-description-text">
+              {{ job.description || 'No additional work description provided for this booking request.' }}
+            </p>
+
+            <div class="job-specs-grid">
+              <!-- Scheduled Date -->
+              <div class="spec-tile">
+                <mat-icon class="spec-icon date-icon">event</mat-icon>
+                <div class="spec-text">
+                  <span class="spec-label">Scheduled Date & Time</span>
+                  <span class="spec-value">{{ job.scheduledDate }}</span>
+                </div>
+              </div>
+
+              <!-- Service Location -->
+              <div class="spec-tile clickable-tile" (click)="openMapLocation(job, $event)" title="Click to view on Map">
+                <mat-icon class="spec-icon loc-icon">location_on</mat-icon>
+                <div class="spec-text">
+                  <span class="spec-label">Service Site Address (Click for Map)</span>
+                  <span class="spec-value loc-value">{{ job.address }}</span>
+                </div>
+              </div>
+
+              <!-- Escrow Guarantee Breakdown -->
+              <div class="spec-tile">
+                <mat-icon class="spec-icon fee-icon">shield</mat-icon>
+                <div class="spec-text">
+                  <span class="spec-label">Buyer Protection</span>
+                  <span class="spec-value fee-value">Funds released only upon your final inspection</span>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
+
+          <!-- Card Actions Footer -->
+          <mat-card-actions class="card-actions-bar">
+            <!-- Action 1: Approve Work & Release Escrow -->
+            @if (job.status === 'CompletedPendingApproval') {
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                class="btn-action-primary glow-button"
+                [disabled]="actionLoading() === job.id"
+                (click)="approveAndReleaseEscrow(job, $event)"
+              >
+                @if (actionLoading() === job.id) {
+                  <span class="btn-inner-content">
+                    <mat-spinner diameter="18"></mat-spinner>
+                    <span>Releasing Escrow...</span>
+                  </span>
+                } @else {
+                  <span class="btn-inner-content">
+                    <mat-icon>verified</mat-icon>
+                    <span>Approve & Release (${{ job.price }})</span>
+                  </span>
+                }
+              </button>
+            }
+
+            <!-- Action 2: Review (When Closed and not reviewed yet) -->
+            @if (job.status === 'Closed' && !job.hasReview) {
+              <button
+                mat-stroked-button
+                color="accent"
+                type="button"
+                class="btn-review-action"
+                (click)="openReviewModal(job, $event)"
+              >
+                <mat-icon>rate_review</mat-icon>
+                <span>Leave Review</span>
+              </button>
+            }
+
+            <!-- Action 3: Cancel Booking (When Pending/Assigned) -->
+            @if (job.status === 'Draft' || job.status === 'Assigned') {
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                class="btn-cancel-action"
+                [disabled]="actionLoading() === job.id"
+                (click)="cancelBooking(job, $event)"
+                title="Cancel this booking and refund escrow"
+              >
+                <mat-icon>cancel</mat-icon>
+                <span>Cancel Booking</span>
+              </button>
+            }
+
+            <!-- Action 3b: Remove from history (When Cancelled or Closed) -->
+            @if (job.status === 'Cancelled' || job.status === 'Closed') {
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                class="btn-remove-action"
+                [disabled]="actionLoading() === job.id"
+                (click)="removeBooking(job, $event)"
+                title="Remove this booking from list"
+              >
+                <mat-icon>delete_outline</mat-icon>
+                <span>Remove</span>
+              </button>
+            }
+
+            <!-- Action 4: In-Page Live Chat with Specialist -->
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              class="btn-chat-action"
+              (click)="openChatForJob(job, $event)"
+              title="Open Chat with Specialist"
+            >
+              <mat-icon>chat</mat-icon>
+              <span>Chat with Pro</span>
+            </button>
+
+            <!-- Action 5: Inspect Work Order Dossier -->
+            <button
+              mat-stroked-button
+              type="button"
+              class="btn-inspect-action"
+              (click)="openJobDossier(job)"
+              title="Inspect Full Booking Dossier"
+            >
+              <mat-icon>visibility</mat-icon>
+              <span>Inspect</span>
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      } @empty {
+        <div class="empty-jobs-box">
+          <div class="empty-icon-wrap">
+            <mat-icon>home_repair_service</mat-icon>
+          </div>
+          <h3>No booked services found</h3>
+          <p>
+            @if (statusFilter() !== 'all') {
+              No booked services currently in "{{ statusFilter() }}" status.
+            } @else if (searchQuery()) {
+              No bookings matching your search query "{{ searchQuery() }}".
+            } @else {
+              You currently have no active booked trade services. Explore verified plumbers, electricians, painters, and HVAC specialists on Callbet.
+            }
+          </p>
+          <div class="empty-actions">
+            @if (statusFilter() !== 'all' || searchQuery()) {
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                (click)="statusFilter.set('all'); searchQuery.set('')"
+              >
+                Reset Filters
+              </button>
+            }
+            <a mat-raised-button color="primary" routerLink="/customer-services">
+              Browse Service Marketplace
+            </a>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- WORK ORDER DOSSIER MODAL -->
+  <!-- ============================================================== -->
+  @if (selectedJobForInspection(); as selectedJob) {
+    <div class="modal-overlay" (click)="closeJobDossier()">
+      <div class="modal-dialog dossier-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon">
+              <mat-icon>description</mat-icon>
+            </div>
+            <div>
+              <h3>Booked Service Dossier</h3>
+              <p>Order UUID: <code>{{ selectedJob.id }}</code></p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" class="btn-close-modal" (click)="closeJobDossier()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="dossier-grid">
+            <!-- Service & Status Section -->
+            <div class="dossier-card">
+              <h4>Service & Dispatch State</h4>
+              <div class="dossier-row">
+                <span class="d-label">Trade Service:</span>
+                <strong>{{ selectedJob.serviceName }}</strong>
+              </div>
+              <div class="dossier-row">
+                <span class="d-label">Current Status:</span>
+                <span class="dossier-status-pill">{{ selectedJob.status }}</span>
+              </div>
+              <div class="dossier-row">
+                <span class="d-label">Scheduled Date:</span>
+                <span>{{ selectedJob.scheduledDate }}</span>
+              </div>
+            </div>
+
+            <!-- Specialist & Location Section -->
+            <div class="dossier-card">
+              <h4>Assigned Specialist & Location</h4>
+              <div class="dossier-row">
+                <span class="d-label">Specialist Name:</span>
+                <strong>{{ selectedJob.professionalName }}</strong>
+              </div>
+              <div class="dossier-row">
+                <span class="d-label">Service Address:</span>
+                <span>{{ selectedJob.address }}</span>
+              </div>
+              <div class="dossier-actions-row">
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  (click)="openMapLocation(selectedJob)"
+                >
+                  <mat-icon>map</mat-icon> View Location on Map
+                </button>
+              </div>
+            </div>
+
+            <!-- Escrow Guarantee & Financials Section -->
+            <div class="dossier-card full-span">
+              <h4>100% Escrow Guarantee & Protection</h4>
+              <div class="financial-table">
+                <div class="f-row">
+                  <span>Gross Escrow Deposited:</span>
+                  <strong>${{ selectedJob.price }}</strong>
+                </div>
+                <div class="f-row fee-row">
+                  <span>Platform Escrow Protection:</span>
+                  <span>Active Guarantee</span>
+                </div>
+                <div class="f-row net-row">
+                  <span>Escrow Status:</span>
+                  <strong class="net-payout">
+                    {{ selectedJob.status === 'Closed' ? 'Disbursed to Specialist' : 'Held Safely in Escrow' }}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="dossier-card full-span">
+              <h4>Homeowner Service Requirements</h4>
+              <p class="dossier-description">{{ selectedJob.description || 'No description provided.' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          @if (selectedJob.status === 'CompletedPendingApproval') {
+            <button
+              mat-raised-button
+              color="primary"
+              type="button"
+              class="glow-button"
+              [disabled]="actionLoading() === selectedJob.id"
+              (click)="approveAndReleaseEscrow(selectedJob)"
+            >
+              <mat-icon>verified</mat-icon> Approve Work & Release Escrow
+            </button>
+          }
+
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            (click)="openChatForJob(selectedJob)"
+          >
+            <mat-icon>chat</mat-icon> Chat with Specialist
+          </button>
+
+          <button mat-button type="button" (click)="closeJobDossier()">
+            Close Dossier
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- REVIEW & RATING MODAL -->
+  <!-- ============================================================== -->
+  @if (selectedJobForReview(); as reviewJob) {
+    <div class="modal-overlay" (click)="closeReviewModal()">
+      <div class="modal-dialog review-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon star-icon">
+              <mat-icon>star</mat-icon>
+            </div>
+            <div>
+              <h3>Leave a Verified Review</h3>
+              <p>For {{ reviewJob.professionalName }} &bull; {{ reviewJob.serviceName }}</p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" class="btn-close-modal" (click)="closeReviewModal()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="reviewForm" (ngSubmit)="submitReview()">
+          <div class="modal-body">
+            <div class="rating-picker-box">
+              <label>Select Overall Rating:</label>
+              <div class="stars-row">
+                @for (star of [1, 2, 3, 4, 5]; track star) {
+                  <button
+                    type="button"
+                    class="star-btn"
+                    [class.filled]="star <= (reviewForm.get('rating')?.value || 0)"
+                    (click)="reviewForm.get('rating')?.setValue(star)"
+                  >
+                    <mat-icon>star</mat-icon>
+                  </button>
+                }
+                <span class="rating-num-label">({{ reviewForm.get('rating')?.value }}.0 / 5.0)</span>
+              </div>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Your Feedback & Experience</mat-label>
+              <textarea
+                matInput
+                rows="4"
+                formControlName="comment"
+                placeholder="Describe the quality of work, punctuality, and professionalism..."
+              ></textarea>
+            </mat-form-field>
+          </div>
+
+          <div class="modal-footer">
+            <button mat-button type="button" (click)="closeReviewModal()">Cancel</button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="reviewForm.invalid">
+              Submit Review
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- IN-PAGE DIRECT SPECIALIST CHAT MODAL / DRAWER -->
+  <!-- ============================================================== -->
+  @if (isChatModalOpen()) {
+    <div class="modal-overlay chat-modal-overlay" (click)="closeChatModal()">
+      <div class="modal-dialog chat-modal-dialog" (click)="$event.stopPropagation()">
+        
+        <!-- Chat Modal Header -->
+        <div class="chat-modal-header">
+          <div class="chat-header-meta">
+            <div class="chat-avatar-icon">
+              <mat-icon>chat</mat-icon>
+            </div>
+            <div>
+              <div class="chat-title-row">
+                <h3>Live Specialist Communications</h3>
+                <span class="signalr-pill" [class.connected]="chatService.signalr.connectionStatus() === 'Connected'">
+                  <span class="dot"></span> {{ chatService.signalr.connectionStatus() }}
+                </span>
+              </div>
+              <p class="chat-sub">
+                Real-time messaging with your assigned trade specialists across Addis Ababa.
+              </p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" class="btn-close-modal" (click)="closeChatModal()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <!-- Chat Modal Body (Split: Sidebar + Conversation) -->
+        <div class="chat-modal-body">
+          <!-- Left Sidebar: Conversations list -->
+          <div class="chat-sidebar">
+            <div class="chat-search-box">
+              <mat-icon>search</mat-icon>
+              <input
+                type="text"
+                [value]="chatSearchQuery()"
+                (input)="chatSearchQuery.set($any($event.target).value)"
+                placeholder="Search specialists..."
+              />
+              @if (chatSearchQuery()) {
+                <button mat-icon-button type="button" class="btn-clear-sm" (click)="chatSearchQuery.set('')">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </div>
+
+            <div class="chat-sessions-list">
+              @if (chatService.loadingSessions()) {
+                <div class="chat-loading-mini">
+                  <mat-spinner diameter="24"></mat-spinner>
+                  <span>Loading conversations...</span>
+                </div>
+              } @else if (filteredChatSessions().length === 0) {
+                <div class="empty-sessions-box">
+                  <mat-icon>forum</mat-icon>
+                  <p>No chat sessions found</p>
+                  <span>Click "Chat with Pro" on any booked service card to start messaging your specialist.</span>
+                </div>
+              } @else {
+                @for (session of filteredChatSessions(); track session.id) {
+                  <div
+                    class="session-item"
+                    [class.active-session]="selectedSession()?.id === session.id"
+                    (click)="selectChatSession(session)"
+                  >
+                    <div class="session-avatar">
+                      @if (session.professionalAvatar) {
+                        <img [src]="formatAvatarUrl(session.professionalAvatar)" alt="Avatar" />
+                      } @else {
+                        <span>{{ (session.professionalName || 'Pro').substring(0, 2).toUpperCase() }}</span>
+                      }
+                      <span class="online-indicator"></span>
+                    </div>
+
+                    <div class="session-info">
+                      <div class="session-name-row">
+                        <strong class="session-name">{{ session.professionalName || 'Specialist' }}</strong>
+                        @if (session.lastMessageTime) {
+                          <span class="session-time">{{ formatMsgTime(session.lastMessageTime) }}</span>
+                        }
+                      </div>
+                      <div class="session-preview-row">
+                        <p class="last-msg-text">{{ session.lastMessage || 'Open conversation...' }}</p>
+                        @if (session.unreadCount && session.unreadCount > 0) {
+                          <span class="unread-badge">{{ session.unreadCount }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+
+          <!-- Right Pane: Active Chat Conversation -->
+          <div class="chat-main-pane">
+            @if (selectedSession(); as activeSess) {
+              <!-- Active Chat Top Bar -->
+              <div class="active-chat-topbar">
+                <div class="active-contact-info">
+                  <div class="contact-avatar-lg">
+                    @if (activeSess.professionalAvatar) {
+                      <img [src]="formatAvatarUrl(activeSess.professionalAvatar)" alt="Avatar" />
+                    } @else {
+                      <span>{{ (activeSess.professionalName || 'Pro').substring(0, 2).toUpperCase() }}</span>
+                    }
+                  </div>
+                  <div>
+                    <h4 class="contact-name">{{ activeSess.professionalName || 'Trade Specialist' }}</h4>
+                    @if (selectedChatJob()) {
+                      <span class="job-context-pill">
+                        <mat-icon>home_repair_service</mat-icon>
+                        Job: {{ selectedChatJob()?.serviceName }} (#{{ selectedChatJob()?.id?.slice(0, 8) }}...)
+                      </span>
+                    } @else {
+                      <span class="online-label">Verified Specialist</span>
+                    }
+                  </div>
+                </div>
+
+                @if (selectedChatJob()) {
+                  <button
+                    mat-stroked-button
+                    color="primary"
+                    type="button"
+                    class="btn-view-job-ctx"
+                    (click)="openJobDossier(selectedChatJob()!)"
+                  >
+                    <mat-icon>description</mat-icon>
+                    <span>View Dossier</span>
+                  </button>
+                }
+              </div>
+
+              <!-- Messages Stream -->
+              <div class="messages-stream-container">
+                @if (chatService.loadingMessages()) {
+                  <div class="chat-loading-mini">
+                    <mat-spinner diameter="32"></mat-spinner>
+                    <span>Retrieving messages...</span>
+                  </div>
+                } @else if (chatService.activeMessages().length === 0) {
+                  <div class="empty-conversation-state">
+                    <div class="chat-empty-icon">
+                      <mat-icon>chat_bubble_outline</mat-icon>
+                    </div>
+                    <h4>Direct Specialist Channel Ready</h4>
+                    <p>Send a message below or tap a quick update to communicate with {{ activeSess.professionalName || 'your technician' }}.</p>
+                  </div>
+                } @else {
+                  @for (msg of chatService.activeMessages(); track msg.id || $index) {
+                    <div
+                      class="chat-bubble-row"
+                      [class.outgoing]="isMyMessage(msg)"
+                    >
+                      <div class="chat-bubble">
+                        <div class="bubble-sender-name">
+                          {{ isMyMessage(msg) ? 'You (Homeowner)' : (msg.senderName || activeSess.professionalName || 'Specialist') }}
+                        </div>
+                        <p class="bubble-text">{{ msg.content }}</p>
+                        <div class="bubble-meta">
+                          <span class="msg-timestamp">{{ formatMsgTime(msg.sentAt) }}</span>
+                          @if (isMyMessage(msg)) {
+                            <mat-icon class="read-status-icon" [class.read]="msg.isRead">
+                              {{ msg.isRead ? 'done_all' : 'done' }}
+                            </mat-icon>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                }
+
+                <!-- Typing indicator -->
+                @if (chatService.isOtherUserTyping()) {
+                  <div class="typing-indicator-row">
+                    <div class="typing-pill">
+                      <span class="typing-dot"></span>
+                      <span class="typing-dot"></span>
+                      <span class="typing-dot"></span>
+                      <small>{{ activeSess.professionalName || 'Specialist' }} is typing...</small>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Quick Canned Homeowner Replies -->
+              <div class="quick-replies-bar">
+                <span class="quick-label"><mat-icon>bolt</mat-icon> Quick Updates:</span>
+                <button type="button" class="quick-chip" (click)="sendChatMessage('📍 I am at home; gate code is #402.')">
+                  📍 At home / gate code
+                </button>
+                <button type="button" class="quick-chip" (click)="sendChatMessage('⏰ What is your estimated arrival time?')">
+                  ⏰ Arrival time?
+                </button>
+                <button type="button" class="quick-chip" (click)="sendChatMessage('💳 Work inspected and approved, releasing escrow now!')">
+                  💳 Approved & releasing
+                </button>
+                <button type="button" class="quick-chip" (click)="sendChatMessage('❓ Could you please check one additional fixture while on site?')">
+                  ❓ Check extra item
+                </button>
+              </div>
+
+              <!-- Chat Input Footer -->
+              <div class="chat-input-footer">
+                <div class="input-wrap">
+                  <input
+                    type="text"
+                    [value]="chatInputText()"
+                    (input)="chatInputText.set($any($event.target).value); onChatTyping()"
+                    (keyup.enter)="sendChatMessage()"
+                    placeholder="Type message to {{ activeSess.professionalName || 'specialist' }}..."
+                    [disabled]="chatService.sendingMessage()"
+                  />
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    type="button"
+                    class="btn-send-chat"
+                    [disabled]="!chatInputText().trim() || chatService.sendingMessage()"
+                    (click)="sendChatMessage()"
+                  >
+                    @if (chatService.sendingMessage()) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                    } @else {
+                      <span class="btn-inner-content">
+                        <mat-icon>send</mat-icon>
+                        <span>Send</span>
+                      </span>
+                    }
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <!-- No Session Selected State -->
+              <div class="no-session-selected">
+                <mat-icon>forum</mat-icon>
+                <h3>Select a conversation</h3>
+                <p>Choose a specialist from the left list to view messages and send updates.</p>
+              </div>
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- Interactive Map Modal Preview -->
+  @if (mapModalOpen()) {
+    <app-map-modal
+      [isOpen]="mapModalOpen()"
+      [latitude]="mapLat()"
+      [longitude]="mapLng()"
+      [title]="mapTitle()"
+      [subtitle]="mapSubtitle()"
+      (close)="closeMapModal()"
+    ></app-map-modal>
+  }
+</div>

@@ -1,0 +1,180 @@
+<div class="step-container">
+  <div class="step-header">
+    <div class="stage-tag"><mat-icon style="font-size: 13px; width: 13px; height: 13px; vertical-align: middle;">bolt</mat-icon> 1. BOOK SERVICE &bull; ESCROW PROTECTED</div>
+    <h3>Schedule & Book Service</h3>
+    <p>Confirm booking time, address, and deposit payment into Callbet 100% Protected Escrow</p>
+  </div>
+
+  <!-- Service Summary Card -->
+  <div class="service-preview-card">
+    <div class="srv-left">
+      <div class="icon-bubble">
+        <mat-icon>home_repair_service</mat-icon>
+      </div>
+      <div>
+        <h4>{{ jobData.serviceName }}</h4>
+        <span class="cat-pill">{{ jobData.categoryName || 'General Trade' }}</span>
+      </div>
+    </div>
+
+    <div class="srv-right">
+      <span class="escrow-label"><mat-icon>lock</mat-icon> Escrow Price</span>
+      <span class="price-val">${{ jobData.price }}</span>
+    </div>
+  </div>
+
+  <!-- Booking Form -->
+  <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()" class="booking-form">
+    <!-- Date and Time Row -->
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="form-col">
+        <mat-label>Service Date</mat-label>
+        <input matInput type="date" formControlName="scheduledDate" />
+        <mat-icon matPrefix>event</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="form-col">
+        <mat-label>Preferred Arrival Window</mat-label>
+        <mat-select formControlName="scheduledTime">
+          @for (slot of timeSlots; track slot) {
+            <mat-option [value]="slot">{{ slot }}</mat-option>
+          }
+        </mat-select>
+        <mat-icon matPrefix>schedule</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <!-- Address Selection & Inline Add Section -->
+    <div class="address-selection-section">
+      <div class="address-section-header">
+        <span class="section-title">
+          <mat-icon>place</mat-icon> Service Location Address
+        </span>
+        <button
+          type="button"
+          mat-button
+          color="primary"
+          class="toggle-picker-btn"
+          (click)="toggleInlinePicker()"
+        >
+          <mat-icon>{{ showInlineAddressPicker() ? 'arrow_back' : 'add_location_alt' }}</mat-icon>
+          <span>{{ showInlineAddressPicker() ? 'Choose Saved Address' : '+ Add New Address' }}</span>
+        </button>
+      </div>
+
+      @if (showInlineAddressPicker()) {
+        <div class="inline-picker-card">
+          <app-address-picker
+            [formTitle]="'Add & Use New Service Address'"
+            [submitButtonText]="'Save & Select Address'"
+            [showCancel]="locationService.myAddresses().length > 0"
+            (addressSaved)="onInlineAddressSaved($event)"
+            (cancelClicked)="showInlineAddressPicker.set(false)"
+          ></app-address-picker>
+        </div>
+      } @else {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Choose Saved Service Address</mat-label>
+          <mat-select [value]="selectedAddressId()" (selectionChange)="onAddressChange($event.value)">
+            @for (addr of locationService.myAddresses(); track (addr.id || $index)) {
+              <mat-option [value]="addr.id">
+                {{ addr.label ? '[' + addr.label + '] ' : '' }}
+                {{ addr.subCityName ? addr.subCityName + ', ' : '' }}
+                {{ addr.neighborhoodName || addr.neighborhoodId || 'Addis Ababa' }}
+                {{ addr.landmark ? ' (' + addr.landmark + ')' : '' }}
+              </mat-option>
+            }
+          </mat-select>
+          <mat-icon matPrefix>location_on</mat-icon>
+          @if (locationService.myAddresses().length === 0) {
+            <mat-hint>No saved address found. Click "+ Add New Address" above.</mat-hint>
+          }
+        </mat-form-field>
+
+        @if (selectedAddressObj()?.latitude && selectedAddressObj()?.longitude) {
+          <div class="selected-coords-bar">
+            <div class="coords-info">
+              <mat-icon>gps_fixed</mat-icon>
+              <span>GPS: <strong>{{ selectedAddressObj()!.latitude!.toFixed(4) }}, {{ selectedAddressObj()!.longitude!.toFixed(4) }}</strong></span>
+            </div>
+            <div class="coords-btns">
+              <button
+                type="button"
+                class="view-map-mini-btn"
+                (click)="showMapModal.set(true)"
+                title="View location on interactive map"
+              >
+                <mat-icon>map</mat-icon>
+                <span>View Map</span>
+              </button>
+              <a
+                [href]="'https://www.google.com/maps/search/?api=1&query=' + selectedAddressObj()!.latitude + ',' + selectedAddressObj()!.longitude"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="gmaps-mini-link"
+                title="Open in Google Maps in new tab"
+              >
+                <mat-icon>open_in_new</mat-icon>
+                <span>Google Maps ↗</span>
+              </a>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Description -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Describe the issue & special instructions</mat-label>
+      <textarea
+        matInput
+        formControlName="description"
+        rows="3"
+        placeholder="Provide specifics (e.g. 3-bedroom apartment, main electrical fuse tripping, specific equipment needed)..."
+      ></textarea>
+      <mat-icon matPrefix>description</mat-icon>
+    </mat-form-field>
+
+    <!-- Escrow Protection Guarantee Strip -->
+    <div class="escrow-guarantee-box">
+      <mat-icon>shield</mat-icon>
+      <div>
+        <strong>Callbet Escrow Protection Active</strong>
+        <p>Your ${{ jobData.price }} is held safely in escrow. Funds are ONLY released after you inspect and approve the completed work.</p>
+      </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="actions-row">
+      <button
+        mat-raised-button
+        color="primary"
+        type="submit"
+        class="btn-proceed"
+        [disabled]="loading() || bookingForm.invalid"
+      >
+        @if (loading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Creating Booking...</span>
+        } @else {
+          <ng-container>
+            <mat-icon>payment</mat-icon>
+            <span>Confirm Booking & Deposit Escrow &rarr;</span>
+          </ng-container>
+        }
+      </button>
+    </div>
+  </form>
+
+  <!-- Interactive Map Modal -->
+  @if (showMapModal() && selectedAddressObj()) {
+    <app-map-modal
+      [isOpen]="true"
+      [latitude]="selectedAddressObj()!.latitude"
+      [longitude]="selectedAddressObj()!.longitude"
+      [title]="(selectedAddressObj()!.label ? selectedAddressObj()!.label + ' - ' : '') + 'Service Location'"
+      [subtitle]="(selectedAddressObj()!.subCityName ? selectedAddressObj()!.subCityName + ', ' : '') + (selectedAddressObj()!.neighborhoodName || 'Addis Ababa') + (selectedAddressObj()!.landmark ? ' • ' + selectedAddressObj()!.landmark : '')"
+      (close)="showMapModal.set(false)"
+    ></app-map-modal>
+  }
+</div>
