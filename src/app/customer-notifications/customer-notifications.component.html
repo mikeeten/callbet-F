@@ -1,0 +1,324 @@
+<div class="customer-notifications-container">
+  <!-- Header -->
+  <div class="header-section">
+    <div>
+      <h2>Customer Service Notifications</h2>
+      <p class="subtitle">Track real-time progress on your booked services, technician arrivals, and escrow releases</p>
+    </div>
+    <div class="header-actions">
+      <a mat-raised-button color="primary" routerLink="/customer-dashboard">
+        <mat-icon>dashboard</mat-icon> Customer Dashboard
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/customer-services">
+        <mat-icon>search</mat-icon> Book a Service
+      </a>
+    </div>
+  </div>
+
+  <!-- Action Status Banners -->
+  @if (actionSuccess()) {
+    <div class="success-banner">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ actionSuccess() }}</span>
+    </div>
+  }
+
+  @if (reviewSuccess()) {
+    <div class="success-banner">
+      <mat-icon>star</mat-icon>
+      <span>{{ reviewSuccess() }}</span>
+    </div>
+  }
+
+  @if (actionError()) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ actionError() }}</span>
+    </div>
+  }
+
+  <!-- Lifecycle Stage Summary Stats -->
+  <div class="stats-overview">
+    <div class="stat-card" (click)="setFilter('requests')">
+      <div class="stat-num">{{ requestsCount() }}</div>
+      <div class="stat-label">Stage 1 & 2: Booked & Assigned</div>
+    </div>
+    <div class="stat-card in-progress-card" (click)="setFilter('in_progress')">
+      <div class="stat-num">{{ inProgressCount() }}</div>
+      <div class="stat-label">Stage 3: Work In Progress</div>
+    </div>
+    <div class="stat-card completed-card" (click)="setFilter('completed')">
+      <div class="stat-num">{{ completedCount() }}</div>
+      <div class="stat-label">Stage 4 & 5: Approval & Closed</div>
+    </div>
+  </div>
+
+  <!-- Notifications Center Card -->
+  <mat-card appearance="outlined" class="notifications-card">
+    <mat-card-header class="card-header">
+      <div class="header-title-row">
+        <div class="title-with-badge">
+          <mat-icon class="bell-icon">notifications_active</mat-icon>
+          <h3>Customer Activity Stream</h3>
+          @if (notificationService.unreadCustomerCount() > 0) {
+            <span class="unread-pill">{{ notificationService.unreadCustomerCount() }} New</span>
+          }
+        </div>
+
+        <div class="action-buttons">
+          <button
+            mat-button
+            color="primary"
+            type="button"
+            [disabled]="notificationService.unreadCustomerCount() === 0"
+            (click)="markAllAsRead()"
+          >
+            <mat-icon>done_all</mat-icon>
+            <span>Mark All Read</span>
+          </button>
+          <button
+            mat-button
+            color="warn"
+            type="button"
+            [disabled]="notificationService.customerNotifications().length === 0"
+            (click)="clearAll()"
+          >
+            <mat-icon>clear_all</mat-icon>
+            <span>Clear All</span>
+          </button>
+        </div>
+      </div>
+    </mat-card-header>
+
+    <!-- Filter Buttons Bar -->
+    <div class="filter-tabs">
+      <button
+        mat-stroked-button
+        type="button"
+        [class.active-tab]="activeFilter() === 'all'"
+        (click)="setFilter('all')"
+      >
+        All ({{ notificationService.customerNotifications().length }})
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        [class.active-tab]="activeFilter() === 'unread'"
+        (click)="setFilter('unread')"
+      >
+        Unread ({{ notificationService.unreadCustomerCount() }})
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        [class.active-tab]="activeFilter() === 'requests'"
+        (click)="setFilter('requests')"
+      >
+        Booked & Assigned ({{ requestsCount() }})
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        [class.active-tab]="activeFilter() === 'in_progress'"
+        (click)="setFilter('in_progress')"
+      >
+        In Progress ({{ inProgressCount() }})
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        [class.active-tab]="activeFilter() === 'completed'"
+        (click)="setFilter('completed')"
+      >
+        Completed & Review ({{ completedCount() }})
+      </button>
+    </div>
+
+    <mat-card-content class="card-content">
+      <!-- Notification Items List -->
+      <div class="notifications-feed">
+        @for (item of filteredNotifications(); track item.id) {
+          <div class="notification-row" [class.unread]="!item.isRead">
+            <div class="notif-icon-col">
+              <div
+                class="icon-circle"
+                [class.stage1]="item.stage === 1"
+                [class.stage2]="item.stage === 2"
+                [class.stage3]="item.stage === 3"
+                [class.stage4]="item.stage === 4"
+                [class.stage5]="item.stage === 5"
+              >
+                @if (item.stage === 1 || item.stage === 2) {
+                  <mat-icon>assignment_ind</mat-icon>
+                } @else if (item.stage === 3) {
+                  <mat-icon>build_circle</mat-icon>
+                } @else if (item.stage === 4) {
+                  <mat-icon>verified</mat-icon>
+                } @else if (item.stage === 5) {
+                  <mat-icon>star</mat-icon>
+                } @else {
+                  <mat-icon>notifications</mat-icon>
+                }
+              </div>
+            </div>
+
+            <div class="notif-body">
+              <div class="notif-header">
+                <div class="title-and-stage">
+                  <span class="notif-title">{{ item.title }}</span>
+                  @if (item.stage) {
+                    <span
+                      class="stage-badge"
+                      [class.stage1-badge]="item.stage === 1"
+                      [class.stage2-badge]="item.stage === 2"
+                      [class.stage3-badge]="item.stage === 3"
+                      [class.stage4-badge]="item.stage === 4"
+                      [class.stage5-badge]="item.stage === 5"
+                    >
+                      Stage {{ item.stage }}:
+                      {{
+                        item.stage === 1
+                          ? 'Booking Requested'
+                          : item.stage === 2
+                          ? 'Technician Assigned'
+                          : item.stage === 3
+                          ? 'Work In Progress'
+                          : item.stage === 4
+                          ? 'Pending Your Approval'
+                          : 'Approved & Completed'
+                      }}
+                    </span>
+                  }
+                </div>
+                <span class="notif-time">{{ item.createdAt | date:'medium' }}</span>
+              </div>
+
+              <p class="notif-message">{{ item.message }}</p>
+
+              @if (item.serviceName || item.customerName || item.price) {
+                <div class="job-meta-chips">
+                  @if (item.serviceName) {
+                    <span class="meta-chip">Service: <strong>{{ item.serviceName }}</strong></span>
+                  }
+                  @if (item.price) {
+                    <span class="meta-chip escrow-chip"><mat-icon>lock</mat-icon> Escrow Price: <strong>${{ item.price }}</strong></span>
+                  }
+                  @if (item.jobId) {
+                    <span class="meta-chip job-id-chip">Job ID: <code>{{ item.jobId.substring(0, 8) }}...</code></span>
+                  }
+                </div>
+              }
+
+              <!-- Action Controls for Customer Lifecycle -->
+              <div class="lifecycle-actions-bar">
+                @if (item.stage === 4 && item.jobId) {
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    type="button"
+                    class="lifecycle-action-btn"
+                    [disabled]="actionLoading() === item.jobId"
+                    (click)="approveJob(item.jobId, item)"
+                  >
+                    @if (actionLoading() === item.jobId) {
+                      <mat-spinner diameter="16"></mat-spinner>
+                      <span>Approving...</span>
+                    } @else {
+                      <ng-container>
+                        <mat-icon>check_circle</mat-icon>
+                        <span>Approve Work & Release Payment</span>
+                      </ng-container>
+                    }
+                  </button>
+                }
+
+                @if (item.stage === 5 && item.jobId) {
+                  <button
+                    mat-raised-button
+                    color="accent"
+                    type="button"
+                    class="lifecycle-action-btn"
+                    (click)="openReviewModal(item.jobId)"
+                  >
+                    <mat-icon>rate_review</mat-icon>
+                    <span>Rate & Review Technician</span>
+                  </button>
+                }
+
+                <a mat-button color="primary" routerLink="/customer-dashboard" class="view-dash-link">
+                  <mat-icon>open_in_new</mat-icon> View in Dashboard
+                </a>
+
+                @if (!item.isRead) {
+                  <button
+                    mat-button
+                    type="button"
+                    (click)="markAsRead(item.id)"
+                  >
+                    <mat-icon>done</mat-icon> Mark as Read
+                  </button>
+                }
+
+                <button
+                  mat-icon-button
+                  color="warn"
+                  type="button"
+                  aria-label="Delete"
+                  title="Delete notification"
+                  (click)="deleteNotification(item.id)"
+                >
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+
+              <!-- Inline Review Modal Card -->
+              @if (reviewingJobId() === item.jobId) {
+                <div class="review-card">
+                  <h4>Rate & Review Your Service Experience</h4>
+                  <form [formGroup]="reviewForm" (ngSubmit)="submitReview(item.jobId!)">
+                    <!-- Rating Stars -->
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Rating Score</mat-label>
+                      <mat-select formControlName="rating">
+                        <mat-option [value]="5">⭐⭐⭐⭐⭐ 5 Stars (Exceptional Service)</mat-option>
+                        <mat-option [value]="4">⭐⭐⭐⭐ 4 Stars (Good Quality)</mat-option>
+                        <mat-option [value]="3">⭐⭐⭐ 3 Stars (Average)</mat-option>
+                        <mat-option [value]="2">⭐⭐ 2 Stars (Needs Improvement)</mat-option>
+                        <mat-option [value]="1">⭐ 1 Star (Unsatisfactory)</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Your Verified Review</mat-label>
+                      <textarea
+                        matInput
+                        formControlName="comment"
+                        rows="3"
+                        placeholder="Describe the technician's professionalism, cleanliness, and punctuality..."
+                      ></textarea>
+                    </mat-form-field>
+
+                    <div class="review-actions">
+                      <button mat-button type="button" (click)="closeReviewModal()">
+                        Cancel
+                      </button>
+                      <button mat-raised-button color="primary" type="submit" [disabled]="reviewForm.invalid || actionLoading() === item.jobId">
+                        Submit Verified Review
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              }
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-notifications">
+            <mat-icon class="empty-icon">notifications_none</mat-icon>
+            <h4>No customer notifications found</h4>
+            <p>You have no notifications in this category. Booking updates and technician arrivals will appear here in real time.</p>
+          </div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
