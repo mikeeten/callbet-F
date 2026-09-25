@@ -1,0 +1,673 @@
+<div class="verification-portal">
+  <!-- Top Portal Header -->
+  <div class="portal-header">
+    <div class="header-left">
+      <div class="shield-badge">
+        <mat-icon>verified_user</mat-icon>
+      </div>
+      <div>
+        <div class="title-row">
+          <h2>e-KYC Professional Verification & Compliance</h2>
+          <span class="portal-tag">Compliance Officer Portal</span>
+        </div>
+        <p class="subtitle">
+          Audit submitted government IDs, trade licenses, and technical credentials to authorize specialists onto the Callbet dispatch network
+        </p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a mat-raised-button color="primary" routerLink="/admin-dashboard" class="btn-nav">
+        <mat-icon>admin_panel_settings</mat-icon> Admin Tower
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/admin-users" class="btn-nav">
+        <mat-icon>people</mat-icon> User Directory
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/verification-upload" class="btn-nav">
+        <mat-icon>add_photo_alternate</mat-icon> Upload Scan
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/admin-logs" class="btn-nav">
+        <mat-icon>manage_history</mat-icon> Audit Logs
+      </a>
+    </div>
+  </div>
+
+  <!-- Feedback Banner -->
+  @if (feedbackMessage()) {
+    <div class="feedback-toast">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ feedbackMessage() }}</span>
+    </div>
+  }
+
+  <!-- Metric Overview Ribbon -->
+  <div class="metrics-ribbon">
+    <div
+      class="metric-card total-card"
+      [class.active-card]="selectedStatusFilter() === 'all'"
+      (click)="setStatusFilter('all')"
+    >
+      <div class="icon-wrap total-color">
+        <mat-icon>folder_shared</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ totalCount() }}</span>
+        <span class="metric-lbl">Total Submissions</span>
+      </div>
+    </div>
+
+    <div
+      class="metric-card pending-card"
+      [class.active-card]="selectedStatusFilter() === 'pending'"
+      (click)="setStatusFilter('pending')"
+    >
+      <div class="icon-wrap pending-color">
+        <mat-icon>hourglass_top</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ pendingCount() }}</span>
+        <span class="metric-lbl">Pending Review (Action Needed)</span>
+      </div>
+    </div>
+
+    <div
+      class="metric-card approved-card"
+      [class.active-card]="selectedStatusFilter() === 'verified'"
+      (click)="setStatusFilter('verified')"
+    >
+      <div class="icon-wrap approved-color">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ verifiedCount() }}</span>
+        <span class="metric-lbl">Approved & Authorized Pros</span>
+      </div>
+    </div>
+
+    <div
+      class="metric-card rejected-card"
+      [class.active-card]="selectedStatusFilter() === 'rejected'"
+      (click)="setStatusFilter('rejected')"
+    >
+      <div class="icon-wrap rejected-color">
+        <mat-icon>cancel</mat-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-val">{{ rejectedCount() }}</span>
+        <span class="metric-lbl">Rejected / Incomplete</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Controls Card -->
+  <div class="search-filter-card">
+    <form [formGroup]="searchForm" (ngSubmit)="page.set(1); loadRecords()" class="filter-form-grid">
+      <!-- Search Input -->
+      <div class="search-input-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          formControlName="search"
+          placeholder="Search by Document Type, Applicant Name, or User ID..."
+        />
+        @if (searchForm.get('search')?.value) {
+          <button mat-icon-button type="button" class="btn-clear-search" (click)="clearSearch()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <!-- KYC Status Select -->
+      <div class="select-filter-group">
+        <label>KYC Status:</label>
+        <select formControlName="isVerified" (change)="page.set(1); loadRecords()">
+          <option [ngValue]="null">All Statuses</option>
+          <option [ngValue]="false">Pending Review Only</option>
+          <option [ngValue]="true">Verified & Approved Only</option>
+        </select>
+      </div>
+
+      <!-- Document Type Select -->
+      <div class="select-filter-group">
+        <label>Document Category:</label>
+        <select formControlName="documentType" (change)="page.set(1); loadRecords()">
+          <option value="all">All Document Types</option>
+          <option value="National ID">National IDs / Passports</option>
+          <option value="Trade License">Trade Licenses & Permits</option>
+          <option value="Certificate">Vocational Certificates</option>
+          <option value="Resume">Resumes & Portfolios</option>
+        </select>
+      </div>
+
+      <!-- Sort By -->
+      <div class="select-filter-group">
+        <label>Sort By:</label>
+        <select formControlName="orderBy" (change)="page.set(1); loadRecords()">
+          <option value="VerificationDate">Submission Date</option>
+          <option value="DocumentType">Document Type</option>
+          <option value="ProfessionalName">Applicant Name</option>
+        </select>
+      </div>
+
+      <!-- Order Direction -->
+      <div class="select-filter-group">
+        <label>Order:</label>
+        <select formControlName="descending" (change)="page.set(1); loadRecords()">
+          <option [ngValue]="true">Newest First (Desc)</option>
+          <option [ngValue]="false">Oldest First (Asc)</option>
+        </select>
+      </div>
+
+      <!-- Search Submit Button -->
+      <button mat-raised-button color="primary" type="submit" class="btn-apply-filters">
+        <mat-icon>filter_alt</mat-icon>
+        <span>Apply Filters</span>
+      </button>
+    </form>
+
+    <!-- Quick Filter Chips -->
+    <div class="quick-chips-row">
+      <span class="chips-label"><mat-icon>tune</mat-icon> Quick Filter:</span>
+      <button
+        type="button"
+        class="chip-pill"
+        [class.active]="selectedStatusFilter() === 'all' && selectedDocTypeFilter() === 'all'"
+        (click)="setStatusFilter('all'); setDocTypeFilter('all')"
+      >
+        All Submissions ({{ totalCount() }})
+      </button>
+
+      <button
+        type="button"
+        class="chip-pill chip-pending-pill"
+        [class.active]="selectedStatusFilter() === 'pending'"
+        (click)="setStatusFilter('pending')"
+      >
+        <mat-icon>hourglass_top</mat-icon> Pending Review ({{ pendingCount() }})
+      </button>
+
+      <button
+        type="button"
+        class="chip-pill chip-verified-pill"
+        [class.active]="selectedStatusFilter() === 'verified'"
+        (click)="setStatusFilter('verified')"
+      >
+        <mat-icon>verified</mat-icon> Verified ({{ verifiedCount() }})
+      </button>
+
+      <button
+        type="button"
+        class="chip-pill"
+        [class.active]="selectedDocTypeFilter() === 'National ID'"
+        (click)="setDocTypeFilter('National ID')"
+      >
+        <mat-icon>badge</mat-icon> National IDs
+      </button>
+
+      <button
+        type="button"
+        class="chip-pill"
+        [class.active]="selectedDocTypeFilter() === 'Trade License'"
+        (click)="setDocTypeFilter('Trade License')"
+      >
+        <mat-icon>verified_user</mat-icon> Trade Licenses
+      </button>
+
+      <button
+        type="button"
+        class="chip-pill"
+        [class.active]="selectedDocTypeFilter() === 'Certificate'"
+        (click)="setDocTypeFilter('Certificate')"
+      >
+        <mat-icon>school</mat-icon> Certificates
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Table Card -->
+  <div class="table-container-card">
+    <div class="table-header-strip">
+      <div class="title-meta">
+        <mat-icon>folder_special</mat-icon>
+        <h3>Verification Audit Queue ({{ filteredRecords().length }} of {{ totalCount() }} Records)</h3>
+      </div>
+
+      <div class="header-right-tools">
+        <button mat-stroked-button color="primary" type="button" (click)="loadRecords()" [disabled]="loading()">
+          <mat-icon [class.spin-icon]="loading()">refresh</mat-icon>
+          <span>Refresh Queue</span>
+        </button>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="44"></mat-spinner>
+        <span>Loading verification documents from server...</span>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="custom-admin-table">
+          <thead>
+            <tr>
+              <th>Document Credential</th>
+              <th>Applicant Specialist</th>
+              <th>Document Scan</th>
+              <th>Compliance KYC Status</th>
+              <th>Submission Date</th>
+              <th class="text-right">Compliance Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (record of filteredRecords(); track record.id) {
+              <tr class="record-row" [class.verified-row]="record.isVerified" [class.pending-row]="!record.isVerified">
+                <!-- Document Credential Info -->
+                <td class="col-doc-info">
+                  <div class="doc-cell">
+                    <div class="doc-icon-wrap" [class.icon-approved]="record.isVerified" [class.icon-pending]="!record.isVerified">
+                      <mat-icon>{{ getDocIcon(record.documentType) }}</mat-icon>
+                    </div>
+
+                    <div class="doc-meta-text">
+                      <strong class="doc-title">{{ record.documentType }}</strong>
+                      <span class="doc-sub">Category: {{ record.category || 'Trade Compliance' }}</span>
+                      @if (record.notes) {
+                        <span class="doc-notes" [matTooltip]="record.notes">
+                          <mat-icon>info</mat-icon> {{ record.notes }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Applicant Specialist -->
+                <td class="col-applicant">
+                  <div class="applicant-box">
+                    <div class="applicant-name-row">
+                      <strong class="applicant-name">{{ record.professionalName || record.applicantName || 'Specialist' }}</strong>
+                      @if (record.isVerified) {
+                        <mat-icon class="verified-icon" matTooltip="Identity Approved">verified</mat-icon>
+                      }
+                    </div>
+                    <span class="applicant-headline">{{ record.headline || 'Licensed Contractor' }}</span>
+                    @if (record.userId) {
+                      <div class="id-snippet">
+                        <code>ID: {{ record.userId.substring(0, 8) }}...</code>
+                        <button type="button" class="btn-copy-id" (click)="copyText(record.userId, 'User ID')" matTooltip="Copy User ID">
+                          <mat-icon>content_copy</mat-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </td>
+
+                <!-- Document Scan Preview Trigger -->
+                <td class="col-preview">
+                  <button
+                    type="button"
+                    class="btn-view-scan"
+                    (click)="openPreview(record.documentType, record.documentUrl, record)"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                    <span>Inspect Scan</span>
+                  </button>
+                </td>
+
+                <!-- Compliance KYC Status -->
+                <td class="col-status">
+                  @if (record.isVerified || record.status === 'Approved') {
+                    <span class="status-pill pill-verified">
+                      <mat-icon>verified</mat-icon> Verified & Active
+                    </span>
+                  } @else if (record.status === 'Rejected') {
+                    <span class="status-pill pill-rejected">
+                      <mat-icon>cancel</mat-icon> Rejected
+                    </span>
+                  } @else {
+                    <span class="status-pill pill-pending">
+                      <mat-icon>hourglass_top</mat-icon> Pending Review
+                    </span>
+                  }
+                </td>
+
+                <!-- Submission Date -->
+                <td class="col-date">
+                  <div class="date-box">
+                    <mat-icon>event_available</mat-icon>
+                    <span>{{ record.verificationDate ? (record.verificationDate | date:'mediumDate') : 'Recent' }}</span>
+                  </div>
+                </td>
+
+                <!-- Compliance Actions -->
+                <td class="col-actions text-right">
+                  <div class="actions-group">
+                    <!-- Approve Action -->
+                    @if (!record.isVerified && record.status !== 'Approved') {
+                      <button
+                        mat-raised-button
+                        color="primary"
+                        class="btn-action-approve"
+                        type="button"
+                        (click)="approveRecord(record.id)"
+                        [disabled]="actionLoading() === record.id"
+                        matTooltip="Approve and Authorize Professional"
+                      >
+                        @if (actionLoading() === record.id) {
+                          <mat-spinner diameter="16"></mat-spinner>
+                        } @else {
+                          <mat-icon>check</mat-icon>
+                        }
+                        <span>Approve</span>
+                      </button>
+
+                      <!-- Reject Action -->
+                      <button
+                        mat-stroked-button
+                        color="warn"
+                        class="btn-action-reject"
+                        type="button"
+                        (click)="openRejectModal(record)"
+                        matTooltip="Reject with Guidance Reason"
+                      >
+                        <mat-icon>close</mat-icon>
+                        <span>Reject</span>
+                      </button>
+                    } @else {
+                      <span class="status-approved-text">
+                        <mat-icon>verified</mat-icon> Authorized
+                      </span>
+                    }
+
+                    <!-- Delete / Archive -->
+                    <button
+                      mat-icon-button
+                      color="warn"
+                      class="btn-action-delete"
+                      type="button"
+                      (click)="openDeleteModal(record)"
+                      matTooltip="Remove Record from Queue"
+                    >
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty-cell">
+                  <div class="empty-table-box">
+                    <mat-icon>folder_open</mat-icon>
+                    <h4>No verification records found</h4>
+                    <p>No documents matched your current search criteria or status filter.</p>
+                    <button mat-stroked-button color="primary" type="button" (click)="clearSearch()">
+                      Reset Filter Criteria
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      <div class="pagination-footer">
+        <div class="pagination-meta">
+          <span>
+            Showing Page <strong>{{ page() }}</strong> of <strong>{{ totalPages() }}</strong> ({{ totalCount() }} total records)
+          </span>
+          <div class="page-size-selector">
+            <label>Show:</label>
+            <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+              <option [value]="5">5 per page</option>
+              <option [value]="10">10 per page</option>
+              <option [value]="25">25 per page</option>
+              <option [value]="50">50 per page</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pagination-buttons">
+          <button
+            mat-stroked-button
+            type="button"
+            class="btn-page"
+            (click)="prevPage()"
+            [disabled]="page() === 1"
+          >
+            <mat-icon>chevron_left</mat-icon> Previous
+          </button>
+          <span class="current-page-pill">{{ page() }}</span>
+          <button
+            mat-stroked-button
+            type="button"
+            class="btn-page"
+            (click)="nextPage()"
+            [disabled]="page() >= totalPages()"
+          >
+            Next <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: DOCUMENT PREVIEW VIEWER (LIGHTBOX)                      -->
+  <!-- ============================================================== -->
+  @if (selectedDocForPreview(); as doc) {
+    <div class="modal-backdrop" (click)="closePreview()">
+      <div class="modal-dialog doc-viewer-dialog" (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="doc-viewer-head">
+          <div class="head-left">
+            <div class="doc-head-icon">
+              <mat-icon>{{ getDocIcon(doc.title) }}</mat-icon>
+            </div>
+            <div>
+              <h3>{{ doc.title }}</h3>
+              <p class="doc-sub">
+                Applicant: <strong>{{ doc.record?.professionalName || doc.record?.applicantName || 'Applicant' }}</strong>
+                &bull; Status: <strong>{{ doc.record?.isVerified ? 'Verified & Active' : 'Pending Audit' }}</strong>
+              </p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" class="btn-close-viewer" (click)="closePreview()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <!-- Document Viewer Body -->
+        <div class="doc-viewer-body">
+          <div class="doc-img-container">
+            <img [src]="formatImageUrl(doc.url)" [alt]="doc.title" class="doc-preview-img" />
+          </div>
+
+          <!-- Document Compliance Metadata Strip -->
+          <div class="doc-metadata-strip">
+            <div class="meta-item">
+              <span class="lbl"><mat-icon>badge</mat-icon> Document Type</span>
+              <strong>{{ doc.title }}</strong>
+            </div>
+            <div class="meta-item">
+              <span class="lbl"><mat-icon>account_circle</mat-icon> Applicant</span>
+              <strong>{{ doc.record?.professionalName || doc.record?.applicantName || 'Specialist' }}</strong>
+            </div>
+            <div class="meta-item">
+              <span class="lbl"><mat-icon>verified</mat-icon> Audit Status</span>
+              <span [class.text-success]="doc.record?.isVerified" [class.text-amber]="!doc.record?.isVerified">
+                {{ doc.record?.isVerified ? 'Officially Approved' : 'Pending Compliance Review' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Direct In-Viewer Action Buttons -->
+          <div class="doc-viewer-actions">
+            @if (doc.record && !doc.record.isVerified) {
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                class="btn-viewer-approve"
+                (click)="approveRecord(doc.record.id)"
+                [disabled]="actionLoading() === doc.record.id"
+              >
+                @if (actionLoading() === doc.record.id) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <mat-icon>check</mat-icon>
+                }
+                <span>Approve & Authorize Profile</span>
+              </button>
+
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                (click)="openRejectModal(doc.record)"
+              >
+                <mat-icon>close</mat-icon>
+                <span>Reject with Guidance</span>
+              </button>
+            }
+
+            <button mat-button type="button" class="btn-close-bottom" (click)="closePreview()">
+              Done Reviewing
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: CONSTRUCTIVE REJECTION REASON                           -->
+  <!-- ============================================================== -->
+  @if (recordToReject(); as target) {
+    <div class="modal-backdrop" (click)="closeRejectModal()">
+      <div class="modal-dialog reject-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-head reject-head">
+          <div class="head-left">
+            <div class="reject-icon">
+              <mat-icon>report_problem</mat-icon>
+            </div>
+            <div>
+              <h3>Reject Verification Document</h3>
+              <p class="modal-sub">Applicant: <strong>{{ target.professionalName || target.applicantName }}</strong></p>
+            </div>
+          </div>
+          <button mat-icon-button type="button" (click)="closeRejectModal()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="reject-body">
+          <p class="reject-instruction">
+            Select a common guidance reason or enter a custom explanation. The applicant will receive actionable guidance to re-upload a compliant credential.
+          </p>
+
+          <!-- Quick Suggestion Pills -->
+          <div class="preset-reasons-wrap">
+            <span class="preset-title"><mat-icon>tips_and_updates</mat-icon> Quick Presets:</span>
+            <div class="presets-list">
+              <button
+                type="button"
+                class="preset-btn"
+                (click)="applyPresetRejectReason('Expired trade license. Please upload your current renewed trade license with official seal.')"
+              >
+                "Expired trade license"
+              </button>
+              <button
+                type="button"
+                class="preset-btn"
+                (click)="applyPresetRejectReason('Unclear or low-resolution image scan. Text and national ID photo must be clearly legible.')"
+              >
+                "Low resolution / blurred image"
+              </button>
+              <button
+                type="button"
+                class="preset-btn"
+                (click)="applyPresetRejectReason('Missing government stamp or issuing authority signature on trade certificate.')"
+              >
+                "Missing government stamp"
+              </button>
+              <button
+                type="button"
+                class="preset-btn"
+                (click)="applyPresetRejectReason('Name on national ID does not match registered profile name.')"
+              >
+                "Name mismatch"
+              </button>
+            </div>
+          </div>
+
+          <!-- Reason Input -->
+          <div class="reason-textarea-wrap">
+            <label>Rejection Guidance Notice:</label>
+            <textarea
+              [(ngModel)]="rejectReasonText"
+              rows="4"
+              placeholder="Explain what is missing or invalid so the applicant can re-submit..."
+            ></textarea>
+          </div>
+
+          <div class="reject-actions">
+            <button mat-button type="button" (click)="closeRejectModal()">Cancel</button>
+            <button
+              mat-raised-button
+              color="warn"
+              type="button"
+              (click)="confirmRejectRecord()"
+              [disabled]="actionLoading() === target.id"
+            >
+              @if (actionLoading() === target.id) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>send</mat-icon>
+              }
+              <span>Confirm Rejection</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ============================================================== -->
+  <!-- MODAL: DELETE RECORD CONFIRMATION                              -->
+  <!-- ============================================================== -->
+  @if (recordToDelete(); as target) {
+    <div class="modal-backdrop" (click)="closeDeleteModal()">
+      <div class="modal-dialog delete-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-icon-badge badge-danger">
+          <mat-icon>delete_forever</mat-icon>
+        </div>
+
+        <h3>Remove Verification Document?</h3>
+        <p class="confirm-desc">
+          Are you sure you want to remove the <strong>{{ target.documentType }}</strong> record for <strong>{{ target.professionalName || target.applicantName }}</strong> from the audit queue?
+        </p>
+
+        <div class="confirm-actions">
+          <button mat-stroked-button type="button" (click)="closeDeleteModal()">
+            Cancel
+          </button>
+          <button
+            mat-raised-button
+            color="warn"
+            type="button"
+            (click)="confirmDeleteRecord()"
+            [disabled]="actionLoading() === target.id"
+          >
+            @if (actionLoading() === target.id) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>delete</mat-icon>
+            }
+            <span>Permanently Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
