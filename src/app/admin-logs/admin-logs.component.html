@@ -1,0 +1,262 @@
+<div class="admin-logs-portal">
+  <!-- Top Navigation Header -->
+  <div class="portal-header">
+    <div class="header-left">
+      <div class="shield-badge">
+        <mat-icon>manage_history</mat-icon>
+      </div>
+      <div>
+        <h2>System Audit Trail & Admin Logs</h2>
+        <p class="subtitle">Immutable forensic activity log tracking administrative decisions, verifications, user moderation, and dispute interventions</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a mat-raised-button color="primary" routerLink="/admin-dashboard">
+        <mat-icon>dashboard</mat-icon> Admin Tower
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/admin-users">
+        <mat-icon>people</mat-icon> User Directory
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/admin-services">
+        <mat-icon>design_services</mat-icon> Services
+      </a>
+      <a mat-stroked-button color="warn" routerLink="/verification-list">
+        <mat-icon>verified_user</mat-icon> Verifications
+      </a>
+    </div>
+  </div>
+
+  <!-- Metric Overview Ribbon -->
+  <div class="metrics-ribbon">
+    <div class="metric-card" (click)="setFilter('all')">
+      <div class="icon-wrap total-color"><mat-icon>history</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ totalCount() }}</span>
+        <span class="metric-lbl">Total Audit Records</span>
+      </div>
+    </div>
+
+    <div class="metric-card" (click)="setFilter('verification')">
+      <div class="icon-wrap verify-color"><mat-icon>verified</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ verificationLogsCount() }}</span>
+        <span class="metric-lbl">Verification Audits</span>
+      </div>
+    </div>
+
+    <div class="metric-card" (click)="setFilter('user')">
+      <div class="icon-wrap user-color"><mat-icon>person_pin</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ userStatusLogsCount() }}</span>
+        <span class="metric-lbl">User Moderations</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="icon-wrap page-color"><mat-icon>auto_stories</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ currentPage() }} / {{ totalPages() }}</span>
+        <span class="metric-lbl">Active Page View</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="search-filter-card">
+    <form [formGroup]="searchForm" (ngSubmit)="onSearchSubmit()" class="search-form">
+      <div class="search-input-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          formControlName="searchQuery"
+          placeholder="Filter audit logs by action, target entity, or user ID..."
+        />
+        @if (searchForm.get('searchQuery')?.value) {
+          <button mat-icon-button type="button" (click)="clearSearch()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+      <button mat-raised-button color="primary" type="submit" class="btn-search">
+        <mat-icon>filter_list</mat-icon> Search Logs
+      </button>
+    </form>
+
+    <!-- Quick Filter Tags -->
+    <div class="filter-chips-row">
+      <span class="filter-lbl"><mat-icon>tune</mat-icon> Quick Filter:</span>
+      <button
+        type="button"
+        class="chip-btn"
+        [class.active]="selectedFilter() === 'all'"
+        (click)="setFilter('all')"
+      >
+        All Actions
+      </button>
+      <button
+        type="button"
+        class="chip-btn"
+        [class.active]="selectedFilter() === 'verification'"
+        (click)="setFilter('verification')"
+      >
+        <mat-icon>verified</mat-icon> Verifications
+      </button>
+      <button
+        type="button"
+        class="chip-btn"
+        [class.active]="selectedFilter() === 'user'"
+        (click)="setFilter('user')"
+      >
+        <mat-icon>manage_accounts</mat-icon> User Moderation
+      </button>
+      <button
+        type="button"
+        class="chip-btn"
+        [class.active]="selectedFilter() === 'dispute'"
+        (click)="setFilter('dispute')"
+      >
+        <mat-icon>gavel</mat-icon> Disputes
+      </button>
+      <button
+        type="button"
+        class="chip-btn"
+        [class.active]="selectedFilter() === 'broadcast'"
+        (click)="setFilter('broadcast')"
+      >
+        <mat-icon>campaign</mat-icon> Broadcasts
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="44"></mat-spinner>
+      <span>Loading system audit logs from backend...</span>
+    </div>
+  } @else {
+    <!-- Audit Logs Table Card -->
+    <div class="table-container-card">
+      <div class="table-header-strip">
+        <div class="title-wrap">
+          <mat-icon>receipt_long</mat-icon>
+          <h3>Audit Log Timeline ({{ totalCount() }} Events)</h3>
+        </div>
+        <button mat-stroked-button color="primary" type="button" (click)="loadLogs(currentPage())">
+          <mat-icon>refresh</mat-icon> Refresh
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>Timestamp (UTC)</th>
+              <th>Action Description</th>
+              <th>Target Entity</th>
+              <th>Target Entity ID</th>
+              <th>Admin Operator</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of logs(); track log.id) {
+              <tr class="log-row">
+                <!-- Timestamp -->
+                <td class="col-time">
+                  <div class="time-box">
+                    <mat-icon>schedule</mat-icon>
+                    <span>{{ log.timestamp | date:'MMM d, y, h:mm:ss a' }}</span>
+                  </div>
+                </td>
+
+                <!-- Action Description -->
+                <td class="col-action">
+                  <span class="action-pill" [ngClass]="getActionBadgeClass(log.action)">
+                    <mat-icon>{{ getActionIcon(log.action) }}</mat-icon>
+                    <span>{{ log.action }}</span>
+                  </span>
+                </td>
+
+                <!-- Target Entity -->
+                <td class="col-entity">
+                  <span class="entity-badge">
+                    {{ log.targetEntity || 'System' }}
+                  </span>
+                </td>
+
+                <!-- Target Entity ID -->
+                <td class="col-uuid">
+                  @if (log.targetEntityId) {
+                    <code [matTooltip]="log.targetEntityId">
+                      {{ log.targetEntityId.substring(0, 8) }}...{{ log.targetEntityId.substring(log.targetEntityId.length - 4) }}
+                    </code>
+                  } @else {
+                    <span class="dimmed">-</span>
+                  }
+                </td>
+
+                <!-- Admin Operator -->
+                <td class="col-admin">
+                  <div class="admin-cell">
+                    <div class="admin-avatar">
+                      <mat-icon>admin_panel_settings</mat-icon>
+                    </div>
+                    <div class="admin-info-text">
+                      <span class="admin-name" [matTooltip]="'Admin ID: ' + log.adminUserId">
+                        {{ log.adminName || 'System Administrator' }}
+                      </span>
+                      @if (log.adminEmail) {
+                        <span class="admin-subtext">{{ log.adminEmail }}</span>
+                      }
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="empty-cell">
+                  <div class="empty-logs-box">
+                    <mat-icon>search_off</mat-icon>
+                    <h4>No audit logs found</h4>
+                    <p>No administrative activities match your current search query or filter.</p>
+                    <button mat-stroked-button color="primary" (click)="clearSearch()">
+                      Reset Filter
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer -->
+      @if (totalPages() > 1) {
+        <div class="pagination-footer">
+          <div class="page-meta">
+            Showing Page <strong>{{ currentPage() }}</strong> of <strong>{{ totalPages() }}</strong> ({{ totalCount() }} total logged actions)
+          </div>
+
+          <div class="page-buttons">
+            <button
+              mat-stroked-button
+              [disabled]="currentPage() <= 1"
+              (click)="loadLogs(currentPage() - 1)"
+            >
+              <mat-icon>chevron_left</mat-icon> Previous
+            </button>
+            <span class="current-pill">{{ currentPage() }}</span>
+            <button
+              mat-stroked-button
+              [disabled]="currentPage() >= totalPages()"
+              (click)="loadLogs(currentPage() + 1)"
+            >
+              Next <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

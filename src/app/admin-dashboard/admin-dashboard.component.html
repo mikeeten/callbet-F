@@ -1,0 +1,512 @@
+<div class="admin-dashboard-container">
+  <!-- Top Navigation Header -->
+  <div class="dashboard-header">
+    <div class="user-meta">
+      <div class="admin-shield-icon">
+        <mat-icon>admin_panel_settings</mat-icon>
+      </div>
+      <div class="user-info">
+        <div class="name-row">
+          <h2>Callbet Governance & Admin Control Tower</h2>
+          <span class="admin-tag">Super Admin</span>
+        </div>
+        <p class="user-sub">Trust, Safety, Document Verifications & Platform Moderation</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a mat-stroked-button color="accent" routerLink="/admin-users">
+        <mat-icon>people</mat-icon> User Directory
+      </a>
+      <a mat-stroked-button routerLink="/admin-services">
+        <mat-icon>settings_suggest</mat-icon> Catalog Admin
+      </a>
+      <a mat-stroked-button color="warn" routerLink="/verification-list">
+        <mat-icon>verified_user</mat-icon> Verifications
+      </a>
+      <a mat-stroked-button routerLink="/admin-logs">
+        <mat-icon>manage_history</mat-icon> Audit Logs
+      </a>
+      <button
+        mat-stroked-button
+        color="warn"
+        class="btn-admin-signout"
+        type="button"
+        (click)="openSignoutConfirm()"
+        title="Sign Out of Admin Control Tower"
+      >
+        <mat-icon>logout</mat-icon>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Feedback Banner -->
+  @if (feedbackMessage()) {
+    <div class="success-banner">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ feedbackMessage() }}</span>
+    </div>
+  }
+
+  <!-- Tab Navigation Strip -->
+  <div class="dashboard-nav-tabs">
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'moderation'"
+      (click)="setTab('moderation')"
+    >
+      <mat-icon>policy</mat-icon>
+      <span>Content Moderation ({{ flaggedReviewsCount() }})</span>
+    </button>
+
+
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'zones'"
+      (click)="setTab('zones')"
+    >
+      <mat-icon>map</mat-icon>
+      <span>Service Zones ({{ zones().length }})</span>
+    </button>
+
+    <button
+      class="nav-tab-btn"
+      [class.active]="activeTab() === 'logs'"
+      (click)="setTab('logs')"
+    >
+      <mat-icon>manage_history</mat-icon>
+      <span>Audit Trail Logs ({{ totalLogsCount() }})</span>
+    </button>
+  </div>
+
+
+
+  <!-- TAB 2: CONTENT MODERATION -->
+  @if (activeTab() === 'moderation') {
+    <div class="tab-content">
+      <div class="section-top-row">
+        <div>
+          <h3>Flagged Content & Review Moderation</h3>
+          <p class="section-desc">Live community safety oversight. Moderate flagged feedback, inspect violation claims, and purge fraudulent reviews.</p>
+        </div>
+        <div class="header-right-actions">
+          <button mat-stroked-button color="primary" type="button" (click)="loadModerationReviews()">
+            <mat-icon>refresh</mat-icon>
+            <span>Refresh Queue</span>
+          </button>
+        </div>
+      </div>
+
+      <mat-card appearance="outlined" class="moderation-card">
+        <mat-card-content>
+          @if (loadingModeration()) {
+            <div class="loading-state-box">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Loading moderation queue from database...</p>
+            </div>
+          } @else if (flaggedReviews().length === 0) {
+            <div class="empty-state-box">
+              <mat-icon class="empty-icon">verified_user</mat-icon>
+              <h4>Moderation Queue is Clean</h4>
+              <p>No user reviews are currently flagged for community guideline violations.</p>
+            </div>
+          } @else {
+            <div class="flagged-items-list">
+              @for (rev of flaggedReviews(); track rev.id) {
+                <div class="flagged-review-box" [class.is-dismissed]="rev.status === 'Dismissed'" [class.is-removed]="rev.status === 'Removed'">
+                  <div class="flag-header">
+                    <div>
+                      <strong>Flagged Review on Job #{{ rev.jobId }}</strong>
+                      <span class="flag-status" [class.status-flagged]="rev.status === 'Flagged'" [class.status-dismissed]="rev.status === 'Dismissed'" [class.status-removed]="rev.status === 'Removed'">
+                        Status: {{ rev.status }}
+                      </span>
+                    </div>
+                    <span class="flag-date">Reported: {{ rev.flagDate }}</span>
+                  </div>
+
+                  <div class="flag-details">
+                    <p class="flag-reason"><strong>Reason for Flag:</strong> {{ rev.flagReason }}</p>
+                    <blockquote class="flag-content">
+                      "{{ rev.comment }}" - ({{ rev.rating }} ★ by <strong>{{ rev.reviewerName }}</strong> for <strong>{{ rev.professionalName }}</strong>)
+                    </blockquote>
+                  </div>
+
+                  <div class="flag-actions">
+                    @if (rev.status === 'Flagged') {
+                      <button mat-stroked-button color="primary" type="button" (click)="dismissFlag(rev)">
+                        <mat-icon>check</mat-icon> Dismiss Flag (Keep Review)
+                      </button>
+                      <button mat-raised-button color="warn" type="button" (click)="removeReview(rev)">
+                        <mat-icon>delete_forever</mat-icon> Remove Abusive Review
+                      </button>
+                    } @else if (rev.status === 'Dismissed') {
+                      <span class="log-resolved flag-resolved-dismissed">
+                        <mat-icon>verified</mat-icon> Action Taken: Flag Dismissed (Review Retained)
+                      </span>
+                    } @else {
+                      <span class="log-resolved flag-resolved-removed">
+                        <mat-icon>block</mat-icon> Action Taken: Abusive Review Removed from Platform
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+
+
+
+  <!-- TAB 5: ZONE MANAGEMENT -->
+  @if (activeTab() === 'zones') {
+    <div class="tab-content">
+      <div class="section-top-row">
+        <div>
+          <h3>Sub-City & Neighborhood Official Zones</h3>
+          <p class="section-desc">Live service coverage areas and geolocation bounds across Addis Ababa ({{ zones().length }} registered zones).</p>
+        </div>
+        <div class="header-right-actions">
+          <button mat-stroked-button color="primary" type="button" (click)="loadServiceZones()">
+            <mat-icon>refresh</mat-icon>
+            <span>Refresh</span>
+          </button>
+          <button mat-raised-button color="primary" type="button" (click)="showAddZone.set(!showAddZone())">
+            <mat-icon>{{ showAddZone() ? 'close' : 'add' }}</mat-icon>
+            <span>{{ showAddZone() ? 'Cancel' : 'Add New Zone' }}</span>
+          </button>
+        </div>
+      </div>
+
+      @if (showAddZone()) {
+        <mat-card appearance="outlined" class="add-zone-card">
+          <form [formGroup]="zoneForm" (ngSubmit)="submitZone()">
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field half">
+                <mat-label>Sub-City</mat-label>
+                <mat-select formControlName="subCity">
+                  @if (subCitiesList().length > 0) {
+                    @for (sc of subCitiesList(); track sc.id) {
+                      <mat-option [value]="sc.name">{{ sc.name }} ({{ sc.neighborhoodsCount }} zones)</mat-option>
+                    }
+                  } @else {
+                    <mat-option value="Bole">Bole</mat-option>
+                    <mat-option value="Kirkos">Kirkos</mat-option>
+                    <mat-option value="Yeka">Yeka</mat-option>
+                    <mat-option value="Arada">Arada</mat-option>
+                    <mat-option value="Nifas Silk-Lafto">Nifas Silk-Lafto</mat-option>
+                    <mat-option value="Gullele">Gullele</mat-option>
+                    <mat-option value="Lideta">Lideta</mat-option>
+                    <mat-option value="Akaky Kaliti">Akaky Kaliti</mat-option>
+                    <mat-option value="Addis Ketema">Addis Ketema</mat-option>
+                    <mat-option value="Kolfe Keranio">Kolfe Keranio</mat-option>
+                    <mat-option value="Lemi Kura">Lemi Kura</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="form-field half">
+                <mat-label>Neighborhood / Woreda Zone</mat-label>
+                <input matInput formControlName="neighborhood" placeholder="e.g. Gerji, Sarbet, Ayat" />
+              </mat-form-field>
+            </div>
+
+            <button mat-raised-button color="primary" type="submit" [disabled]="zoneForm.invalid">
+              Add Official Service Zone to Database
+            </button>
+          </form>
+        </mat-card>
+      }
+
+      <!-- Zone Search & SubCity Filter Toolbar -->
+      <div class="zones-filter-toolbar">
+        <div class="search-input-wrap">
+          <mat-icon>search</mat-icon>
+          <input
+            type="text"
+            placeholder="Search zones by neighborhood name..."
+            [value]="zoneSearchQuery()"
+            (input)="zoneSearchQuery.set($any($event.target).value)"
+          />
+          @if (zoneSearchQuery()) {
+            <button class="clear-search-btn" type="button" (click)="zoneSearchQuery.set('')">✕</button>
+          }
+        </div>
+
+        <div class="subcity-chips-wrap">
+          <button
+            class="chip-btn"
+            type="button"
+            [class.active]="selectedSubCityFilter() === 'All'"
+            (click)="selectedSubCityFilter.set('All')"
+          >
+            All Sub-Cities ({{ zones().length }})
+          </button>
+          @for (sc of subCitiesList(); track sc.id) {
+            <button
+              class="chip-btn"
+              type="button"
+              [class.active]="selectedSubCityFilter() === sc.name"
+              (click)="selectedSubCityFilter.set(sc.name)"
+            >
+              {{ sc.name }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="zone-metrics-summary">
+        Showing <strong>{{ filteredZones().length }}</strong> of {{ zones().length }} official Addis Ababa coverage zones
+      </div>
+
+      @if (loadingZones()) {
+        <div class="loading-state-box">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Loading coverage zones from database...</p>
+        </div>
+      } @else if (filteredZones().length === 0) {
+        <div class="empty-state-box">
+          <mat-icon class="empty-icon">location_off</mat-icon>
+          <h4>No matching service zones found</h4>
+          <p>Try adjusting your search query or Sub-City filter.</p>
+        </div>
+      } @else {
+        <div class="zones-grid">
+          @for (z of filteredZones(); track z.id) {
+            <div class="zone-card">
+              <div class="zone-card-main">
+                <div class="zone-icon-wrap">
+                  <mat-icon>location_on</mat-icon>
+                </div>
+                <div class="zone-info">
+                  <strong>{{ z.neighborhood }}</strong>
+                  <span>Sub-City: {{ z.subCity }}</span>
+                  <span class="active-pros-badge" [class.has-pros]="z.activeProsCount > 0">
+                    {{ z.activeProsCount }} Active {{ z.activeProsCount === 1 ? 'Pro' : 'Pros' }} in Zone
+                  </span>
+                </div>
+              </div>
+              <button
+                class="zone-delete-btn"
+                type="button"
+                (click)="confirmDeleteZone(z)"
+                title="Remove official zone"
+              >
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- TAB 6: AUDIT TRAIL & ADMIN LOGS -->
+  @if (activeTab() === 'logs') {
+    <div class="tab-content">
+      <div class="section-top-row">
+        <div>
+          <h3>System Audit Trail & Admin Activity Log</h3>
+          <p class="section-desc">Forensic logs generated automatically when administrators approve verifications, suspend users, resolve disputes, or send broadcasts.</p>
+        </div>
+
+        <div class="header-right-actions">
+          <a mat-raised-button color="primary" routerLink="/admin-logs">
+            <mat-icon>open_in_new</mat-icon> Open Dedicated Logs Center
+          </a>
+        </div>
+      </div>
+
+      @if (loadingLogs()) {
+        <div class="loading-state">
+          <mat-spinner diameter="36"></mat-spinner>
+          <span>Fetching recent system audit logs from server...</span>
+        </div>
+      } @else {
+        <div class="audit-logs-card">
+          <div class="table-responsive">
+            <table class="dashboard-table">
+              <thead>
+                <tr>
+                  <th>Timestamp (UTC)</th>
+                  <th>Action Executed</th>
+                  <th>Target Entity</th>
+                  <th>Entity ID</th>
+                  <th>Admin Operator</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (log of adminLogs(); track log.id) {
+                  <tr>
+                    <td class="time-col">{{ log.timestamp | date:'MMM d, y, h:mm a' }}</td>
+                    <td>
+                      <span class="action-chip" [ngClass]="getActionBadgeClass(log.action)">
+                        <mat-icon>{{ getActionIcon(log.action) }}</mat-icon>
+                        <span>{{ log.action }}</span>
+                      </span>
+                    </td>
+                    <td><span class="entity-pill">{{ log.targetEntity || 'System' }}</span></td>
+                    <td>
+                      @if (log.targetEntityId) {
+                        <code>{{ log.targetEntityId.substring(0, 8) }}...</code>
+                      } @else {
+                        <span>-</span>
+                      }
+                    </td>
+                    <td>
+                      <div class="admin-operator-cell">
+                        <span class="admin-name" [title]="'Admin ID: ' + log.adminUserId">
+                          {{ log.adminName || 'System Administrator' }}
+                        </span>
+                        @if (log.adminEmail) {
+                          <span class="admin-email-sub">{{ log.adminEmail }}</span>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="empty-cell">
+                      <p>No audit log events recorded yet.</p>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="logs-card-footer">
+            <span>Showing recent {{ adminLogs().length }} audit trail events</span>
+            <a mat-button color="primary" routerLink="/admin-logs">
+              View All Logs with Search & Pagination &rarr;
+            </a>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- DOCUMENT VIEWER MODAL OVERLAY -->
+  @if (selectedDocForView(); as doc) {
+    <div class="booking-modal-backdrop" (click)="closeDocViewer()">
+      <div class="booking-modal-content" (click)="$event.stopPropagation()">
+        <mat-card appearance="outlined" class="modal-card">
+          <mat-card-header>
+            <mat-card-title>{{ doc.title }}</mat-card-title>
+            <mat-card-subtitle>File: <code>{{ doc.filename }}</code></mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="doc-viewer-body">
+            <div class="mock-doc-sheet">
+              <mat-icon class="doc-sheet-icon">verified_user</mat-icon>
+              <h4>{{ doc.title }}</h4>
+              <p>Certified Document verified under e-KYC compliance standard.</p>
+              <div class="seal-badge">Official Seal: Approved Verification Entity</div>
+            </div>
+
+            <div class="modal-actions">
+              <button mat-raised-button color="primary" type="button" (click)="closeDocViewer()">
+                Done Reviewing
+              </button>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
+
+
+
+  <!-- ADMIN SIGN OUT CONFIRMATION MODAL OVERLAY -->
+  @if (showSignoutConfirm()) {
+    <div class="signout-modal-backdrop" (click)="closeSignoutConfirm()">
+      <div class="signout-modal-dialog" (click)="$event.stopPropagation()">
+        <!-- Shield Icon Badge -->
+        <div class="admin-signout-icon">
+          <mat-icon>admin_panel_settings</mat-icon>
+        </div>
+
+        <!-- Header -->
+        <div class="signout-modal-head">
+          <h3>Sign Out of Admin Control Tower?</h3>
+          <p class="signout-modal-sub">
+            Are you sure you want to end your Super Admin administrative session?
+          </p>
+        </div>
+
+        <!-- Admin Identity Pill -->
+        <div class="session-admin-summary">
+          <div class="admin-avatar-badge">
+            <mat-icon>security</mat-icon>
+          </div>
+          <div class="admin-identity">
+            <strong class="admin-fullname">{{ authService.currentUser()?.firstName || 'Callbet' }} {{ authService.currentUser()?.lastName || 'Administrator' }}</strong>
+            <span class="admin-email-address">{{ authService.currentUser()?.email || 'admin@callbet.et' }}</span>
+          </div>
+          <span class="admin-role-badge">Super Admin</span>
+        </div>
+
+        <!-- Audit & Compliance Notice -->
+        <div class="signout-compliance-notice">
+          <mat-icon>verified</mat-icon>
+          <span>All KYC verifications, dispute resolutions, and moderation decisions will be safely stored in the immutable system audit trail.</span>
+        </div>
+
+        <!-- Modal Actions Grid -->
+        <div class="signout-modal-actions">
+          <button
+            mat-stroked-button
+            type="button"
+            class="btn-modal-cancel"
+            (click)="closeSignoutConfirm()"
+          >
+            <mat-icon>close</mat-icon>
+            <span>Stay in Tower</span>
+          </button>
+
+          <button
+            mat-raised-button
+            color="warn"
+            type="button"
+            class="btn-modal-confirm"
+            (click)="confirmSignout()"
+          >
+            <mat-icon>logout</mat-icon>
+            <span>Yes, Sign Out</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+  <!-- Confirm Delete Zone Modal -->
+  @if (zoneToDelete(); as zone) {
+    <div class="modal-backdrop" (click)="cancelDeleteZone()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <mat-icon color="warn">warning</mat-icon>
+          <h3>Delete Official Service Zone</h3>
+        </div>
+        <div class="modal-body">
+          <p>
+            Are you sure you want to delete the official service zone
+            <strong>"{{ zone.neighborhood }}"</strong> in <strong>{{ zone.subCity }}</strong>?
+          </p>
+          <p class="sub-text">
+            This will remove the zone from the database and unlink it from any affiliated technician service areas. An audit record will be logged.
+          </p>
+        </div>
+        <div class="modal-actions">
+          <button mat-stroked-button (click)="cancelDeleteZone()">Cancel</button>
+          <button mat-raised-button color="warn" (click)="executeDeleteZone()">
+            <mat-icon>delete_forever</mat-icon>
+            Confirm Zone Removal
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

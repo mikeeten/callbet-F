@@ -1,0 +1,457 @@
+<div class="admin-services-portal">
+  <!-- Top Navigation Header -->
+  <div class="portal-header">
+    <div class="header-left">
+      <div class="shield-badge">
+        <mat-icon>settings_suggest</mat-icon>
+      </div>
+      <div>
+        <h2>Service Catalog & Pricing Architecture</h2>
+        <p class="subtitle">Publish live platform offerings, configure pricing models, and organize category taxonomy</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a mat-raised-button color="primary" routerLink="/admin-dashboard">
+        <mat-icon>dashboard</mat-icon> Admin Tower
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/admin-users">
+        <mat-icon>people</mat-icon> User Directory
+      </a>
+      <a mat-stroked-button color="warn" routerLink="/verification-list">
+        <mat-icon>verified_user</mat-icon> Verifications
+      </a>
+      <a mat-stroked-button routerLink="/admin-logs">
+        <mat-icon>manage_history</mat-icon> Audit Logs
+      </a>
+    </div>
+  </div>
+
+  <!-- Alert Notifications -->
+  @if (successMessage()) {
+    <div class="alert-banner success-banner">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert-banner error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <!-- Stats Metric Ribbon -->
+  <div class="stats-ribbon">
+    <div class="stat-card" (click)="setTab('catalog')">
+      <div class="stat-icon-wrap cat-color">
+        <mat-icon>category</mat-icon>
+      </div>
+      <div class="stat-meta">
+        <div class="stat-value">{{ categories().length }}</div>
+        <div class="stat-title">Active Categories</div>
+      </div>
+    </div>
+
+    <div class="stat-card" (click)="setTab('catalog')">
+      <div class="stat-icon-wrap srv-color">
+        <mat-icon>design_services</mat-icon>
+      </div>
+      <div class="stat-meta">
+        <div class="stat-value">{{ services().length }}</div>
+        <div class="stat-title">Published Services</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap fixed-color">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div class="stat-meta">
+        <div class="stat-value">{{ fixedPricingCount() }}</div>
+        <div class="stat-title">Fixed Price Offerings</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap hr-color">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <div class="stat-meta">
+        <div class="stat-value">{{ hourlyPricingCount() }}</div>
+        <div class="stat-title">Hourly Rate Models</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Mode Tabs -->
+  <div class="tab-switcher">
+    <button
+      mat-button
+      [class.active-tab]="activeTab() === 'catalog'"
+      (click)="setTab('catalog')"
+    >
+      <mat-icon>view_agenda</mat-icon>
+      <span>Service Catalog & Directory ({{ filteredServices().length }})</span>
+    </button>
+    <button
+      mat-button
+      [class.active-tab]="activeTab() === 'new-service'"
+      (click)="setTab('new-service')"
+    >
+      <mat-icon>add_circle</mat-icon>
+      <span>Publish New Service Offering</span>
+    </button>
+    <button
+      mat-button
+      [class.active-tab]="activeTab() === 'new-category'"
+      (click)="setTab('new-category')"
+    >
+      <mat-icon>create_new_folder</mat-icon>
+      <span>Create Category Taxonomy</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: SERVICE CATALOG & SEARCH DIRECTORY -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'catalog') {
+    <div class="catalog-view-section">
+      <!-- Search & Filters Bar -->
+      <div class="search-filter-card">
+        <div class="search-input-wrap">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            placeholder="Search services by title, description, or trade..."
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+          />
+          @if (searchQuery()) {
+            <button mat-icon-button (click)="searchQuery.set('')">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <div class="quick-action-cta">
+          <button mat-raised-button color="primary" (click)="setTab('new-service')">
+            <mat-icon>add</mat-icon> Add Service
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Filter Chips -->
+      @if (categories().length > 0) {
+        <div class="category-filter-chips">
+          <button
+            class="chip-filter-btn"
+            [class.active]="selectedCategoryFilter() === 'all'"
+            (click)="setCategoryFilter('all')"
+          >
+            <mat-icon>apps</mat-icon>
+            <span>All Categories ({{ services().length }})</span>
+          </button>
+          @for (cat of categories(); track cat.id) {
+            <button
+              class="chip-filter-btn"
+              [class.active]="selectedCategoryFilter() === cat.id"
+              (click)="setCategoryFilter(cat.id)"
+            >
+              <mat-icon>{{ cat.iconUrl || 'category' }}</mat-icon>
+              <span>{{ cat.name }}</span>
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Loading State -->
+      @if (loadingServices()) {
+        <div class="loading-state">
+          <mat-spinner diameter="40"></mat-spinner>
+          <span>Loading published services from server...</span>
+        </div>
+      } @else {
+        <!-- Services Grid Cards -->
+        <div class="services-grid">
+          @for (item of filteredServices(); track item.id) {
+            <mat-card appearance="outlined" class="service-portal-card">
+              <div class="card-top-strip">
+                <span class="category-tag">
+                  <mat-icon>label</mat-icon>
+                  <span>{{ item.categoryName || getCategoryName(item.categoryId) }}</span>
+                </span>
+                <span class="pricing-pill" [class.hourly]="item.pricingType === 1">
+                  {{ item.pricingType === 1 ? 'Hourly Rate' : 'Fixed Price' }}
+                </span>
+              </div>
+
+              <div class="service-card-body">
+                <h3 class="service-name">{{ item.name }}</h3>
+                <p class="service-desc">{{ item.description }}</p>
+              </div>
+
+              <div class="service-card-footer">
+                <div class="pricing-stat">
+                  <span class="currency-tag">Base Rate</span>
+                  <span class="price-val">${{ item.basePrice }}<small>{{ item.pricingType === 1 ? '/hr' : '' }}</small></span>
+                </div>
+
+                <div class="duration-stat">
+                  <mat-icon>timer</mat-icon>
+                  <span>Est. {{ item.estimatedDurationMins }} mins</span>
+                </div>
+              </div>
+            </mat-card>
+          } @empty {
+            <div class="empty-state">
+              <mat-icon>search_off</mat-icon>
+              <h3>No services found in database</h3>
+              <p>Publish your first platform service offering or create a category taxonomy.</p>
+              <div class="empty-actions">
+                <button mat-raised-button color="primary" (click)="setTab('new-service')">
+                  <mat-icon>add</mat-icon> Create New Service
+                </button>
+                <button mat-stroked-button color="accent" (click)="setTab('new-category')">
+                  <mat-icon>create_new_folder</mat-icon> Create Category
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: PUBLISH NEW SERVICE OFFERING FORM -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'new-service') {
+    <div class="form-view-section">
+      <mat-card appearance="outlined" class="studio-card">
+        <mat-card-header class="studio-header">
+          <div class="studio-icon-wrap srv-bg">
+            <mat-icon>add_business</mat-icon>
+          </div>
+          <div>
+            <mat-card-title>Publish New Service Offering</mat-card-title>
+            <mat-card-subtitle>Configure service parameters, category mapping, baseline pricing, and duration</mat-card-subtitle>
+          </div>
+        </mat-card-header>
+
+        <mat-card-content class="studio-content">
+          <form [formGroup]="serviceForm" (ngSubmit)="onSubmitService()" class="creation-form">
+            <!-- Category Selection -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Assign to Service Category</mat-label>
+              <mat-select formControlName="categoryId">
+                @for (cat of categories(); track cat.id) {
+                  <mat-option [value]="cat.id">
+                    {{ cat.name }}
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-icon matPrefix>category</mat-icon>
+              @if (serviceForm.get('categoryId')?.hasError('required') && serviceForm.get('categoryId')?.touched) {
+                <mat-error>Service category is required</mat-error>
+              }
+            </mat-form-field>
+
+            @if (categories().length === 0) {
+              <div class="no-cats-warning">
+                <mat-icon>warning</mat-icon>
+                <span>No categories exist yet. <a (click)="setTab('new-category')">Create a category first</a>.</span>
+              </div>
+            }
+
+            <!-- Service Name -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Service Title / Offering Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g. Smart CCTV Camera Installation & Network Setup" />
+              <mat-icon matPrefix>build</mat-icon>
+              @if (serviceForm.get('name')?.hasError('required') && serviceForm.get('name')?.touched) {
+                <mat-error>Service name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <!-- Description -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Detailed Service Scope & Deliverables</mat-label>
+              <textarea
+                matInput
+                formControlName="description"
+                rows="3"
+                placeholder="Describe diagnostic steps, labor details, parts policy, and customer expectations..."
+              ></textarea>
+              @if (serviceForm.get('description')?.hasError('required') && serviceForm.get('description')?.touched) {
+                <mat-error>Description is required</mat-error>
+              }
+            </mat-form-field>
+
+            <!-- Pricing Model & Values Row -->
+            <div class="form-row-3">
+              <mat-form-field appearance="outline" class="col-item">
+                <mat-label>Pricing Structure</mat-label>
+                <mat-select formControlName="pricingType">
+                  <mat-option [value]="0">Fixed Price Tier</mat-option>
+                  <mat-option [value]="1">Hourly Rate</mat-option>
+                </mat-select>
+                <mat-icon matPrefix>paid</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="col-item">
+                <mat-label>Base Price ($ USD / ETB)</mat-label>
+                <input matInput type="number" formControlName="basePrice" placeholder="100" />
+                <mat-icon matPrefix>attach_money</mat-icon>
+                @if (serviceForm.get('basePrice')?.hasError('required') && serviceForm.get('basePrice')?.touched) {
+                  <mat-error>Base price is required</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="col-item">
+                <mat-label>Estimated Duration (Minutes)</mat-label>
+                <input matInput type="number" formControlName="estimatedDurationMins" placeholder="60" />
+                <mat-icon matPrefix>schedule</mat-icon>
+                @if (serviceForm.get('estimatedDurationMins')?.hasError('required') && serviceForm.get('estimatedDurationMins')?.touched) {
+                  <mat-error>Duration is required</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            <!-- Submit Action -->
+            <div class="submit-action-bar">
+              <button mat-button type="button" (click)="setTab('catalog')">
+                Cancel
+              </button>
+              <button
+                mat-raised-button
+                color="primary"
+                type="submit"
+                class="btn-publish"
+                [disabled]="serviceForm.invalid || submittingService()"
+              >
+                @if (submittingService()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                  <span>Publishing Service...</span>
+                } @else {
+                  <ng-container>
+                    <mat-icon>cloud_upload</mat-icon>
+                    <span>Publish Service to Marketplace</span>
+                  </ng-container>
+                }
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: CREATE SERVICE CATEGORY TAXONOMY -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'new-category') {
+    <div class="form-view-section">
+      <mat-card appearance="outlined" class="studio-card">
+        <mat-card-header class="studio-header">
+          <div class="studio-icon-wrap cat-bg">
+            <mat-icon>folder_open</mat-icon>
+          </div>
+          <div>
+            <mat-card-title>Create Service Category Taxonomy</mat-card-title>
+            <mat-card-subtitle>Establish primary classification, icons, and hierarchy for marketplace services</mat-card-subtitle>
+          </div>
+        </mat-card-header>
+
+        <mat-card-content class="studio-content">
+          <form [formGroup]="categoryForm" (ngSubmit)="onSubmitCategory()" class="creation-form">
+            <!-- Category Name -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Category Name</mat-label>
+              <input matInput formControlName="name" placeholder="e.g. Solar Energy & Backup Power" />
+              <mat-icon matPrefix>category</mat-icon>
+              @if (categoryForm.get('name')?.hasError('required') && categoryForm.get('name')?.touched) {
+                <mat-error>Category name is required</mat-error>
+              }
+            </mat-form-field>
+
+            <!-- Description -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Category Description & Scope</mat-label>
+              <textarea
+                matInput
+                formControlName="description"
+                rows="2"
+                placeholder="Brief summary of services grouped within this category..."
+              ></textarea>
+              @if (categoryForm.get('description')?.hasError('required') && categoryForm.get('description')?.touched) {
+                <mat-error>Description is required</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="form-row-2">
+              <!-- Icon Identifier -->
+              <mat-form-field appearance="outline" class="col-item">
+                <mat-label>Material Icon Name</mat-label>
+                <input matInput formControlName="iconUrl" placeholder="e.g. electrical_services, plumbing, cleaning_services" />
+                <mat-icon matPrefix>image</mat-icon>
+              </mat-form-field>
+
+              <!-- Parent Category -->
+              <mat-form-field appearance="outline" class="col-item">
+                <mat-label>Parent Category (Optional)</mat-label>
+                <mat-select formControlName="parentCategoryId">
+                  <mat-option value="">-- None (Top Level Category) --</mat-option>
+                  @for (cat of categories(); track cat.id) {
+                    <mat-option [value]="cat.id">{{ cat.name }}</mat-option>
+                  }
+                </mat-select>
+                <mat-icon matPrefix>account_tree</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <!-- Submit Action -->
+            <div class="submit-action-bar">
+              <button mat-button type="button" (click)="setTab('catalog')">
+                Cancel
+              </button>
+              <button
+                mat-raised-button
+                color="primary"
+                type="submit"
+                class="btn-publish"
+                [disabled]="categoryForm.invalid || submittingCategory()"
+              >
+                @if (submittingCategory()) {
+                  <mat-spinner diameter="20"></mat-spinner>
+                  <span>Creating Category...</span>
+                } @else {
+                  <ng-container>
+                    <mat-icon>save</mat-icon>
+                    <span>Save Category</span>
+                  </ng-container>
+                }
+              </button>
+            </div>
+          </form>
+
+          <!-- Existing Categories Overview Strip -->
+          @if (categories().length > 0) {
+            <div class="existing-cats-box">
+              <h4>Existing Category Taxonomies:</h4>
+              <div class="cats-tags-wrap">
+                @for (c of categories(); track c.id) {
+                  <span class="cat-pill">
+                    <mat-icon>{{ c.iconUrl || 'category' }}</mat-icon>
+                    <strong>{{ c.name }}</strong>
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</div>
