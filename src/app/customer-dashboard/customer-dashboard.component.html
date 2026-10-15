@@ -2,7 +2,7 @@
   <!-- Top Navigation Header -->
   <div class="dashboard-header">
     <div class="user-meta">
-      <img [src]="customerProfile().avatarUrl" [alt]="customerProfile().name" class="user-avatar" />
+      <img [src]="customerProfile().avatarUrl || imageNotGivenUrl" [alt]="customerProfile().name" class="user-avatar" />
       <div class="user-info">
         <div class="name-row">
           <h2>{{ customerProfile().name }}</h2>
@@ -198,7 +198,7 @@
           <div class="profile-avatar-row">
             <div class="avatar-uploader-wrapper">
               <img
-                [src]="customerProfile().avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80'"
+                [src]="customerProfile().avatarUrl || imageNotGivenUrl"
                 [alt]="customerProfile().name"
                 class="avatar-preview-img"
               />
@@ -671,9 +671,9 @@
                 <mat-card-title>{{ srv.serviceName }}</mat-card-title>
                 <mat-card-subtitle>
                   {{ srv.categoryName || 'Home Service' }} &bull; By
-                  <a [routerLink]="['/professional-dashboard-detail', srv.professionalProfileId || srv.id]" class="pro-link">
+                  <strong class="pro-name-text">
                     {{ srv.professionalName }}
-                  </a>
+                  </strong>
                 </mat-card-subtitle>
               </mat-card-header>
 
@@ -706,13 +706,7 @@
                 >
                   <mat-icon>favorite</mat-icon>
                 </button>
-                <a
-                  mat-stroked-button
-                  color="primary"
-                  [routerLink]="['/professional-dashboard-detail', srv.professionalProfileId || srv.id]"
-                >
-                  <mat-icon>person_search</mat-icon> View Pro
-                </a>
+
                 <a
                   mat-raised-button
                   color="primary"
@@ -741,7 +735,7 @@
           @for (pro of favoriteProfessionals(); track pro.id) {
             <mat-card appearance="outlined" class="fav-item-card pro-fav-card">
               <div class="pro-fav-header">
-                <img [src]="pro.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'" [alt]="pro.name" class="pro-fav-avatar" />
+                <img [src]="pro.avatarUrl || imageNotGivenUrl" [alt]="pro.name" class="pro-fav-avatar" />
                 <div class="pro-fav-info">
                   <div class="pro-name-row">
                     <strong>{{ pro.name }}</strong>
@@ -775,9 +769,9 @@
                 <a
                   mat-raised-button
                   color="primary"
-                  [routerLink]="['/professional-dashboard-detail', pro.professionalProfileId || pro.id]"
+                  routerLink="/customer-services"
                 >
-                  <mat-icon>badge</mat-icon> View Full Profile & Book
+                  <mat-icon>search</mat-icon> Explore Services
                 </a>
               </mat-card-actions>
             </mat-card>
@@ -1101,8 +1095,10 @@
                 <mat-spinner diameter="18"></mat-spinner>
                 <span>Submitting...</span>
               } @else {
-                <mat-icon>send</mat-icon>
-                <span>Submit Report</span>
+                <ng-container>
+                  <mat-icon>send</mat-icon>
+                  <span>Submit Report</span>
+                </ng-container>
               }
             </button>
           </div>

@@ -134,13 +134,28 @@ export class CustomerDashboardComponent implements OnInit {
     this.activeMapModalAddress.set(null);
   }
 
+  // Default placeholder image for "Image not given"
+  public readonly imageNotGivenUrl =
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f1f5f9"/><circle cx="100" cy="75" r="32" fill="%23cbd5e1"/><path d="M40 160 C40 120, 160 120, 160 160 Z" fill="%23cbd5e1"/><rect x="25" y="166" width="150" height="24" rx="4" fill="%23e2e8f0"/><text x="50%" y="182" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="%2364748b">Image Not Given</text></svg>';
+
+  /**
+   * Format image URL to handle relative backend paths or ignore mock images
+   */
+  formatImageUrl(url?: string | null): string {
+    if (!url || url.trim() === '') return '';
+    if (url.includes('unsplash.com')) return ''; // ignore mock unsplash URLs
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    if (url.startsWith('/')) return `http://localhost:5189${url}`;
+    return `http://localhost:5189/${url}`;
+  }
+
   // Customer Profile State
   customerProfile = signal({
     name: '',
     email: '',
     phone: '',
     userId: '',
-    avatarUrl: '',
+    avatarUrl: this.imageNotGivenUrl,
     isVerified: false,
     joinedDate: ''
   });
@@ -289,13 +304,15 @@ export class CustomerDashboardComponent implements OnInit {
     // Pre-fill from current auth session
     const authUser = this.authService.currentUser();
     if (authUser) {
+      const userAvatar = this.formatImageUrl(authUser.profilePhotoUrl);
       this.customerProfile.update((prev) => ({
         ...prev,
         userId: authUser.id || prev.userId,
         email: authUser.email || prev.email,
         name: (authUser.firstName || authUser.lastName)
           ? `${authUser.firstName || ''} ${authUser.lastName || ''}`.trim()
-          : prev.name
+          : prev.name,
+        avatarUrl: userAvatar || prev.avatarUrl || this.imageNotGivenUrl
       }));
     }
 
@@ -310,13 +327,16 @@ export class CustomerDashboardComponent implements OnInit {
               : profile.name) ||
             this.customerProfile().name;
 
+          const photo = profile.profilePhotoUrl || profile.avatarUrl;
+          const formattedPhoto = this.formatImageUrl(photo);
+
           this.customerProfile.update((prev) => ({
             ...prev,
             name: fullName,
             email: profile.email || prev.email,
             phone: profile.phoneNumber || profile.phone || prev.phone,
             userId: profile.id || profile.userId || prev.userId,
-            avatarUrl: profile.profilePhotoUrl || profile.avatarUrl || prev.avatarUrl,
+            avatarUrl: formattedPhoto || prev.avatarUrl || this.imageNotGivenUrl,
             isVerified: profile.isVerified !== undefined ? profile.isVerified : prev.isVerified,
             joinedDate: profile.createdAt
               ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -404,12 +424,12 @@ export class CustomerDashboardComponent implements OnInit {
               professionalProfileId: p.professionalProfileId || p.id || p.userId,
               name: p.professionalName || p.name || p.fullName || 'Verified Professional',
               headline: p.professionalHeadline || p.headline || 'Licensed Trade Specialist',
-              avatarUrl: p.profilePhotoUrl || p.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+              avatarUrl: this.formatImageUrl(p.profilePhotoUrl || p.avatarUrl) || this.imageNotGivenUrl,
               rating: p.overallRating || p.rating || 5.0,
               completedJobsCount: p.completedJobsCount || p.completedJobs || 0,
               hourlyRate: p.hourlyRate || p.basePrice || p.customPrice || 120,
               isVerified: p.isVerified ?? true,
-              serviceRadiusKm: p.serviceRadiusKm ? Math.min(2.5, Math.max(1, p.serviceRadiusKm)) : 2.5,
+              serviceRadiusKm: p.serviceRadiusKm ? Math.min(2, Math.max(1, p.serviceRadiusKm)) : 2.0,
               location: p.location || p.city || 'Addis Ababa'
             }))
           );
@@ -529,7 +549,8 @@ export class CustomerDashboardComponent implements OnInit {
     this.customerServicesService.uploadProfilePhoto(file).subscribe({
       next: (res) => {
         this.isUploadingPhoto.set(false);
-        const newUrl = res.profilePhotoUrl || (res.profile && res.profile.profilePhotoUrl);
+        const rawUrl = res.profilePhotoUrl || (res.profile && res.profile.profilePhotoUrl);
+        const newUrl = this.formatImageUrl(rawUrl);
         if (newUrl) {
           this.customerProfile.update((prev) => ({
             ...prev,
