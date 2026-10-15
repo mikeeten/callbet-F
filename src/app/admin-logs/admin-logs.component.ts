@@ -139,4 +139,20 @@ export class AdminLogsComponent implements OnInit {
     if (act.includes('dispute')) return 'gavel';
     return 'security';
   }
+  formatEntityScope(entity?: string): string {
+    if (!entity) return 'System / Platform';
+    switch (entity.toLowerCase()) {
+      case 'user': return 'User Account';
+      case 'professionalprofile': return 'Professional Profile';
+      case 'verificationrecord': return 'Trade Verification';
+      case 'servicecategory': return 'Service Category';
+      case 'service': return 'Catalog Service';
+      case 'professionalservice': return 'Assigned Service';
+      case 'servicezone': return 'Coverage Zone';
+      case 'review': return 'Review Moderation';
+      case 'chatmessage': return 'Chat Moderation';
+      default: return entity;
+    }
+  }
+
 }

@@ -387,18 +387,46 @@
         }
       }
 
-      .col-uuid {
-        code {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-family: monospace;
-          color: #475569;
-          font-size: 0.75rem;
+      .col-user {
+        .user-cell {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+
+          .user-avatar-mini {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #eff6ff;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
+            mat-icon { font-size: 16px; width: 16px; height: 16px; }
+          }
+
+          .user-info-text {
+            display: flex;
+            flex-direction: column;
+
+            .user-name {
+              font-weight: 700;
+              color: #1e293b;
+              font-size: 0.8rem;
+            }
+
+            .user-subtext {
+              font-size: 0.7rem;
+              color: #64748b;
+            }
+          }
         }
+
         .dimmed {
-          color: #cbd5e1;
+          color: #94a3b8;
+          font-weight: 500;
         }
       }
 

@@ -21,6 +21,9 @@
       <a mat-stroked-button color="accent" routerLink="/admin-services">
         <mat-icon>design_services</mat-icon> Services
       </a>
+      <a mat-stroked-button routerLink="/admin-service-zones">
+        <mat-icon>map</mat-icon> Service Zones
+      </a>
       <a mat-stroked-button color="warn" routerLink="/verification-list">
         <mat-icon>verified_user</mat-icon> Verifications
       </a>
@@ -70,7 +73,7 @@
         <input
           type="text"
           formControlName="searchQuery"
-          placeholder="Filter audit logs by action, target entity, or user ID..."
+          placeholder="Filter audit logs by action, scope, target user, or admin operator..."
         />
         @if (searchForm.get('searchQuery')?.value) {
           <button mat-icon-button type="button" (click)="clearSearch()">
@@ -154,8 +157,8 @@
             <tr>
               <th>Timestamp (UTC)</th>
               <th>Action Description</th>
-              <th>Target Entity</th>
-              <th>Target Entity ID</th>
+              <th>Action Performed On</th>
+              <th>Target User</th>
               <th>Admin Operator</th>
             </tr>
           </thead>
@@ -178,21 +181,29 @@
                   </span>
                 </td>
 
-                <!-- Target Entity -->
+                <!-- Action Performed On -->
                 <td class="col-entity">
                   <span class="entity-badge">
-                    {{ log.targetEntity || 'System' }}
+                    {{ formatEntityScope(log.targetEntity) }}
                   </span>
                 </td>
 
-                <!-- Target Entity ID -->
-                <td class="col-uuid">
-                  @if (log.targetEntityId) {
-                    <code [matTooltip]="log.targetEntityId">
-                      {{ log.targetEntityId.substring(0, 8) }}...{{ log.targetEntityId.substring(log.targetEntityId.length - 4) }}
-                    </code>
+                <!-- Target User -->
+                <td class="col-user">
+                  @if (log.targetUserName) {
+                    <div class="user-cell">
+                      <div class="user-avatar-mini">
+                        <mat-icon>person</mat-icon>
+                      </div>
+                      <div class="user-info-text">
+                        <span class="user-name">{{ log.targetUserName }}</span>
+                        @if (log.targetUserEmail) {
+                          <span class="user-subtext">{{ log.targetUserEmail }}</span>
+                        }
+                      </div>
+                    </div>
                   } @else {
-                    <span class="dimmed">-</span>
+                    <span class="dimmed">—</span>
                   }
                 </td>
 
