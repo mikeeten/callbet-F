@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import { ChatSignalrService, NotificationDto } from './chat-signalr.service';
 
 export interface NotificationItem {
@@ -19,6 +20,16 @@ export interface NotificationItem {
   reviewId?: string;
 }
 
+export interface PagedNotificationResponse {
+  items: NotificationItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -26,10 +37,9 @@ export class NotificationService {
   private http = inject(HttpClient);
   private signalr = inject(ChatSignalrService);
   private apiUrl = 'http://localhost:5189/api/chat';
-  private storageKey = 'callbet_notifications_v2';
 
-  // State Signal
-  private notificationsSignal = signal<NotificationItem[]>(this.getInitialNotifications());
+  // State Signal - pure backend source of truth, initially empty
+  private notificationsSignal = signal<NotificationItem[]>([]);
 
   // Public Signals
   notifications = this.notificationsSignal.asReadonly();
@@ -58,6 +68,14 @@ export class NotificationService {
   );
 
   constructor() {
+    // Clear legacy prototype storage keys if any exist in browser
+    try {
+      localStorage.removeItem('callbet_notifications');
+      localStorage.removeItem('callbet_notifications_v2');
+    } catch {
+      // Ignore in non-browser context
+    }
+
     // 📡 Reactively receive live notifications from Chat, Direct Job Bookings, Status Changes, Reviews, and Verifications
     this.signalr.notificationReceived$.subscribe((newNotif: NotificationDto) => {
       this.handleIncomingLiveNotification(newNotif);
@@ -75,6 +93,9 @@ export class NotificationService {
       type: this.deriveType(dto.message, dto.link),
       stage: this.deriveStage(dto.message),
       jobId: this.deriveJobId(dto.link),
+      customerName: this.deriveCustomerName(dto.message),
+      serviceName: this.deriveServiceName(dto.message),
+      price: this.derivePrice(dto.message),
       recipientRole: 'all'
     };
 
@@ -82,12 +103,11 @@ export class NotificationService {
     if (!existing.some((n) => n.id === newItem.id)) {
       const updated = [newItem, ...existing];
       this.notificationsSignal.set(updated);
-      this.saveToStorage(updated);
       this.triggerLiveAlert(dto);
     }
   }
 
-  private deriveTitle(message: string): string {
+  public deriveTitle(message: string): string {
     if (!message) return 'New Alert';
     if (message.includes('New Job Request') || message.includes('Direct Job')) return 'New Job Booking';
     if (message.includes('Assigned') || message.includes('accepted')) return 'Job Assigned';
@@ -96,11 +116,12 @@ export class NotificationService {
     if (message.includes('Closed') || message.includes('Approved')) return 'Job Closed & Approved';
     if (message.includes('Review') || message.includes('rating')) return 'New Verified Review';
     if (message.includes('Verification') || message.includes('KYC')) return 'Account Verification Update';
+    if (message.includes('incident report') || message.includes('inquiry') || message.includes('incident claim') || message.includes('resolved by Administration')) return 'Incident Report Resolved';
     if (message.includes('message') || message.includes('chat')) return 'New Message';
     return 'System Notification';
   }
 
-  private deriveType(message: string, link?: string): 'job' | 'booking' | 'system' | 'review' | 'assignment' | 'chat' {
+  public deriveType(message: string, link?: string): 'job' | 'booking' | 'system' | 'review' | 'assignment' | 'chat' {
     const str = `${message} ${link || ''}`.toLowerCase();
     if (str.includes('chat') || str.includes('message')) return 'chat';
     if (str.includes('review') || str.includes('rating')) return 'review';
@@ -127,49 +148,111 @@ export class NotificationService {
     return match ? match[0] : undefined;
   }
 
+  public deriveCustomerName(message: string): string | undefined {
+    if (!message) return undefined;
+    const match = message.match(/from\s+([A-Za-z0-9\s]+?)(?:\s+for|\s+on|\.|$)/i);
+    return match ? match[1].trim() : undefined;
+  }
+
+  public deriveServiceName(message: string): string | undefined {
+    if (!message) return undefined;
+    const match = message.match(/for\s+(?:service\s+)?([A-Za-z0-9\s]+?)(?:\s+at|\s+\$|\.|$)/i);
+    return match ? match[1].trim() : undefined;
+  }
+
+  public derivePrice(message: string): number | undefined {
+    if (!message) return undefined;
+    const match = message.match(/\$(\d+(?:\.\d{1,2})?)/);
+    return match ? parseFloat(match[1]) : undefined;
+  }
+
   /**
-   * Fetch user notifications from backend API
+   * Fetch real user notifications from backend API (default 50 items for state/unread badges)
    */
   public loadNotifications(): void {
     this.signalr.startConnection();
 
-    this.http.get<NotificationDto[]>(`${this.apiUrl}/my-notifications`).subscribe({
+    this.http.get<any>(`${this.apiUrl}/my-notifications?pageSize=50`).subscribe({
       next: (data) => {
-        if (data && Array.isArray(data)) {
-          const apiItems: NotificationItem[] = data.map((d) => ({
-            id: d.id,
-            title: this.deriveTitle(d.message),
-            message: d.message,
-            link: d.link,
-            isRead: d.isRead,
-            createdAt: d.createdAt,
-            type: this.deriveType(d.message, d.link),
-            stage: this.deriveStage(d.message),
-            jobId: this.deriveJobId(d.link),
-            recipientRole: 'all'
-          }));
+        const rawItems: NotificationDto[] = Array.isArray(data) ? data : (data?.items || []);
+        const apiItems: NotificationItem[] = rawItems.map((d) => ({
+          id: d.id,
+          title: this.deriveTitle(d.message),
+          message: d.message,
+          link: d.link,
+          isRead: d.isRead,
+          createdAt: d.createdAt,
+          type: this.deriveType(d.message, d.link),
+          stage: this.deriveStage(d.message),
+          jobId: this.deriveJobId(d.link),
+          customerName: this.deriveCustomerName(d.message),
+          serviceName: this.deriveServiceName(d.message),
+          price: this.derivePrice(d.message),
+          recipientRole: 'all'
+        }));
 
-          // Merge with stored local items without duplicates
-          const currentMap = new Map<string, NotificationItem>();
-          apiItems.forEach((item) => currentMap.set(item.id, item));
-          this.notificationsSignal().forEach((item) => {
-            if (!currentMap.has(item.id)) {
-              currentMap.set(item.id, item);
-            }
-          });
+        const sorted = apiItems.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
 
-          const merged = Array.from(currentMap.values()).sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-
-          this.notificationsSignal.set(merged);
-          this.saveToStorage(merged);
-        }
+        this.notificationsSignal.set(sorted);
       },
       error: (err) => {
         console.warn('GET /api/chat/my-notifications notice:', err?.message || err);
       }
     });
+  }
+
+  /**
+   * Fetch paginated notifications with optional server-side search & status filtering
+   */
+  public getNotificationsPaged(params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+  }): Observable<PagedNotificationResponse> {
+    let httpParams = new HttpParams();
+    if (params?.page) httpParams = httpParams.set('page', params.page.toString());
+    if (params?.pageSize) httpParams = httpParams.set('pageSize', params.pageSize.toString());
+    if (params?.search) httpParams = httpParams.set('search', params.search);
+    if (params?.status && params.status !== 'all') httpParams = httpParams.set('status', params.status);
+
+    return this.http.get<any>(`${this.apiUrl}/my-notifications`, { params: httpParams }).pipe(
+      map((res) => {
+        const rawItems: NotificationDto[] = Array.isArray(res) ? res : (res?.items || []);
+        const items: NotificationItem[] = rawItems.map((d) => ({
+          id: d.id,
+          title: this.deriveTitle(d.message),
+          message: d.message,
+          link: d.link,
+          isRead: d.isRead,
+          createdAt: d.createdAt,
+          type: this.deriveType(d.message, d.link),
+          stage: this.deriveStage(d.message),
+          jobId: this.deriveJobId(d.link),
+          customerName: this.deriveCustomerName(d.message),
+          serviceName: this.deriveServiceName(d.message),
+          price: this.derivePrice(d.message),
+          recipientRole: 'all'
+        }));
+
+        const totalCount = res?.totalCount ?? items.length;
+        const page = res?.page ?? (params?.page || 1);
+        const pageSize = res?.pageSize ?? (params?.pageSize || 10);
+        const totalPages = res?.totalPages ?? Math.max(1, Math.ceil(totalCount / pageSize));
+
+        return {
+          items,
+          totalCount,
+          page,
+          pageSize,
+          totalPages,
+          hasPrevious: page > 1,
+          hasNext: page < totalPages
+        };
+      })
+    );
   }
 
   public triggerLiveAlert(notification?: NotificationDto): void {
@@ -182,27 +265,6 @@ export class NotificationService {
     }
   }
 
-  private getInitialNotifications(): NotificationItem[] {
-    try {
-      const saved = localStorage.getItem(this.storageKey);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {
-      // Fallback
-    }
-
-    return [];
-  }
-
-  private saveToStorage(items: NotificationItem[]): void {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(items));
-    } catch (e) {
-      console.warn('Could not save notifications to localStorage', e);
-    }
-  }
-
   addNotification(
     title: string,
     message: string,
@@ -210,56 +272,31 @@ export class NotificationService {
     link?: string,
     extra?: Partial<NotificationItem>
   ): void {
-    const newItem: NotificationItem = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
-      title,
-      message,
-      link,
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      type,
-      ...extra
-    };
-
-    const updated = [newItem, ...this.notificationsSignal()];
-    this.notificationsSignal.set(updated);
-    this.saveToStorage(updated);
-    this.triggerLiveAlert();
+    // Re-fetch backend notifications
+    this.loadNotifications();
   }
 
   updateJobNotificationStage(jobId: string, newStage: number, title: string, message: string): void {
-    const updated = this.notificationsSignal().map((n) => {
-      if (n.jobId === jobId) {
-        return {
-          ...n,
-          stage: newStage,
-          title,
-          message,
-          isRead: false,
-          createdAt: new Date().toISOString()
-        };
-      }
-      return n;
-    });
-
-    this.notificationsSignal.set(updated);
-    this.saveToStorage(updated);
-    this.triggerLiveAlert();
+    // Re-fetch backend notifications
+    this.loadNotifications();
   }
 
   markAsRead(id: string): void {
     // 1. Update backend
     this.http.put(`${this.apiUrl}/notifications/${id}/read`, {}).subscribe({
-      next: () => {},
-      error: () => {}
+      next: () => {
+        const updated = this.notificationsSignal().map((n) =>
+          n.id === id ? { ...n, isRead: true } : n
+        );
+        this.notificationsSignal.set(updated);
+      },
+      error: () => {
+        const updated = this.notificationsSignal().map((n) =>
+          n.id === id ? { ...n, isRead: true } : n
+        );
+        this.notificationsSignal.set(updated);
+      }
     });
-
-    // 2. Optimistic local update
-    const updated = this.notificationsSignal().map((n) =>
-      n.id === id ? { ...n, isRead: true } : n
-    );
-    this.notificationsSignal.set(updated);
-    this.saveToStorage(updated);
   }
 
   markAllAsRead(): void {
@@ -273,17 +310,14 @@ export class NotificationService {
 
     const updated = this.notificationsSignal().map((n) => ({ ...n, isRead: true }));
     this.notificationsSignal.set(updated);
-    this.saveToStorage(updated);
   }
 
   deleteNotification(id: string): void {
     const updated = this.notificationsSignal().filter((n) => n.id !== id);
     this.notificationsSignal.set(updated);
-    this.saveToStorage(updated);
   }
 
   clearAll(): void {
     this.notificationsSignal.set([]);
-    this.saveToStorage([]);
   }
 }
