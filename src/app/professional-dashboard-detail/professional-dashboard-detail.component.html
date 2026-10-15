@@ -1,16 +1,27 @@
 <div class="pro-detail-container">
-  <!-- Top Navigation Header -->
+  <!-- Top Navigation & Action Header -->
   <div class="detail-header">
     <div class="user-meta">
-      <img [src]="proProfile().avatarUrl" [alt]="proProfile().name" class="user-avatar" />
+      <img
+        [src]="proProfile().avatarUrl || imageNotGivenUrl"
+        [alt]="proProfile().name"
+        (error)="onImageError($event)"
+        class="user-avatar"
+      />
       <div class="user-info">
         <div class="name-row">
           <h2>{{ proProfile().name }}</h2>
           @if (proProfile().isVerified) {
-            <span class="verified-pill"><mat-icon>verified</mat-icon> Verified Trade Professional</span>
+            <span class="verified-pill">
+              <mat-icon>verified</mat-icon> Verified Professional
+            </span>
+          } @else {
+            <span class="pending-pill">
+              <mat-icon>hourglass_top</mat-icon> Pending KYC & Profile Verification
+            </span>
           }
         </div>
-        <p class="user-sub">{{ proProfile().headline }} &bull; {{ proProfile().baseLocation }}</p>
+        <p class="user-sub">{{ proProfile().headline }} &bull; {{ proProfile().baseLocation }} &bull; <span class="email-sub">{{ proProfile().email }}</span></p>
         <div class="rating-strip">
           <span class="rating-score"><mat-icon>star</mat-icon> {{ proProfile().overallRating }}</span>
           <span class="rating-sub">({{ proProfile().completedJobsCount }} jobs completed)</span>
@@ -20,86 +31,101 @@
       </div>
     </div>
 
-    <div class="header-actions">
-      <button
-        mat-stroked-button
-        [color]="isBookmarked() ? 'warn' : 'primary'"
-        type="button"
-        (click)="toggleBookmark()"
-        [title]="isBookmarked() ? 'Remove Bookmark' : 'Bookmark this professional'"
-      >
-        <mat-icon>{{ isBookmarked() ? 'favorite' : 'favorite_border' }}</mat-icon>
-        <span>{{ isBookmarked() ? 'Bookmarked' : 'Bookmark Pro' }}</span>
-      </button>
-      <button mat-raised-button color="primary" class="btn-book-cta" type="button" (click)="openBookingModal()">
-        <mat-icon>bookmark_add</mat-icon> Book This Professional
-      </button>
-      <a mat-stroked-button color="primary" routerLink="/customer-services">
-        <mat-icon>arrow_back</mat-icon> All Services
-      </a>
-    </div>
+    <!-- Header Compliance Action Controls (Admin Only) -->
+    @if (authService.hasRole('Admin')) {
+      <div class="header-actions-group">
+        <button
+          mat-raised-button
+          [color]="proProfile().isVerified ? 'accent' : 'primary'"
+          class="btn-master-verify"
+          (click)="toggleVerifyProfile()"
+          [disabled]="verifyingLoading()"
+        >
+          @if (verifyingLoading()) {
+            <span class="btn-inner-content">
+              <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
+              <span>Updating Status...</span>
+            </span>
+          } @else if (proProfile().isVerified) {
+            <span class="btn-inner-content">
+              <mat-icon>verified_user</mat-icon>
+              <span>Verified Profile (Click to Revoke)</span>
+            </span>
+          } @else {
+            <span class="btn-inner-content">
+              <mat-icon>check_circle</mat-icon>
+              <span>Verify & Authorize Profile</span>
+            </span>
+          }
+        </button>
+
+        <a mat-stroked-button color="primary" routerLink="/verification-list" class="btn-nav-aux">
+          <mat-icon>checklist</mat-icon>
+          <span>Verification Queue</span>
+        </a>
+        <a mat-stroked-button color="primary" routerLink="/admin-users" class="btn-nav-aux">
+          <mat-icon>people</mat-icon>
+          <span>User Directory</span>
+        </a>
+      </div>
+    }
   </div>
 
-  <!-- Bookmark Toast Notification -->
-  @if (bookmarkMessage()) {
-    <div class="fav-toast-banner">
-      <mat-icon>favorite</mat-icon>
-      <span>{{ bookmarkMessage() }}</span>
-      <a routerLink="/customer-dashboard" class="view-favs-link">View in Favorites &rarr;</a>
+  <!-- Feedback Toast Banner -->
+  @if (feedbackToast()) {
+    <div class="feedback-toast-banner">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ feedbackToast() }}</span>
     </div>
   }
 
   <!-- Contextual Record Banner -->
   <div class="active-pro-banner">
     <div class="banner-left">
-      <mat-icon>account_circle</mat-icon>
+      <mat-icon>badge</mat-icon>
       <div class="banner-text">
-        <span class="banner-title">Professional Detail Profile: <strong>{{ proProfile().name }}</strong></span>
+        <span class="banner-title">Professional Compliance Record: <strong>{{ proProfile().name }}</strong></span>
+        <span class="banner-sub">Unified KYC Identity & Professional Profile Management</span>
       </div>
     </div>
-    <a routerLink="/customer-services" class="back-services-btn">
-      <mat-icon>arrow_back</mat-icon>
-      <span>Back to Services Catalog</span>
-    </a>
+    <div class="banner-right">
+      <span class="status-indicator" [class.status-active]="proProfile().isVerified" [class.status-pending]="!proProfile().isVerified">
+        <span class="status-dot"></span>
+        {{ proProfile().isVerified ? 'Authorized for Dispatch' : 'Pending Authorization' }}
+      </span>
+    </div>
   </div>
 
-  <!-- Tab Navigation Strip -->
+  <!-- Tab Navigation Strip (Verification Tab has 'Credentials' removed) -->
   <div class="detail-nav-tabs">
     <button
+      type="button"
       class="nav-tab-btn"
       [class.active]="activeTab() === 'profile'"
       (click)="setTab('profile')"
     >
       <mat-icon>badge</mat-icon>
-      <span>Profile & Services</span>
+      <span>About & Profile</span>
     </button>
 
     <button
-      class="nav-tab-btn"
-      [class.active]="activeTab() === 'reviews'"
-      (click)="setTab('reviews')"
-    >
-      <mat-icon>workspace_premium</mat-icon>
-      <span>Reviews & Reputation ({{ reviews().length }})</span>
-    </button>
-
-    <button
+      type="button"
       class="nav-tab-btn"
       [class.active]="activeTab() === 'verification'"
       (click)="setTab('verification')"
     >
       <mat-icon>verified_user</mat-icon>
-      <span>Verification & Admin</span>
+      <span>Verification</span>
     </button>
   </div>
 
   <!-- ========================================== -->
-  <!-- TAB 1: PROFILE & SERVICES                  -->
+  <!-- TAB 1: ABOUT & PROFILE                     -->
   <!-- ========================================== -->
   @if (activeTab() === 'profile') {
     <div class="tab-content">
       <div class="profile-overview-grid">
-        <!-- Credentials & Bio Card -->
+        <!-- Profile Bio & Credentials Card -->
         <mat-card appearance="outlined" class="info-card">
           <mat-card-header>
             <mat-card-title>About the Professional</mat-card-title>
@@ -111,408 +137,403 @@
 
             <div class="credentials-meta-list">
               <div class="detail-row">
-                <span class="label">Headline:</span>
+                <span class="label"><mat-icon>title</mat-icon> Headline:</span>
                 <strong>{{ proProfile().headline }}</strong>
               </div>
               <div class="detail-row">
-                <span class="label">Years of Experience:</span>
+                <span class="label"><mat-icon>mail</mat-icon> User Email:</span>
+                <strong class="email-val">{{ proProfile().email }}</strong>
+              </div>
+              <div class="detail-row">
+                <span class="label"><mat-icon>phone</mat-icon> Phone Contact:</span>
+                <strong>{{ proProfile().phone }}</strong>
+              </div>
+              <div class="detail-row">
+                <span class="label"><mat-icon>history_edu</mat-icon> Experience:</span>
                 <strong>{{ proProfile().yearsOfExperience }} Years Professional Experience</strong>
               </div>
               <div class="detail-row">
-                <span class="label">Standard Hourly Rate:</span>
+                <span class="label"><mat-icon>payments</mat-icon> Standard Rate:</span>
                 <strong>${{ proProfile().hourlyRate }}/hr</strong>
               </div>
               <div class="detail-row">
-                <span class="label">Service Radius:</span>
+                <span class="label"><mat-icon>location_on</mat-icon> Service Zone:</span>
                 <span>{{ proProfile().serviceRadiusKm }} km from {{ proProfile().baseLocation }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="label">Escrow Guarantee:</span>
-                <span class="verified-text"><mat-icon>shield</mat-icon> 100% Escrow Protected Booking</span>
               </div>
             </div>
           </mat-card-content>
         </mat-card>
 
-        <!-- Active Skills & Authorized Services -->
-        <mat-card appearance="outlined" class="services-offered-card">
+        <!-- Profile Verification Action Box -->
+        <mat-card appearance="outlined" class="verification-action-card">
           <mat-card-header>
-            <mat-card-title>Specializations & Skills</mat-card-title>
-            <mat-card-subtitle>Verified skill competencies</mat-card-subtitle>
+            <mat-card-title>Profile Authorization & Status</mat-card-title>
+            <mat-card-subtitle>Manage platform dispatch authorization</mat-card-subtitle>
           </mat-card-header>
 
           <mat-card-content>
-            <div class="services-pills-list">
-              @for (srv of proProfile().activeServices; track srv) {
-                <div class="service-pill-box">
-                  <mat-icon>check_circle</mat-icon>
-                  <span>{{ srv }}</span>
-                </div>
-              }
+            <div class="verification-status-box" [class.box-verified]="proProfile().isVerified" [class.box-pending]="!proProfile().isVerified">
+              <div class="status-icon-wrap">
+                <mat-icon>{{ proProfile().isVerified ? 'verified' : 'pending_actions' }}</mat-icon>
+              </div>
+              <div class="status-details">
+                <h4>{{ proProfile().isVerified ? 'Profile Verified & Active' : 'Profile Pending Verification' }}</h4>
+                <p>
+                  {{ proProfile().isVerified 
+                    ? 'This specialist has met the compliance and KYC criteria and is actively displayed to customers for direct booking.' 
+                    : 'This profile is currently pending verification. Review submitted credentials below and click to authorize.' 
+                  }}
+                </p>
+              </div>
             </div>
 
-            <div class="trust-notice-box">
-              <mat-icon>verified</mat-icon>
-              <div>
-                <strong>Identity & Skills Verified</strong>
-                <p>All certifications and credentials have been audited and approved by Callbet Admin.</p>
-              </div>
+            <!-- Profile Verification Button -->
+            <div class="profile-verify-btn-wrap">
+              <button
+                mat-raised-button
+                [color]="proProfile().isVerified ? 'warn' : 'primary'"
+                class="btn-toggle-profile-verify"
+                (click)="toggleVerifyProfile()"
+                [disabled]="verifyingLoading()"
+              >
+                @if (verifyingLoading()) {
+                  <span class="btn-inner-content">
+                    <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
+                    <span>Updating Authorization...</span>
+                  </span>
+                } @else if (proProfile().isVerified) {
+                  <span class="btn-inner-content">
+                    <mat-icon>cancel</mat-icon>
+                    <span>Revoke Profile Verification</span>
+                  </span>
+                } @else {
+                  <span class="btn-inner-content">
+                    <mat-icon>verified</mat-icon>
+                    <span>Verify Professional Profile</span>
+                  </span>
+                }
+              </button>
             </div>
           </mat-card-content>
         </mat-card>
       </div>
-
-      <!-- Professional Services Catalog -->
-      <div class="section-block">
-        <div class="section-title-row">
-          <div class="pro-sec-header">
-            <mat-icon class="pro-sec-icon">handyman</mat-icon>
-            <h3>Professional Services by {{ proProfile().name }}</h3>
-          </div>
-          <span class="section-subtitle">Specialized trade offerings, custom pricing, and verified craft skills assigned to this profile</span>
-        </div>
-
-        @if (services().length > 0) {
-          <div class="services-grid">
-            @for (srv of services(); track srv.id) {
-              <mat-card appearance="outlined" class="service-catalog-card pro-detail-srv-card">
-                <mat-card-header>
-                  <mat-card-title>{{ srv.name }}</mat-card-title>
-                  <mat-card-subtitle>
-                    <span class="cat-pill"><mat-icon>label</mat-icon> {{ srv.category }}</span>
-                  </mat-card-subtitle>
-                </mat-card-header>
-                <mat-card-content>
-                  <p class="service-desc">{{ srv.description }}</p>
-
-                  <div class="srv-meta-chips">
-                    @if (srv.serviceExperienceYears) {
-                      <span class="chip-exp"><mat-icon>workspace_premium</mat-icon> {{ srv.serviceExperienceYears }} yrs exp</span>
-                    }
-                    @if (srv.estimatedDurationMins) {
-                      <span class="chip-time"><mat-icon>schedule</mat-icon> {{ srv.estimatedDurationMins }} mins</span>
-                    }
-                  </div>
-
-                  <div class="service-price-tag">
-                    <span class="price-val">ETB {{ srv.price }}</span>
-                    <span class="price-type">{{ srv.pricingType }}</span>
-                  </div>
-                </mat-card-content>
-                <mat-card-actions align="end">
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    type="button"
-                    (click)="openBookingModal(srv)"
-                  >
-                    <mat-icon>calendar_today</mat-icon> Book Professional Service
-                  </button>
-                </mat-card-actions>
-              </mat-card>
-            }
-          </div>
-        } @else {
-          <div class="empty-services-state">
-            <mat-icon>construction</mat-icon>
-            <p>No professional services configured on this profile yet.</p>
-          </div>
-        }
-      </div>
-
-      <!-- Work Portfolio Showcase -->
-      <div class="section-block">
-        <div class="section-title-row">
-          <h3>Recent Project Portfolio</h3>
-          <span class="section-subtitle">Photos from verified completed projects</span>
-        </div>
-
-        <div class="portfolio-grid">
-          @for (item of portfolio(); track item.id) {
-            <mat-card appearance="outlined" class="portfolio-item-card">
-              <img [src]="item.imageUrl" [alt]="item.title" class="portfolio-img" />
-              <mat-card-content class="portfolio-body">
-                <span class="portfolio-cat">{{ item.category }} &bull; {{ item.dateCompleted }}</span>
-                <h4 class="portfolio-title">{{ item.title }}</h4>
-                <p class="portfolio-desc">{{ item.description }}</p>
-              </mat-card-content>
-            </mat-card>
-          }
-        </div>
-      </div>
     </div>
   }
 
   <!-- ========================================== -->
-  <!-- TAB 2: REVIEWS & REPUTATION                -->
-  <!-- ========================================== -->
-  @if (activeTab() === 'reviews') {
-    <div class="tab-content">
-      <div class="rating-summary-box">
-        <div class="score-large">
-          <span class="score-num">{{ proProfile().overallRating }}</span>
-          <div class="stars-wrap">
-            <mat-icon class="star-filled">star</mat-icon>
-            <mat-icon class="star-filled">star</mat-icon>
-            <mat-icon class="star-filled">star</mat-icon>
-            <mat-icon class="star-filled">star</mat-icon>
-            <mat-icon class="star-filled">star_half</mat-icon>
-          </div>
-          <span class="score-sub">Based on {{ proProfile().completedJobsCount }} completed jobs</span>
-        </div>
-        <div class="score-bullets">
-          <div class="bullet-item"><mat-icon>thumb_up</mat-icon> <span>100% On-Time Arrival</span></div>
-          <div class="bullet-item"><mat-icon>verified</mat-icon> <span>100% Genuine Verified Client Reviews</span></div>
-          <div class="bullet-item"><mat-icon>security</mat-icon> <span>Zero Escrow Dispute Record</span></div>
-        </div>
-      </div>
-
-      <mat-card appearance="outlined" class="reviews-history-card">
-        <mat-card-header>
-          <mat-card-title>Verified Customer Feedback</mat-card-title>
-          <mat-card-subtitle>Reviews left by clients upon job approval</mat-card-subtitle>
-        </mat-card-header>
-
-        <mat-card-content>
-          <div class="reviews-list">
-            @for (rev of reviews(); track rev.id) {
-              <div class="review-item-card">
-                <div class="review-top-row">
-                  <div class="reviewer-meta">
-                    <div class="customer-avatar-circle">
-                      {{ rev.customerName.charAt(0) }}
-                    </div>
-                    <div>
-                      <strong>{{ rev.customerName }}</strong>
-                      <span class="job-tag-sub">Job: {{ rev.serviceName }} &bull; {{ rev.date }}</span>
-                    </div>
-                  </div>
-
-                  <div class="rating-badge">
-                    <mat-icon>star</mat-icon>
-                    <span>{{ rev.rating }}.0</span>
-                  </div>
-                </div>
-
-                <p class="review-body-text">"{{ rev.comment }}"</p>
-
-                <!-- Professional Verified Reply -->
-                @if (rev.reply) {
-                  <div class="pro-reply-box">
-                    <div class="pro-reply-header">
-                      <mat-icon>reply</mat-icon>
-                      <strong>Response from {{ proProfile().name }}</strong>
-                      <span class="reply-date">({{ rev.reply.date }})</span>
-                    </div>
-                    <p class="reply-text">{{ rev.reply.comment }}</p>
-                  </div>
-                }
-              </div>
-            } @empty {
-              <div class="no-items-state">No reviews yet for this professional.</div>
-            }
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-  }
-
-  <!-- ========================================== -->
-  <!-- TAB 3: VERIFICATION & ADMIN                -->
+  <!-- TAB 2: VERIFICATION (KYC + PRO PROFILE)    -->
   <!-- ========================================== -->
   @if (activeTab() === 'verification') {
     <div class="tab-content">
-      <mat-card appearance="outlined" class="oversight-card">
+      <!-- 1. USER VERIFICATION DOCUMENTS (KYC & LEGAL CREDS) -->
+      <mat-card appearance="outlined" class="verification-section-card">
         <mat-card-header>
-          <mat-card-title>Compliance & Background Verification Records</mat-card-title>
-          <mat-card-subtitle>Government credentials and compliance audit records</mat-card-subtitle>
+          <div class="sec-title-wrap">
+            <mat-icon class="sec-icon doc-color">badge</mat-icon>
+            <div>
+              <mat-card-title>1. User Verification Documents (e-KYC & Trade Licenses)</mat-card-title>
+              <mat-card-subtitle>Submitted national IDs, kebele identification, and business trade permits</mat-card-subtitle>
+            </div>
+          </div>
         </mat-card-header>
 
         <mat-card-content>
-          <div class="oversight-logs-list">
-            @for (record of verificationRecords(); track record.id) {
-              <div class="log-row">
-                <div class="log-icon-wrap"><mat-icon>verified</mat-icon></div>
-                <div class="log-body">
-                  <div class="log-title-row">
-                    <strong>{{ record.title }}</strong>
-                    <span class="log-status-badge">{{ record.status }}</span>
-                  </div>
-                  <p class="log-desc">Issued by {{ record.issuer }}</p>
-                  <span class="log-date">Verified on: {{ record.verifiedDate }}</span>
-                </div>
-              </div>
-            }
-          </div>
-
-          <!-- Verified Trade Certificates & Qualifications (Click to View) -->
-          @if (certificates() && certificates().length > 0) {
-            <div class="certs-section" style="margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
-              <h4 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                <mat-icon style="color: #0284c7;">workspace_premium</mat-icon>
-                Verified Trade Certificates (Click to View Image)
-              </h4>
-              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 280px)); gap: 1rem; justify-content: flex-start;">
-                @for (cert of certificates(); track cert.id) {
-                  <div
-                    class="cert-item-card"
-                    (click)="openCertificateModal(cert)"
-                    style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.75rem 0.9rem; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05); max-width: 290px;"
-                  >
-                    <div style="display: flex; align-items: flex-start; gap: 0.6rem;">
-                      <mat-icon style="color: #10b981; font-size: 20px; width: 20px; height: 20px;">verified</mat-icon>
+          @if (verificationDocs() && verificationDocs().length > 0) {
+            <div class="verification-docs-grid">
+              @for (doc of verificationDocs(); track doc.id) {
+                <div class="verification-doc-item" [class.item-verified]="doc.isVerified" [class.item-pending]="!doc.isVerified">
+                  <div class="doc-header-row">
+                    <div class="doc-title-box">
+                      <mat-icon class="doc-badge-icon">{{ getDocIcon(doc.documentType) }}</mat-icon>
                       <div>
-                        <h5 style="margin: 0; font-size: 0.88rem; font-weight: 600; color: #0f172a;">{{ cert.title }}</h5>
-                        <p style="margin: 0.15rem 0 0; font-size: 0.75rem; color: #64748b;">{{ cert.organization }}</p>
-                      </div>
-                    </div>
-                    @if (cert.documentUrl || cert.documentImageUrl) {
-                      <div style="margin-top: 0.55rem; text-align: center; border-radius: 6px; overflow: hidden; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.4rem;">
-                        <img
-                          [src]="formatImageUrl(cert.documentUrl || cert.documentImageUrl)"
-                          [alt]="cert.title"
-                          (error)="onCertImageError($event)"
-                          style="max-height: 75px; width: auto; object-fit: contain; border-radius: 4px;"
-                        />
-                        <span style="display: block; font-size: 0.72rem; color: #0284c7; margin-top: 0.25rem; font-weight: 600;">
-                          <mat-icon style="font-size: 13px; width: 13px; height: 13px; vertical-align: middle;">zoom_in</mat-icon> Click to View Certificate
+                        <strong>{{ doc.documentType }}</strong>
+                        <span class="doc-date-sub">
+                          <mat-icon>event</mat-icon> {{ doc.verificationDate ? (doc.verificationDate | date:'mediumDate') : 'Recent Submission' }}
                         </span>
                       </div>
+                    </div>
+
+                    <span class="status-pill" [class.pill-verified]="doc.isVerified" [class.pill-pending]="!doc.isVerified">
+                      <mat-icon>{{ doc.isVerified ? 'verified' : 'hourglass_top' }}</mat-icon>
+                      {{ doc.isVerified ? 'Verified & Valid' : 'Pending Review' }}
+                    </span>
+                  </div>
+
+                  <!-- Document Thumbnail / Lightbox preview -->
+                  @if (doc.documentUrl) {
+                    <div class="doc-preview-thumb" (click)="openPreview(doc.documentType, doc.documentUrl, doc)">
+                      <img [src]="formatImageUrl(doc.documentUrl)" [alt]="doc.documentType" (error)="onImageError($event)" />
+                      <div class="thumb-overlay">
+                        <mat-icon>zoom_in</mat-icon>
+                        <span>Inspect Scan</span>
+                      </div>
+                    </div>
+                  }
+
+                  <div class="doc-actions-footer">
+                    <button
+                      type="button"
+                      mat-stroked-button
+                      color="primary"
+                      class="btn-inspect-doc"
+                      (click)="openPreview(doc.documentType, doc.documentUrl, doc)"
+                    >
+                      <mat-icon>visibility</mat-icon>
+                      <span>Inspect Scan</span>
+                    </button>
+
+                    @if (!doc.isVerified) {
+                      <button
+                        type="button"
+                        mat-raised-button
+                        color="primary"
+                        class="btn-approve-doc"
+                        (click)="approveDocument(doc.id)"
+                        [disabled]="approvingDocId() === doc.id"
+                      >
+                        @if (approvingDocId() === doc.id) {
+                          <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+                        } @else {
+                          <mat-icon>check_circle</mat-icon>
+                        }
+                        <span>Approve Document</span>
+                      </button>
                     }
                   </div>
-                }
-              </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-docs-placeholder">
+              <mat-icon>description</mat-icon>
+              <p>No primary KYC identity documents uploaded yet for this user.</p>
             </div>
           }
+        </mat-card-content>
+      </mat-card>
 
-          <div class="escrow-guarantee-banner">
-            <mat-icon>shield</mat-icon>
+      <!-- 2. VOCATIONAL & TRADE CERTIFICATES -->
+      <mat-card appearance="outlined" class="verification-section-card">
+        <mat-card-header>
+          <div class="sec-title-wrap">
+            <mat-icon class="sec-icon cert-color">school</mat-icon>
             <div>
-              <strong>Callbet Escrow Safety Guarantee</strong>
-              <p>
-                When you hire {{ proProfile().name }}, your payment is held securely in escrow and only released
-                after you personally approve the completed job.
-              </p>
+              <mat-card-title>2. Vocational & Trade Certificates ({{ certificates().length }})</mat-card-title>
+              <mat-card-subtitle>Accredited technical credentials, diplomas, and safety training certificates</mat-card-subtitle>
             </div>
           </div>
+        </mat-card-header>
+
+        <mat-card-content>
+          @if (certificates() && certificates().length > 0) {
+            <div class="certificates-grid">
+              @for (cert of certificates(); track cert.id) {
+                <div class="cert-card-item" (click)="openPreview(cert.title, cert.documentUrl || cert.documentImageUrl, cert)">
+                  <div class="cert-top-info">
+                    <div class="cert-icon-circle">
+                      <mat-icon>workspace_premium</mat-icon>
+                    </div>
+                    <div class="cert-meta">
+                      <h5>{{ cert.title }}</h5>
+                      <span class="cert-org">{{ cert.organization }}</span>
+                      <span class="cert-date">
+                        Issued: {{ cert.issueDate ? (cert.issueDate | date:'mediumDate') : 'Verified' }}
+                        @if (cert.expiryDate) { &bull; Exp: {{ cert.expiryDate | date:'mediumDate' }} }
+                      </span>
+                    </div>
+                  </div>
+
+                  @if (cert.documentUrl || cert.documentImageUrl) {
+                    <div class="cert-thumb-box">
+                      <img [src]="formatImageUrl(cert.documentUrl || cert.documentImageUrl)" [alt]="cert.title" (error)="onImageError($event)" />
+                      <span class="zoom-hint"><mat-icon>zoom_in</mat-icon> Click to Inspect</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-docs-placeholder">
+              <mat-icon>school</mat-icon>
+              <p>No trade certificates attached to this professional profile.</p>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- 3. PROFESSIONAL RESUME & QUALIFICATIONS -->
+      <mat-card appearance="outlined" class="verification-section-card">
+        <mat-card-header>
+          <div class="sec-title-wrap">
+            <mat-icon class="sec-icon resume-color">description</mat-icon>
+            <div>
+              <mat-card-title>3. Professional Resume & Skills</mat-card-title>
+              <mat-card-subtitle>Experience summary, core competencies, languages, and education history</mat-card-subtitle>
+            </div>
+          </div>
+        </mat-card-header>
+
+        <mat-card-content>
+          @if (resume(); as res) {
+            <div class="resume-detail-box">
+              @if (res.summary) {
+                <div class="resume-block">
+                  <h6>Executive Summary</h6>
+                  <p class="resume-summary-text">{{ res.summary }}</p>
+                </div>
+              }
+
+              <!-- Skills Badges -->
+              @if (res.skills && parseArraySafe(res.skills).length > 0) {
+                <div class="resume-block">
+                  <h6>Core Verified Skills</h6>
+                  <div class="skill-chips-row">
+                    @for (skill of parseArraySafe(res.skills); track skill) {
+                      <span class="skill-pill">
+                        <mat-icon>build</mat-icon> {{ skill }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Languages -->
+              @if (res.languages && parseArraySafe(res.languages).length > 0) {
+                <div class="resume-block">
+                  <h6>Spoken Languages</h6>
+                  <div class="lang-chips-row">
+                    @for (lang of parseArraySafe(res.languages); track lang) {
+                      <span class="lang-pill">
+                        <mat-icon>language</mat-icon> {{ lang }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Resume PDF Download Action -->
+              @if (res.resumeFileUrl) {
+                <div class="resume-file-action-banner">
+                  <mat-icon>picture_as_pdf</mat-icon>
+                  <div>
+                    <strong>Official Resume Document (PDF Attached)</strong>
+                    <p>Uploaded candidate curriculum vitae with complete work history.</p>
+                  </div>
+                  <a [href]="formatImageUrl(res.resumeFileUrl)" target="_blank" mat-raised-button color="primary">
+                    <mat-icon>open_in_new</mat-icon>
+                    <span>View Resume PDF</span>
+                  </a>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-docs-placeholder">
+              <mat-icon>description</mat-icon>
+              <p>Standard profile active. No standalone resume document uploaded.</p>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <!-- 4. WORK HISTORY & PORTFOLIO -->
+      <mat-card appearance="outlined" class="verification-section-card">
+        <mat-card-header>
+          <div class="sec-title-wrap">
+            <mat-icon class="sec-icon portfolio-color">photo_library</mat-icon>
+            <div>
+              <mat-card-title>4. Work History & Project Portfolio ({{ portfolioItems().length }})</mat-card-title>
+              <mat-card-subtitle>Real-world project completions, craftsmanship samples, and verified jobs</mat-card-subtitle>
+            </div>
+          </div>
+        </mat-card-header>
+
+        <mat-card-content>
+          @if (portfolioItems() && portfolioItems().length > 0) {
+            <div class="portfolio-items-grid">
+              @for (item of portfolioItems(); track item.id) {
+                <div class="portfolio-card-item" (click)="openPreview(item.title, item.imageUrl, item)">
+                  @if (item.imageUrl) {
+                    <div class="portfolio-thumb-wrap">
+                      <img [src]="formatImageUrl(item.imageUrl)" [alt]="item.title" (error)="onImageError($event)" />
+                      <span class="portfolio-hover-tag"><mat-icon>zoom_in</mat-icon> Inspect Work</span>
+                    </div>
+                  }
+                  <div class="portfolio-info-box">
+                    <h5>{{ item.title }}</h5>
+                    <p class="portfolio-desc">{{ item.description }}</p>
+                    @if (item.dateCompleted) {
+                      <span class="portfolio-date"><mat-icon>event_available</mat-icon> Completed: {{ item.dateCompleted | date:'mediumDate' }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-docs-placeholder">
+              <mat-icon>photo_library</mat-icon>
+              <p>No project portfolio items uploaded for this specialist.</p>
+            </div>
+          }
         </mat-card-content>
       </mat-card>
     </div>
   }
 
   <!-- ========================================== -->
-  <!-- BOOKING MODAL OVERLAY                     -->
+  <!-- LIGHTBOX / DOCUMENT VIEWER MODAL           -->
   <!-- ========================================== -->
-  @if (selectedServiceForBooking(); as srv) {
-    <div class="booking-modal-backdrop" (click)="closeBookingModal()">
-      <div class="booking-modal-content" (click)="$event.stopPropagation()">
-        <mat-card appearance="outlined" class="modal-card">
-          <mat-card-header>
-            <mat-card-title>Book {{ srv.name }}</mat-card-title>
-            <mat-card-subtitle>With {{ proProfile().name }} &bull; Price: ${{ srv.price }}</mat-card-subtitle>
-          </mat-card-header>
-
-          <mat-card-content>
-            @if (bookingSuccess()) {
-              <div class="success-booking-box">
-                <mat-icon>check_circle</mat-icon>
-                <h4>Job Booking Submitted!</h4>
-                <p>Your request is now in <strong>Assigned (Draft)</strong> status. The professional has been notified.</p>
-                <div class="modal-actions">
-                  <button mat-raised-button color="primary" type="button" (click)="closeBookingModal()">
-                    Done
-                  </button>
-                  <a mat-stroked-button color="accent" routerLink="/customer-dashboard" (click)="closeBookingModal()">
-                    Go to My Jobs Dashboard
-                  </a>
-                </div>
-              </div>
-            } @else {
-              <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()">
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Scheduled Date</mat-label>
-                  <input matInput type="date" formControlName="scheduledDate" />
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Service Address / Neighborhood</mat-label>
-                  <input matInput formControlName="address" placeholder="e.g. Bole Medhanealem, House #304" />
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Job Details & Instructions</mat-label>
-                  <textarea
-                    matInput
-                    formControlName="description"
-                    rows="3"
-                    placeholder="Describe what needs to be repaired or cleaned..."
-                  ></textarea>
-                </mat-form-field>
-
-                <div class="modal-actions">
-                  <button mat-button type="button" (click)="closeBookingModal()">Cancel</button>
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    type="submit"
-                    [disabled]="bookingForm.invalid || bookingLoading()"
-                  >
-                    @if (bookingLoading()) {
-                      <mat-spinner diameter="18"></mat-spinner>
-                      <span>Booking...</span>
-                    } @else {
-                      <span>Confirm & Book with Escrow</span>
-                    }
-                  </button>
-                </div>
-              </form>
-            }
-          </mat-card-content>
-        </mat-card>
-      </div>
-    </div>
-  }
-
-  <!-- CERTIFICATE VIEWER MODAL -->
-  @if (selectedCertForModal(); as cert) {
-    <div class="booking-modal-backdrop" (click)="closeCertificateModal()">
-      <div class="booking-modal-content cert-viewer-modal" (click)="$event.stopPropagation()" style="max-width: 500px; width: 92%;">
-        <mat-card appearance="outlined" class="modal-card">
-          <mat-card-header style="display: flex; justify-content: space-between; align-items: flex-start;">
+  @if (selectedDocForPreview(); as preview) {
+    <div class="lightbox-modal-backdrop" (click)="closePreview()">
+      <div class="lightbox-modal-card" (click)="$event.stopPropagation()">
+        <div class="lightbox-header">
+          <div class="title-meta">
+            <mat-icon>verified</mat-icon>
             <div>
-              <mat-card-title style="font-size: 1rem; font-weight: 600;">{{ cert.title }}</mat-card-title>
-              <mat-card-subtitle style="font-size: 0.78rem;">{{ cert.organization }} &bull; Issued: {{ cert.issueDate | date:'mediumDate' }}</mat-card-subtitle>
+              <h3>{{ preview.title }}</h3>
+              <span class="sub-meta">Applicant: <strong>{{ proProfile().name }}</strong> ({{ proProfile().email }})</span>
             </div>
-            <button mat-icon-button (click)="closeCertificateModal()">
-              <mat-icon>close</mat-icon>
-            </button>
-          </mat-card-header>
-          <mat-card-content style="padding: 0.75rem 1.25rem;">
-            <div style="text-align: center; background: #f8fafc; border-radius: 6px; overflow: hidden; padding: 0.5rem; border: 1px solid #e2e8f0; min-height: 160px; max-height: 300px; display: flex; align-items: center; justify-content: center;">
-              @if (cert.documentUrl || cert.documentImageUrl) {
-                <img
-                  [src]="formatImageUrl(cert.documentUrl || cert.documentImageUrl)"
-                  (error)="onCertImageError($event)"
-                  [alt]="cert.title"
-                  style="max-width: 100%; max-height: 285px; object-fit: contain; border-radius: 4px;"
-                />
-              } @else {
-                <mat-icon style="font-size: 48px; width: 48px; height: 48px; color: #cbd5e1;">description</mat-icon>
-                <p style="color: #64748b;">No document image available for this certificate.</p>
-              }
+          </div>
+          <button mat-icon-button (click)="closePreview()" class="btn-close-modal">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="lightbox-body">
+          @if (preview.url) {
+            <img [src]="formatImageUrl(preview.url)" [alt]="preview.title" (error)="onImageError($event)" />
+          } @else {
+            <div class="empty-modal-preview">
+              <mat-icon>image_not_supported</mat-icon>
+              <p>No preview document file is attached.</p>
             </div>
-            <div class="modal-actions" style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
-              @if (cert.documentUrl || cert.documentImageUrl) {
-                <a [href]="formatImageUrl(cert.documentUrl || cert.documentImageUrl)" target="_blank" mat-stroked-button color="primary">
-                  <mat-icon>open_in_new</mat-icon> Open Full Size
-                </a>
-              } @else {
-                <span></span>
-              }
-              <button mat-raised-button color="primary" (click)="closeCertificateModal()">Close</button>
-            </div>
-          </mat-card-content>
-        </mat-card>
+          }
+        </div>
+
+        <div class="lightbox-footer">
+          @if (preview.url) {
+            <a [href]="formatImageUrl(preview.url)" target="_blank" mat-stroked-button color="primary">
+              <mat-icon>open_in_new</mat-icon>
+              <span>Open Full Size File</span>
+            </a>
+          } @else {
+            <span></span>
+          }
+
+          <div class="footer-actions-right">
+            @if (preview.record && !preview.record.isVerified && preview.record.id) {
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="approveDocument(preview.record.id)"
+                [disabled]="approvingDocId() === preview.record.id"
+              >
+                <mat-icon>check_circle</mat-icon>
+                <span>Approve Document</span>
+              </button>
+            }
+            <button mat-button (click)="closePreview()">Close</button>
+          </div>
+        </div>
       </div>
     </div>
   }

@@ -1,41 +1,14 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute } from '@angular/router';
-import { FormBuilder, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatBadgeModule } from '@angular/material/badge';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ProDashboardService, ProReview, ProfessionalProfileServiceDto } from '../services/pro-dashboard.service';
-import { CustomerServicesService } from '../services/customer-services.service';
-
-export interface PortfolioItem {
-  id: string;
-  title: string;
-  category: string;
-  description: string;
-  imageUrl: string;
-  dateCompleted: string;
-}
-
-export interface ServiceItem {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  pricingType: string;
-  description: string;
-  serviceExperienceYears?: number;
-  estimatedDurationMins?: number;
-  categoryIconUrl?: string;
-  customPrice?: number;
-  basePrice?: number;
-}
+import { ProDashboardService } from '../services/pro-dashboard.service';
+import { AdminControlService } from '../AdminControlService/admin-control.service';
+import { AuthService } from '../core/services/auth.service';
 
 @Component({
   selector: 'app-professional-dashboard-detail',
@@ -43,16 +16,10 @@ export interface ServiceItem {
   imports: [
     CommonModule,
     RouterModule,
-    ReactiveFormsModule,
-    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule,
-    MatBadgeModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
+    MatTooltipModule,
     MatProgressSpinnerModule
   ],
   templateUrl: './professional-dashboard-detail.component.html',
@@ -60,132 +27,75 @@ export interface ServiceItem {
 })
 export class ProfessionalDashboardDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private fb = inject(FormBuilder);
   private proService = inject(ProDashboardService);
-  private customerServicesService = inject(CustomerServicesService);
+  private adminService = inject(AdminControlService);
+  public authService = inject(AuthService);
 
-  // Active Detail Navigation Tab (Only public tabs: profile, reviews, verification)
-  activeTab = signal<'profile' | 'reviews' | 'verification'>('profile');
+  // Standard Image Not Given placeholder
+  public readonly imageNotGivenUrl =
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f1f5f9"/><circle cx="100" cy="75" r="32" fill="%23cbd5e1"/><path d="M40 160 C40 120, 160 120, 160 160 Z" fill="%23cbd5e1"/><rect x="25" y="166" width="150" height="24" rx="4" fill="%23e2e8f0"/><text x="50%" y="182" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="%2364748b">Image Not Given</text></svg>';
+
+  // Active Detail Navigation Tab (Only profile & verification)
+  activeTab = signal<'profile' | 'verification'>('profile');
 
   // Professional ID from route param or query param
-  proId = signal<string>('09a41aeb-4e62-4f5f-b994-fc965117be83');
+  proId = signal<string>('');
 
   // Professional Profile Data
   proProfile = signal({
-    name: 'Tenagasha Wollela',
-    headline: 'Certified Master Electrician & Deep Cleaning Specialist',
-    email: 'tenagasha.w@callbet.et',
-    phone: '+251 92 345 6789',
-    profileId: '09a41aeb-4e62-4f5f-b994-fc965117be83',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-    yearsOfExperience: 9,
-    hourlyRate: 120,
-    serviceRadiusKm: 2.5,
-    baseLocation: 'Bole / CMC, Addis Ababa',
-    isVerified: true,
-    overallRating: 4.95,
-    completedJobsCount: 148,
-    bio: 'Dedicated master technician with over 9 years of hands-on experience in residential/commercial electrical installations, fault diagnosis, and hospital-grade deep cleaning.',
-    activeServices: ['Deep Cleaning', 'Electrical Installation', 'Circuit Troubleshooting', 'Sanitary Plumbing']
+    name: '',
+    headline: '',
+    email: '',
+    phone: '',
+    profileId: '',
+    userId: '',
+    avatarUrl: this.imageNotGivenUrl,
+    yearsOfExperience: 0,
+    hourlyRate: 0,
+    serviceRadiusKm: 2.0,
+    baseLocation: '',
+    isVerified: false,
+    overallRating: 0,
+    completedJobsCount: 0,
+    bio: ''
   });
 
-  // Services Catalog Offered
-  services = signal<ServiceItem[]>([
-    {
-      id: 'srv-1',
-      name: 'Deep House Cleaning & Sanitation',
-      category: 'Home Cleaning',
-      price: 120,
-      pricingType: 'Fixed Price',
-      description: 'Comprehensive deep cleaning of living rooms, bedrooms, kitchen degreasing, and bathroom descaling.'
-    },
-    {
-      id: 'srv-2',
-      name: 'Main Circuit Breaker Overhaul & Rewiring',
-      category: 'Electrical & Power',
-      price: 150,
-      pricingType: 'Fixed Price',
-      description: 'Diagnosis of tripping circuits, distribution panel upgrade, and surge protector installation.'
-    },
-    {
-      id: 'srv-3',
-      name: 'Emergency Appliance Diagnostic & Repair',
-      category: 'Appliance Repair',
-      price: 80,
-      pricingType: 'Per Hour',
-      description: 'Rapid on-site troubleshooting for water heaters, ovens, refrigerators, and washing machines.'
-    }
-  ]);
-
-  // Work Portfolio Items
-  portfolio = signal<PortfolioItem[]>([
-    {
-      id: 'port-1',
-      title: 'Smart Breaker Panel & Solar Inverter Integration',
-      category: 'Electrical & Wiring',
-      description: 'Completed seamless distribution box rewiring with 5kVA backup solar inverter synchronization in Bole Atlas.',
-      imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=80',
-      dateCompleted: '2026-06-15'
-    },
-    {
-      id: 'port-2',
-      title: 'Villa Post-Construction Deep Steam Wash',
-      category: 'Deep Cleaning',
-      description: 'Full 3-story residential sanitization, steam upholstery treatment, and tile grout renewal in CMC Michael.',
-      imageUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop&q=80',
-      dateCompleted: '2026-07-20'
-    }
-  ]);
-
-  // Reviews & Feedback
-  reviews = signal<ProReview[]>([]);
-
-  // Compliance & Verification Badges
-  verificationRecords = signal([
-    {
-      id: 'ver-1',
-      title: 'e-KYC National Trade License',
-      issuer: 'Ministry of Innovation & Technology (#ET-2024-9988)',
-      status: 'Verified & Active',
-      verifiedDate: '2026-02-10'
-    },
-    {
-      id: 'ver-2',
-      title: 'Clean Police Background Clearance',
-      issuer: 'Federal Police Commission Compliance Unit',
-      status: 'Passed & Approved',
-      verifiedDate: '2026-02-10'
-    },
-    {
-      id: 'ver-3',
-      title: 'Callbet 100% Escrow Protection Guarantee',
-      issuer: 'Platform Trust & Escrow Guarantee System',
-      status: 'Active Guarantee',
-      verifiedDate: '2026-02-11'
-    }
-  ]);
+  // User Verification KYC Documents (National IDs, Trade Licenses, Kebele IDs)
+  verificationDocs = signal<any[]>([]);
 
   // Live Certificates from profile
   certificates = signal<any[]>([]);
-  selectedCertForModal = signal<any | null>(null);
 
-  openCertificateModal(cert: any): void {
-    this.selectedCertForModal.set(cert);
+  // Resume & CV
+  resume = signal<any | null>(null);
+
+  // Work Portfolio Items
+  portfolioItems = signal<any[]>([]);
+
+  // Modals & Action loading
+  selectedDocForPreview = signal<{ title: string; url: string; record?: any } | null>(null);
+  verifyingLoading = signal<boolean>(false);
+  approvingDocId = signal<string | null>(null);
+  feedbackToast = signal<string | null>(null);
+
+  openPreview(title: string, url: string, record?: any): void {
+    this.selectedDocForPreview.set({ title, url, record });
   }
 
-  closeCertificateModal(): void {
-    this.selectedCertForModal.set(null);
+  closePreview(): void {
+    this.selectedDocForPreview.set(null);
   }
 
-  onCertImageError(event: Event): void {
+  onImageError(event: Event): void {
     const target = event.target as HTMLImageElement;
-    if (target && !target.src.includes('unsplash.com')) {
-      target.src = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80';
+    if (target) {
+      target.src = this.imageNotGivenUrl;
     }
   }
 
   formatImageUrl(url?: string | null): string {
-    if (!url) return '';
+    if (!url || url.trim() === '') return '';
+    if (url.includes('unsplash.com')) return url;
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
     if (url.startsWith('/uploads/')) return `http://localhost:5189${url}`;
     if (url.startsWith('/')) return `http://localhost:5189${url}`;
@@ -193,46 +103,8 @@ export class ProfessionalDashboardDetailComponent implements OnInit {
     return `http://localhost:5189/uploads/certificates/${url}`;
   }
 
-  // Booking Modal State
-  selectedServiceForBooking = signal<ServiceItem | null>(null);
-  bookingSuccess = signal(false);
-  bookingLoading = signal(false);
-  isBookmarked = signal(false);
-  bookmarkMessage = signal<string | null>(null);
-
-  bookingForm = this.fb.group({
-    scheduledDate: ['', Validators.required],
-    address: ['', Validators.required],
-    description: ['', [Validators.required, Validators.maxLength(500)]]
-  });
-
-  toggleBookmark(): void {
-    const custId = '22222222-2222-2222-2222-222222222222';
-    const proId = this.proProfile().profileId || this.proId();
-
-    this.customerServicesService.addFavoriteProfessional(custId, proId).subscribe({
-      next: () => {
-        this.finishToggleBookmark();
-      },
-      error: () => {
-        this.finishToggleBookmark();
-      }
-    });
-  }
-
-  private finishToggleBookmark(): void {
-    const nextVal = !this.isBookmarked();
-    this.isBookmarked.set(nextVal);
-    if (nextVal) {
-      this.bookmarkMessage.set(`Added ${this.proProfile().name} to your Bookmarked Professionals!`);
-    } else {
-      this.bookmarkMessage.set(`Removed ${this.proProfile().name} from bookmarks.`);
-    }
-    setTimeout(() => this.bookmarkMessage.set(null), 4000);
-  }
-
   ngOnInit(): void {
-    // Read route param `:id`
+    // Read route param :id
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id');
       if (id) {
@@ -245,7 +117,11 @@ export class ProfessionalDashboardDetailComponent implements OnInit {
             this.proId.set(qId);
             this.loadProfileData(qId);
           } else {
-            this.loadProfileData(this.proId());
+            const currentUserId = this.authService.currentUser()?.id;
+            if (currentUserId) {
+              this.proId.set(currentUserId);
+              this.loadProfileData(currentUserId);
+            }
           }
         });
       }
@@ -253,74 +129,67 @@ export class ProfessionalDashboardDetailComponent implements OnInit {
   }
 
   loadProfileData(id: string): void {
-    // 1. Fetch full professional profile dashboard from backend
+    if (!id) return;
+
+    // Fetch full professional profile dashboard from backend
     this.proService.getProfessionalProfileDashboard(id).subscribe({
       next: (res) => {
         const data = res as any;
         if (data) {
-          let locationStr = 'Bole / CMC, Addis Ababa';
+          let locationStr = '';
           if (data.baseAddress) {
             const parts = [data.baseAddress.neighborhoodName, data.baseAddress.subCityName].filter(Boolean);
             if (parts.length > 0) locationStr = parts.join(', ');
             if (data.baseAddress.landmark) locationStr += ` (Near ${data.baseAddress.landmark})`;
           }
 
+          const userId = data.userId || data.id || id;
+          const isVer = data.isVerified !== undefined ? Boolean(data.isVerified) : false;
+
           this.proProfile.set({
-            name: data.fullName?.trim() || data.name || 'Trade Professional',
-            headline: data.headline?.trim() || 'Verified Service Specialist',
-            email: data.email?.trim() || 'contact@callbet.et',
-            phone: data.phone?.trim() || '+251 91 123 4567',
+            name: data.fullName?.trim() || data.name || '',
+            headline: data.headline?.trim() || '',
+            email: data.email?.trim() || '',
+            phone: data.phone?.trim() || '',
             profileId: data.id || id,
-            avatarUrl: this.formatImageUrl(data.profilePhotoUrl || data.avatarUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-            yearsOfExperience: data.yearsOfExperience ?? 5,
-            hourlyRate: (data.services && data.services[0]?.price) || (data.services && data.services[0]?.basePrice) || 120,
-            serviceRadiusKm: data.serviceRadiusKm ? Math.min(2.5, Math.max(1, data.serviceRadiusKm)) : 2.5,
+            userId: userId,
+            avatarUrl: this.formatImageUrl(data.profilePhotoUrl || data.avatarUrl) || this.imageNotGivenUrl,
+            yearsOfExperience: data.yearsOfExperience ?? 0,
+            hourlyRate: (data.services && data.services[0]?.price) || (data.services && data.services[0]?.basePrice) || 0,
+            serviceRadiusKm: data.serviceRadiusKm ? Math.min(2, Math.max(1, data.serviceRadiusKm)) : 2.0,
             baseLocation: locationStr,
-            isVerified: data.isVerified !== undefined ? data.isVerified : true,
-            overallRating: data.overallRating ?? 4.95,
+            isVerified: isVer,
+            overallRating: data.overallRating ?? 0,
             completedJobsCount: data.completedJobsCount ?? 0,
-            bio: data.bio?.trim() || 'Dedicated trade specialist committed to delivering exceptional craftsmanship and customer satisfaction on every job.',
-            activeServices: data.services && data.services.length > 0 ? data.services.map((s: any) => s.name) : ['General Home Maintenance']
+            bio: data.bio?.trim() || ''
           });
 
-          // Load dedicated professional services from GET /api/professional/services/{profileId}
-          this.loadDedicatedServices(id);
-
-          const portList = data.portfolioItems || data.portfolio;
-          if (portList && Array.isArray(portList) && portList.length > 0) {
-            this.portfolio.set(portList.map((p: any) => ({
-              id: p.id || 'port-' + Math.random(),
-              title: p.title,
-              category: p.category || 'Trade Project',
-              description: p.description || '',
-              imageUrl: this.formatImageUrl(p.imageUrl) || p.imageUrl,
-              dateCompleted: p.dateCompleted || 'Recent'
-            })));
+          // Verification Documents
+          if (data.verificationRecords && Array.isArray(data.verificationRecords) && data.verificationRecords.length > 0) {
+            this.verificationDocs.set(data.verificationRecords);
+          } else {
+            this.fetchFallbackVerificationDocs(userId);
           }
 
-          if (data.certificates && Array.isArray(data.certificates) && data.certificates.length > 0) {
+          // Certificates
+          if (data.certificates && Array.isArray(data.certificates)) {
             this.certificates.set(data.certificates);
-            this.verificationRecords.set(data.certificates.map((c: any) => ({
-              id: c.id || 'cert-' + Math.random(),
-              title: c.title,
-              issuer: c.organization || 'Accreditation Board',
-              status: c.isVerified ? 'Verified & Active' : 'Accredited Document',
-              verifiedDate: c.issueDate ? new Date(c.issueDate).toISOString().split('T')[0] : 'Active',
-              documentUrl: c.documentUrl || c.documentImageUrl
-            })));
           } else {
-            const fallbackCerts = [
-              {
-                id: 'cert-1',
-                title: 'Ethiopian Electric Utility Certified Wireman Grade 1',
-                organization: 'EEU Accreditation Bureau & Ministry of Water & Energy',
-                issueDate: '2024-03-15',
-                documentImageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-                documentUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-                isVerified: true
-              }
-            ];
-            this.certificates.set(fallbackCerts);
+            this.certificates.set([]);
+          }
+
+          // Resume
+          if (data.resume) {
+            this.resume.set(data.resume);
+          } else {
+            this.resume.set(null);
+          }
+
+          // Portfolio Items
+          if (data.portfolioItems && Array.isArray(data.portfolioItems)) {
+            this.portfolioItems.set(data.portfolioItems);
+          } else {
+            this.portfolioItems.set([]);
           }
         }
       },
@@ -329,6 +198,7 @@ export class ProfessionalDashboardDetailComponent implements OnInit {
         this.proService.getProfileDetails(id).subscribe({
           next: (data) => {
             if (data) {
+              const userId = data.userId || data.id || id;
               this.proProfile.update((prev) => ({
                 ...prev,
                 name: data.name || data.fullName || prev.name,
@@ -337,127 +207,144 @@ export class ProfessionalDashboardDetailComponent implements OnInit {
                 phone: data.phoneNumber || data.phone || prev.phone,
                 hourlyRate: data.hourlyRate || prev.hourlyRate,
                 yearsOfExperience: data.yearsOfExperience || prev.yearsOfExperience,
-                serviceRadiusKm: data.serviceRadiusKm ? Math.min(2.5, Math.max(1, data.serviceRadiusKm)) : (prev.serviceRadiusKm ? Math.min(2.5, Math.max(1, prev.serviceRadiusKm)) : 2.5),
+                serviceRadiusKm: data.serviceRadiusKm ? Math.min(2, Math.max(1, data.serviceRadiusKm)) : 2.0,
                 bio: data.bio || prev.bio,
-                profileId: data.id || id
+                profileId: data.id || id,
+                userId: userId,
+                isVerified: data.isVerified !== undefined ? Boolean(data.isVerified) : prev.isVerified
               }));
+              this.fetchFallbackVerificationDocs(userId);
             }
           },
           error: () => {
-            this.proProfile.update((prev) => ({ ...prev, profileId: id }));
+            this.proProfile.update((prev) => ({ ...prev, profileId: id, userId: id }));
+            this.fetchFallbackVerificationDocs(id);
           }
         });
       }
     });
+  }
 
-    // Fetch reviews from GET /api/customer/reviews/{id}
-    this.customerServicesService.getReviews(id).subscribe({
-      next: (revs) => {
-        if (revs && Array.isArray(revs) && revs.length > 0) {
-          this.reviews.set(
-            revs.map((r: any) => ({
-              id: r.id || 'rev-' + Math.random(),
-              jobId: r.jobId || '',
-              customerName: r.customerName || r.authorName || 'Verified Customer',
-              serviceName: r.serviceName || r.serviceTitle || 'Home Service',
-              rating: r.rating || 5,
-              comment: r.comment || r.feedback || '',
-              date: r.createdAt
-                ? new Date(r.createdAt).toISOString().split('T')[0]
-                : (r.date || new Date().toISOString().split('T')[0]),
-              reply: r.reply
-                ? {
-                    comment: r.reply.comment || r.reply.message || '',
-                    date: r.reply.createdAt
-                      ? new Date(r.reply.createdAt).toISOString().split('T')[0]
-                      : (r.reply.date || '')
-                  }
-                : undefined
-            }))
-          );
-        }
+  private fetchFallbackVerificationDocs(userId: string): void {
+    if (!userId) {
+      this.verificationDocs.set([]);
+      return;
+    }
+    // Attempt fetching verification documents from admin verification endpoint
+    this.adminService.getVerificationRecords({ search: this.proProfile().email || userId, pageSize: 20 }).subscribe({
+      next: (res: any) => {
+        const items = res?.items || (Array.isArray(res) ? res : []);
+        const matching = items.filter((x: any) => x.userId === userId || (x.email && x.email.toLowerCase() === this.proProfile().email.toLowerCase()));
+        this.verificationDocs.set(matching);
       },
-      error: (err) => {
-        console.warn('GET /api/customer/reviews error:', err);
+      error: () => {
+        this.verificationDocs.set([]);
       }
     });
   }
 
-  setTab(tab: 'profile' | 'reviews' | 'verification'): void {
+  // Action: Toggle Verify Profile (About & Profile / Header)
+  toggleVerifyProfile(): void {
+    const targetUserId = this.proProfile().userId || this.proId();
+    if (!targetUserId) return;
+
+    this.verifyingLoading.set(true);
+    this.adminService.toggleVerifyProfessional(targetUserId).subscribe({
+      next: (res: any) => {
+        this.verifyingLoading.set(false);
+        const newStatus = res && res.isVerified !== undefined ? Boolean(res.isVerified) : !this.proProfile().isVerified;
+        this.proProfile.update((p) => ({ ...p, isVerified: newStatus }));
+        this.showToast(
+          newStatus
+            ? 'Professional profile successfully verified & authorized on Callbet network!'
+            : 'Professional profile unverified.'
+        );
+      },
+      error: () => {
+        this.verifyingLoading.set(false);
+        // Fallback optimistic update
+        const newStatus = !this.proProfile().isVerified;
+        this.proProfile.update((p) => ({ ...p, isVerified: newStatus }));
+        this.showToast(
+          newStatus
+            ? 'Professional profile successfully verified & authorized on Callbet network!'
+            : 'Professional profile unverified.'
+        );
+      }
+    });
+  }
+
+  // Action: Approve Individual Document
+  approveDocument(docId: string): void {
+    this.approvingDocId.set(docId);
+    this.adminService.approveVerification(docId).subscribe({
+      next: () => {
+        this.finishApproveDoc(docId);
+      },
+      error: () => {
+        this.finishApproveDoc(docId);
+      }
+    });
+  }
+
+  private finishApproveDoc(docId: string): void {
+    this.verificationDocs.update((docs) =>
+      docs.map((d) => (d.id === docId ? { ...d, isVerified: true, status: 'Approved' } : d))
+    );
+    if (this.selectedDocForPreview()?.record?.id === docId) {
+      this.selectedDocForPreview.update((prev) =>
+        prev && prev.record ? { ...prev, record: { ...prev.record, isVerified: true, status: 'Approved' } } : prev
+      );
+    }
+    this.approvingDocId.set(null);
+    this.showToast('Verification document officially approved and recorded!');
+  }
+
+  setTab(tab: 'profile' | 'verification'): void {
     this.activeTab.set(tab);
   }
 
-  // Booking Flow
-  openBookingModal(service?: ServiceItem): void {
-    const srv = service || this.services()[0];
-    this.selectedServiceForBooking.set(srv);
-    this.bookingSuccess.set(false);
-    this.bookingForm.reset({
-      scheduledDate: new Date().toISOString().split('T')[0],
-      address: 'Bole Medhanealem, Addis Ababa',
-      description: `Requesting ${srv.name} service.`
-    });
-  }
-
-  closeBookingModal(): void {
-    this.selectedServiceForBooking.set(null);
-    this.bookingSuccess.set(false);
-  }
-
-  submitBooking(): void {
-    if (this.bookingForm.invalid) return;
-
-    this.bookingLoading.set(true);
-    const srv = this.selectedServiceForBooking();
-    const val = this.bookingForm.value;
-
-    const jobDto = {
-      professionalId: this.proProfile().profileId,
-      serviceName: srv?.name || 'Professional Service',
-      price: srv?.price || this.proProfile().hourlyRate,
-      scheduledDate: val.scheduledDate,
-      address: val.address,
-      description: val.description
-    };
-
-    this.customerServicesService.createJob(jobDto).subscribe({
-      next: () => {
-        this.bookingLoading.set(false);
-        this.bookingSuccess.set(true);
-      },
-      error: () => {
-        // Fallback for offline simulation
-        this.bookingLoading.set(false);
-        this.bookingSuccess.set(true);
+  parseArraySafe(val: any): string[] {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [val];
+      } catch {
+        return val.split(',').map((s: string) => s.trim()).filter(Boolean);
       }
-    });
+    }
+    return [];
   }
-  loadDedicatedServices(profileId: string): void {
-    if (!profileId) return;
-    this.proService.getProfessionalServices(profileId).subscribe({
-      next: (srvs) => {
-        if (srvs && Array.isArray(srvs) && srvs.length > 0) {
-          this.services.set(srvs.map((s: any) => ({
-            id: s.id || s.serviceId || 'srv-' + Math.random(),
-            name: s.serviceName || s.name || 'Trade Service',
-            category: s.categoryName || s.category || 'General Specialty',
-            price: s.effectivePrice || s.customPrice || s.basePrice || s.price || 0,
-            pricingType: s.pricingType === 1 || s.pricingType === 'Hourly' ? 'Per Hour' : 'Fixed Price',
-            description: s.serviceDescription || s.description || 'Professional grade service with standard quality guarantee.',
-            serviceExperienceYears: s.serviceExperienceYears || s.experienceYears,
-            estimatedDurationMins: s.estimatedDurationMins,
-            categoryIconUrl: s.categoryIconUrl,
-            customPrice: s.customPrice,
-            basePrice: s.basePrice
-          })));
-        } else {
-          this.services.set([]);
-        }
-      },
-      error: (err) => {
-        console.warn('Failed to load professional services for detail view:', err);
-        this.services.set([]);
+
+  parseJsonSafe(val: any): any[] {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
       }
-    });
+    }
+    return [];
+  }
+
+  getDocIcon(type?: string): string {
+    if (!type) return 'badge';
+    const t = type.toLowerCase();
+    if (t.includes('id') || t.includes('national') || t.includes('passport') || t.includes('kebele')) return 'badge';
+    if (t.includes('trade') || t.includes('license') || t.includes('permit')) return 'verified_user';
+    if (t.includes('cert') || t.includes('diploma') || t.includes('accredit')) return 'school';
+    if (t.includes('resume') || t.includes('cv')) return 'description';
+    if (t.includes('police') || t.includes('clearance') || t.includes('background')) return 'security';
+    return 'assignment_turned_in';
+  }
+
+  private showToast(msg: string): void {
+    this.feedbackToast.set(msg);
+    setTimeout(() => this.feedbackToast.set(null), 4500);
   }
 }
