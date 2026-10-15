@@ -1,70 +1,59 @@
 <div class="module-page-container">
-  <!-- Onboarding Stepper Navigation Bar -->
-  <div class="stepper-progress-bar">
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Profile & Rates</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Resume / CV</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Certificates</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item active">
-      <span class="step-num">4</span>
-      <span class="step-label">Portfolio</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item">
-      <span class="step-num">5</span>
-      <span class="step-label">Verification</span>
+  <!-- Top Navigation Toolbar -->
+  <div class="pro-top-nav-bar">
+    <a routerLink="/professional-dashboard" class="btn-nav-item btn-dashboard-back" title="Go to Professional Dashboard">
+      <mat-icon>dashboard</mat-icon>
+      <span>Professional Dashboard</span>
+    </a>
+    <div class="nav-links-cluster">
+      <a routerLink="/professional-profile" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>person</mat-icon>
+        <span>Profile</span>
+      </a>
+      <a routerLink="/resume-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>description</mat-icon>
+        <span>Resume & Skills</span>
+      </a>
+      <a routerLink="/certificate-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>verified</mat-icon>
+        <span>Certificates</span>
+      </a>
+      <a routerLink="/portfolio-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>photo_library</mat-icon>
+        <span>Portfolio</span>
+      </a>
+      <a routerLink="/verification-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>shield</mat-icon>
+        <span>ID Verification</span>
+      </a>
     </div>
   </div>
 
-  <!-- Top Header Card -->
+  <!-- Top Navigation Header -->
   <div class="module-header-card">
     <div class="header-left">
       <div class="header-badge">
         <mat-icon>photo_library</mat-icon>
-        <span>Step 4 of 5: Visual Proof of Work</span>
+        <span>Project Showcase</span>
       </div>
-      <h2>Upload Portfolio Project</h2>
+      <h2>Completed Work Portfolio</h2>
       <p class="subtitle">
-        Showcase real before-and-after work samples to build customer trust and convert inquiries into booked jobs.
+        Showcase your past trade accomplishments, client results, and before/after project proofs to boost client conversion and hire rates.
       </p>
-    </div>
-
-    <div class="header-actions">
-      <!-- Back Button -->
-      <a routerLink="/certificate-upload" class="btn-header-secondary btn-back-nav">
-        <mat-icon>arrow_back</mat-icon>
-        <span>Back to Certificates</span>
-      </a>
-      <a routerLink="/verification-upload" class="btn-header-secondary">
-        <mat-icon>arrow_forward</mat-icon>
-        <span>Skip to Verification &rarr;</span>
-      </a>
     </div>
   </div>
 
-  <!-- Messages -->
   @if (uploadSuccess()) {
     <div class="success-banner-custom">
       <mat-icon>check_circle</mat-icon>
       <div>
-        <strong>Portfolio Project Added!</strong>
-        <p>Redirecting you to Step 5: Identity & Verification (e-KYC) in a moment...</p>
+        <strong>Portfolio Item Uploaded Successfully!</strong>
+        <p>Your work showcase is saved and now visible on your public trade portfolio.</p>
       </div>
       <div class="banner-quick-actions">
-        <button type="button" (click)="continueToVerification()" class="btn-banner-action">
-          <mat-icon>arrow_forward</mat-icon> Continue Now &rarr;
-        </button>
+        <a routerLink="/professional-dashboard" class="btn-banner-action">
+          <mat-icon>dashboard</mat-icon> Back to Dashboard
+        </a>
       </div>
     </div>
   }
@@ -73,7 +62,7 @@
     <div class="error-banner-custom">
       <mat-icon>error_outline</mat-icon>
       <div>
-        <strong>Upload Error</strong>
+        <strong>Portfolio Upload Error</strong>
         <p>{{ uploadError() }}</p>
       </div>
     </div>
@@ -83,59 +72,61 @@
   <div class="module-content-grid">
     <!-- Form Side -->
     <div class="form-container-card">
-      <!-- Quick Presets -->
-      <div class="presets-box">
-        <span class="presets-label"><mat-icon>auto_fix_high</mat-icon> One-Click Sample Presets:</span>
-        <div class="presets-list">
-          @for (sample of sampleProjects; track sample.title) {
-            <button type="button" class="preset-pill" (click)="applyPreset(sample)">
-              {{ sample.category }}
-            </button>
-          }
-        </div>
-      </div>
-
       <form [formGroup]="portfolioForm" (ngSubmit)="onSubmit()" class="custom-form">
         <!-- Project Title -->
         <div class="custom-field-group">
-          <label for="title">Project / Work Title *</label>
+          <div class="field-label-row">
+            <label for="title">Project / Work Title *</label>
+            <span class="field-hint">{{ portfolioForm.get('title')?.value?.length || 0 }}/70 chars &bull; Words only</span>
+          </div>
           <div class="custom-input-wrap" [class.has-error]="portfolioForm.get('title')?.invalid && portfolioForm.get('title')?.touched">
             <mat-icon class="field-icon">title</mat-icon>
             <input
               id="title"
               type="text"
               formControlName="title"
-              placeholder="e.g. Modern Bathroom Renovation"
+              maxlength="70"
+              placeholder="e.g. Modern Bathroom Renovation and Tile Installation"
             />
           </div>
           @if (portfolioForm.get('title')?.hasError('required') && portfolioForm.get('title')?.touched) {
             <span class="error-text">Project title is required</span>
           }
-          @if (portfolioForm.get('title')?.hasError('maxlength')) {
-            <span class="error-text">Maximum 100 characters allowed</span>
+          @if (portfolioForm.get('title')?.hasError('maxlength') && portfolioForm.get('title')?.touched) {
+            <span class="error-text">Project title cannot exceed 70 characters</span>
+          }
+          @if (portfolioForm.get('title')?.hasError('pattern') && portfolioForm.get('title')?.touched) {
+            <span class="error-text">Project title must contain words/letters only (no numbers/integers allowed)</span>
           }
         </div>
 
         <!-- Description -->
         <div class="custom-field-group">
-          <label for="description">Detailed Description & Materials Used *</label>
+          <div class="field-label-row">
+            <label for="description">Detailed Description & Materials Used *</label>
+            <span class="field-hint">{{ portfolioForm.get('description')?.value?.length || 0 }}/500 chars</span>
+          </div>
           <div class="custom-textarea-wrap" [class.has-error]="portfolioForm.get('description')?.invalid && portfolioForm.get('description')?.touched">
             <textarea
               id="description"
               formControlName="description"
               rows="4"
-              placeholder="Explain the problem, work performed, equipment used, and final result..."
+              maxlength="500"
+              placeholder="Explain the problem, work performed, equipment used, and final result (max 500 characters)..."
             ></textarea>
           </div>
           @if (portfolioForm.get('description')?.hasError('required') && portfolioForm.get('description')?.touched) {
             <span class="error-text">Description is required</span>
           }
+          @if (portfolioForm.get('description')?.hasError('maxlength') && portfolioForm.get('description')?.touched) {
+            <span class="error-text">Description cannot exceed 500 characters</span>
+          }
         </div>
 
         <!-- Project Photo / Image Selection -->
         <div class="custom-field-group">
-          <label for="imageUrl">Project Photo (File Upload or URL) *</label>
-          
+          <label>Project Photo (File Upload) *</label>
+
           <div class="file-picker-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
             <input
               #fileInput
@@ -165,17 +156,8 @@
             }
           </div>
 
-          <div class="custom-input-wrap" [class.has-error]="portfolioForm.get('imageUrl')?.invalid && portfolioForm.get('imageUrl')?.touched">
-            <mat-icon class="field-icon">add_photo_alternate</mat-icon>
-            <input
-              id="imageUrl"
-              type="text"
-              formControlName="imageUrl"
-              placeholder="Or paste image URL (https://...)"
-            />
-          </div>
           @if (portfolioForm.get('imageUrl')?.hasError('required') && portfolioForm.get('imageUrl')?.touched) {
-            <span class="error-text">Please upload an image or provide an image URL</span>
+            <span class="error-text">Please upload an image file</span>
           }
         </div>
 
@@ -210,7 +192,7 @@
               <span>Uploading Project...</span>
             } @else {
               <mat-icon>add_circle</mat-icon>
-              <span>Save & Continue to Step 5 &rarr;</span>
+              <span>Publish Project</span>
             }
           </button>
         </div>
