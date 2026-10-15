@@ -25,84 +25,91 @@ $font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
   font-family: $font-body;
 }
 
-// Stepper Progress Bar
-.stepper-progress-bar {
+// Top Navigation Toolbar
+.pro-top-nav-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   background: $white;
   border: 1px solid $slate-200;
   border-radius: 16px;
-  padding: 14px 24px;
+  padding: 10px 18px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
-  overflow-x: auto;
-  gap: 8px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
 
-  .step-item {
-    display: flex;
+  .btn-nav-item {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    opacity: 0.55;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: $slate-600;
+    background: $slate-100;
+    border: 1px solid $slate-200;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
-    .step-num {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: $slate-100;
-      color: $slate-600;
-      font-weight: 800;
-      font-size: 0.8rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid $slate-300;
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: $slate-500;
+      transition: color 0.2s ease;
     }
 
-    .step-label {
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: $slate-600;
+    &:hover {
+      background: $slate-200;
+      color: $slate-900;
+      border-color: $slate-300;
+      transform: translateY(-1px);
+
+      mat-icon {
+        color: $slate-900;
+      }
     }
 
     &.active {
-      opacity: 1;
+      background: #0f172a;
+      color: $white;
+      border-color: #0f172a;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
 
-      .step-num {
-        background: $primary;
-        color: $white;
-        border-color: $primary;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-      }
-
-      .step-label {
-        color: $primary;
-      }
-    }
-
-    &.completed {
-      opacity: 0.9;
-
-      .step-num {
-        background: #10b981;
-        color: $white;
-        border-color: #10b981;
-      }
-
-      .step-label {
-        color: #065f46;
+      mat-icon {
+        color: #38bdf8;
       }
     }
   }
 
-  .step-line {
-    flex: 1;
-    height: 2px;
-    background: $slate-200;
-    min-width: 16px;
-    margin: 0 4px;
+  .btn-dashboard-back {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+    font-weight: 700;
+
+    mat-icon {
+      color: #2563eb;
+    }
+
+    &:hover {
+      background: #dbeafe;
+      color: #1e40af;
+      border-color: #93c5fd;
+
+      mat-icon {
+        color: #1d4ed8;
+      }
+    }
+  }
+
+  .nav-links-cluster {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 
@@ -341,55 +348,6 @@ $font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
   border-radius: 24px;
   padding: 32px;
   box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
-
-  .presets-box {
-    background: $slate-50;
-    border: 1px solid $slate-200;
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 24px;
-
-    .presets-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: $slate-600;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-
-      mat-icon {
-        font-size: 16px;
-        color: $primary;
-      }
-    }
-
-    .presets-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-
-      .preset-pill {
-        border: 1px solid $slate-300;
-        background: $white;
-        border-radius: 8px;
-        padding: 6px 12px;
-        font-family: inherit;
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: $slate-700;
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover {
-          border-color: $primary;
-          color: $primary;
-          background: $primary-light;
-        }
-      }
-    }
-  }
 
   .custom-form {
     display: flex;
@@ -733,85 +691,69 @@ $font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
     }
   }
 
-  // Next steps hub
-  .pro-suite-hub-card {
-    background: $slate-900;
-    color: $white;
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 16px 36px -10px rgba(15, 23, 42, 0.25);
-
-    .hub-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: $font-heading;
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #38bdf8;
-      margin: 0 0 16px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-
-      mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-      }
-    }
-
-    .hub-links-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-
-      @media (max-width: 500px) {
-        grid-template-columns: 1fr;
-      }
-
-      .hub-tile {
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 12px;
-        text-decoration: none;
-        color: $white;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.2s ease;
-
-        mat-icon {
-          font-size: 22px;
-          color: #38bdf8;
-          flex-shrink: 0;
-        }
-
-        .tile-text {
-          display: flex;
-          flex-direction: column;
-
-          strong {
-            font-size: 0.85rem;
-            color: $white;
-          }
-
-          span {
-            font-size: 0.72rem;
-            color: $slate-400;
-          }
-        }
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.12);
-          border-color: #38bdf8;
-          transform: translateY(-2px);
-        }
-      }
-    }
-  }
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+
+// Field Label Row, Hint, and Example Guide Enhancements
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+
+  label {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #334155;
+    margin: 0;
+  }
+
+  .field-hint {
+    font-size: 0.74rem;
+    color: #64748b;
+    font-weight: 600;
+  }
+}
+
+.field-example-guide {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.15rem 0 0.45rem;
+  font-size: 0.78rem;
+  color: #475569;
+  background: #f8fafc;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  border-left: 3px solid #6366f1;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #6366f1;
+    flex-shrink: 0;
+  }
+
+  code {
+    background: #eef2ff;
+    color: #3730a3;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.76rem;
+  }
+}
+
+.error-text {
+  font-size: 0.75rem;
+  color: #dc2626;
+  font-weight: 600;
+  display: block;
+  margin-top: 4px;
 }
