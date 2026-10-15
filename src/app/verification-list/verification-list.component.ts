@@ -91,90 +91,6 @@ export class VerificationListComponent implements OnInit {
     descending: [true, Validators.required]
   });
 
-  // Default seed verification records for resilient rendering
-  private fallbackRecords: VerificationRecordItem[] = [
-    {
-      id: 'ver-201',
-      professionalName: 'Tenagasha Wollela',
-      applicantName: 'Tenagasha Wollela',
-      email: 'tenagasha.w@callbet.et',
-      phone: '+251 92 345 6789',
-      headline: 'Certified Master Electrician & Deep Cleaning Specialist',
-      category: 'Electrical & Power',
-      documentType: 'Trade License (Ministry of Innovation & Tech)',
-      documentUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop&q=80',
-      isVerified: true,
-      status: 'Approved',
-      verificationDate: '2026-02-10T14:30:00Z',
-      userId: '09a41aeb-4e62-4f5f-b994-fc965117be83',
-      notes: 'Passed federal background check and trade audit #ET-2024-9988.'
-    },
-    {
-      id: 'ver-202',
-      professionalName: 'Ermias Alemayehu',
-      applicantName: 'Ermias Alemayehu',
-      email: 'ermias.a@callbet.et',
-      phone: '+251 91 234 5678',
-      headline: 'Certified Master Plumber & Gas Pipe Fitter',
-      category: 'Sanitary Plumbing',
-      documentType: 'National e-ID Card',
-      documentUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
-      isVerified: false,
-      status: 'Pending',
-      verificationDate: '2026-08-28T10:15:00Z',
-      userId: 'u-106',
-      notes: 'New applicant submitted Ethiopian National ID for KYC verification.'
-    },
-    {
-      id: 'ver-203',
-      professionalName: 'Blen Hailu',
-      applicantName: 'Blen Hailu',
-      email: 'blen.h@callbet.et',
-      phone: '+251 93 456 7890',
-      headline: 'Certified HVAC & Appliance Repair Specialist',
-      category: 'Appliance Repair',
-      documentType: 'HVAC Vocational Accreditation Certificate',
-      documentUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop&q=80',
-      isVerified: false,
-      status: 'Pending',
-      verificationDate: '2026-08-27T16:45:00Z',
-      userId: 'u-105',
-      notes: 'Appliance repair diploma from Addis Ababa TVET College.'
-    },
-    {
-      id: 'ver-204',
-      professionalName: 'Dawit Getachew',
-      applicantName: 'Dawit Getachew',
-      email: 'dawit.g@callbet.et',
-      phone: '+251 94 567 8901',
-      headline: 'Senior Commercial Painter & Drywall Specialist',
-      category: 'Home Painting',
-      documentType: 'Federal Police Clearance Certificate',
-      documentUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156a?w=800&auto=format&fit=crop&q=80',
-      isVerified: true,
-      status: 'Approved',
-      verificationDate: '2026-03-01T09:00:00Z',
-      userId: 'u-103',
-      notes: 'Clear criminal background report verified by Federal Police Commission.'
-    },
-    {
-      id: 'ver-205',
-      professionalName: 'Amanuel Teshome',
-      applicantName: 'Amanuel Teshome',
-      email: 'amanuel.t@callbet.et',
-      phone: '+251 91 999 8877',
-      headline: 'Interior & Exterior Wall Finisher',
-      category: 'Masonry & Painting',
-      documentType: 'Structured Professional Resume & Portfolio',
-      documentUrl: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&auto=format&fit=crop&q=80',
-      isVerified: false,
-      status: 'Pending',
-      verificationDate: '2026-08-26T11:20:00Z',
-      userId: 'u-108',
-      notes: 'Work history portfolio with 8 residential project completions.'
-    }
-  ];
-
   // Computed Metrics
   totalPages = computed(() => Math.max(1, Math.ceil(this.totalCount() / this.pageSize())));
 
@@ -242,32 +158,17 @@ export class VerificationListComponent implements OnInit {
           this.records.set(mapped);
           this.totalCount.set(mapped.length);
         } else {
-          this.applyLocalSearchFallback(formValue.search);
+          this.records.set([]);
+          this.totalCount.set(0);
         }
       },
       error: (err) => {
-        console.warn('getVerificationRecords failed, using fallback list:', err);
+        console.warn('getVerificationRecords failed:', err);
         this.loading.set(false);
-        this.applyLocalSearchFallback(formValue.search);
+        this.records.set([]);
+        this.totalCount.set(0);
       }
     });
-  }
-
-  private applyLocalSearchFallback(searchQuery?: string | null): void {
-    let list = [...this.fallbackRecords];
-    if (searchQuery && searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(r =>
-        (r.documentType && r.documentType.toLowerCase().includes(q)) ||
-        (r.professionalName && r.professionalName.toLowerCase().includes(q)) ||
-        (r.applicantName && r.applicantName.toLowerCase().includes(q)) ||
-        (r.email && r.email.toLowerCase().includes(q)) ||
-        (r.userId && r.userId.toLowerCase().includes(q)) ||
-        (r.id && r.id.toLowerCase().includes(q))
-      );
-    }
-    this.records.set(list);
-    this.totalCount.set(list.length);
   }
 
   private normalizeRecord(item: any): VerificationRecordItem {
@@ -278,17 +179,17 @@ export class VerificationListComponent implements OnInit {
       id: item.id || 'ver-' + Math.random().toString(36).substring(2, 8),
       professionalName: proName,
       applicantName: proName,
-      email: item.email || 'applicant@callbet.et',
-      phone: item.phoneNumber || item.phone || '+251 90 000 0000',
-      headline: item.headline || 'Licensed Technical Specialist',
-      category: item.category || 'Home Improvement',
+      email: item.email || item.userEmail || '',
+      phone: item.phoneNumber || item.phone || '',
+      headline: item.headline || '',
+      category: item.category || 'Trade Compliance',
       documentType: item.documentType || 'Trade License & National ID',
-      documentUrl: item.documentUrl || item.fileUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
+      documentUrl: item.documentUrl || item.fileUrl || '',
       isVerified: isVer,
       status: item.status || (isVer ? 'Approved' : 'Pending'),
       verificationDate: item.verificationDate || item.submittedDate || item.createdAt || new Date().toISOString(),
       userId: item.userId || item.professionalId || '',
-      notes: item.notes || 'Submitted for e-KYC compliance standard review.'
+      notes: item.notes || ''
     };
   }
 
@@ -432,7 +333,7 @@ export class VerificationListComponent implements OnInit {
   }
 
   formatImageUrl(url?: string): string {
-    if (!url) return 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80';
+    if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
     if (url.startsWith('/')) return `http://localhost:5189${url}`;
     return `http://localhost:5189/${url}`;

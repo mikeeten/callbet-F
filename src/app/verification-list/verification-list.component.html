@@ -23,8 +23,8 @@
       <a mat-stroked-button color="accent" routerLink="/admin-users" class="btn-nav">
         <mat-icon>people</mat-icon> User Directory
       </a>
-      <a mat-stroked-button color="accent" routerLink="/verification-upload" class="btn-nav">
-        <mat-icon>add_photo_alternate</mat-icon> Upload Scan
+      <a mat-stroked-button routerLink="/admin-service-zones" class="btn-nav">
+        <mat-icon>map</mat-icon> Service Zones
       </a>
       <a mat-stroked-button color="accent" routerLink="/admin-logs" class="btn-nav">
         <mat-icon>manage_history</mat-icon> Audit Logs
@@ -108,7 +108,7 @@
         <input
           type="text"
           formControlName="search"
-          placeholder="Search by Document Type, Applicant Name, or User ID..."
+          placeholder="Search by Document Type, Applicant Name, or Email..."
         />
         @if (searchForm.get('search')?.value) {
           <button mat-icon-button type="button" class="btn-clear-search" (click)="clearSearch()">
@@ -271,6 +271,15 @@
                     <div class="doc-meta-text">
                       <strong class="doc-title">{{ record.documentType }}</strong>
                       <span class="doc-sub">Category: {{ record.category || 'Trade Compliance' }}</span>
+                      @if (record.email) {
+                        <div class="doc-email-row">
+                          <mat-icon class="email-icon">mail_outline</mat-icon>
+                          <span class="doc-email-text">{{ record.email }}</span>
+                          <button type="button" class="btn-copy-email" (click)="copyText(record.email, 'Applicant Email')" matTooltip="Copy Email">
+                            <mat-icon>content_copy</mat-icon>
+                          </button>
+                        </div>
+                      }
                       @if (record.notes) {
                         <span class="doc-notes" [matTooltip]="record.notes">
                           <mat-icon>info</mat-icon> {{ record.notes }}
@@ -290,13 +299,8 @@
                       }
                     </div>
                     <span class="applicant-headline">{{ record.headline || 'Licensed Contractor' }}</span>
-                    @if (record.userId) {
-                      <div class="id-snippet">
-                        <code>ID: {{ record.userId.substring(0, 8) }}...</code>
-                        <button type="button" class="btn-copy-id" (click)="copyText(record.userId, 'User ID')" matTooltip="Copy User ID">
-                          <mat-icon>content_copy</mat-icon>
-                        </button>
-                      </div>
+                    @if (record.email) {
+                      <span class="applicant-email-snippet">{{ record.email }}</span>
                     }
                   </div>
                 </td>
@@ -468,6 +472,9 @@
               <h3>{{ doc.title }}</h3>
               <p class="doc-sub">
                 Applicant: <strong>{{ doc.record?.professionalName || doc.record?.applicantName || 'Applicant' }}</strong>
+                @if (doc.record?.email) {
+                  &bull; <span>{{ doc.record?.email }}</span>
+                }
                 &bull; Status: <strong>{{ doc.record?.isVerified ? 'Verified & Active' : 'Pending Audit' }}</strong>
               </p>
             </div>
@@ -492,6 +499,10 @@
             <div class="meta-item">
               <span class="lbl"><mat-icon>account_circle</mat-icon> Applicant</span>
               <strong>{{ doc.record?.professionalName || doc.record?.applicantName || 'Specialist' }}</strong>
+            </div>
+            <div class="meta-item">
+              <span class="lbl"><mat-icon>email</mat-icon> User Email</span>
+              <strong class="meta-email">{{ doc.record?.email || 'applicant@callbet.et' }}</strong>
             </div>
             <div class="meta-item">
               <span class="lbl"><mat-icon>verified</mat-icon> Audit Status</span>
