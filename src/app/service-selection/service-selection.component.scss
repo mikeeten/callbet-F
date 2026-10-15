@@ -602,6 +602,13 @@
 
           .form-field-half {
             width: 100%;
+
+            .currency-prefix {
+              font-weight: 700;
+              font-size: 0.85rem;
+              color: #4f46e5;
+              margin-right: 4px;
+            }
           }
         }
 

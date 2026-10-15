@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -64,6 +64,7 @@ export class ServiceSelectionComponent implements OnInit {
   private adminControlService = inject(AdminControlService);
   private professionalService = inject(ProfessionalService);
   private authService = inject(AuthService);
+  private router = inject(Router);
 
   // Authenticated Professional Identity (Extracted from Token & Backend Profile)
   resolvedProId = signal<string | null>(null);
@@ -125,8 +126,14 @@ export class ServiceSelectionComponent implements OnInit {
   // Reactive assignment form (No manual professionalProfileId input needed!)
   assignForm = this.fb.group({
     customPrice: [100, [Validators.required, Validators.min(1)]],
-    experienceYears: [3, [Validators.required, Validators.min(0), Validators.max(40)]]
+    experienceYears: [3, [Validators.required, Validators.min(1), Validators.max(50), Validators.pattern('^[1-9][0-9]*$')]]
   });
+
+  preventNonInteger(event: KeyboardEvent): void {
+    if (['.', ',', '-', 'e', 'E', '+'].includes(event.key)) {
+      event.preventDefault();
+    }
+  }
 
   ngOnInit(): void {
     this.resolveProfessionalIdentity();
@@ -137,15 +144,16 @@ export class ServiceSelectionComponent implements OnInit {
    * Format image URL to handle relative backend paths or absolute URLs
    */
   formatImageUrl(url?: string | null): string {
-    if (!url) return '';
+    if (!url || url.trim() === '') return '';
+    if (url.includes('unsplash.com')) return ''; // Ignore mock prototype images
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
     if (url.startsWith('/')) return `http://localhost:5189${url}`;
     return `http://localhost:5189/${url}`;
   }
 
   onAvatarError(): void {
-    // Fallback to high-quality artisan avatar on load error
-    this.proAvatarUrl.set('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
+    // Clear avatar url to fallback to user initials
+    this.proAvatarUrl.set(null);
   }
 
   /**
@@ -159,12 +167,13 @@ export class ServiceSelectionComponent implements OnInit {
       this.proName.set(`${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || currentUser.email || 'Verified Trade Specialist');
       this.proEmail.set(currentUser.email || '');
       if (currentUser.profilePhotoUrl) {
-        this.proAvatarUrl.set(this.formatImageUrl(currentUser.profilePhotoUrl));
+        const formatted = this.formatImageUrl(currentUser.profilePhotoUrl);
+        this.proAvatarUrl.set(formatted || null);
       } else {
-        this.proAvatarUrl.set('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
+        this.proAvatarUrl.set(null);
       }
     } else {
-      this.proAvatarUrl.set('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
+      this.proAvatarUrl.set(null);
     }
 
     if (tokenUserId) {
@@ -175,6 +184,10 @@ export class ServiceSelectionComponent implements OnInit {
     this.professionalService.getMyProfile().subscribe({
       next: (profile) => {
         if (profile) {
+          if (profile.isVerified === false && !this.authService.isAdmin()) {
+            this.router.navigate(['/professional-dashboard']);
+            return;
+          }
           this.proProfile.set(profile);
           const pId = profile.id || profile.profileId || profile.userId || tokenUserId;
           if (pId) {
@@ -188,7 +201,8 @@ export class ServiceSelectionComponent implements OnInit {
           }
           const photo = profile.profilePhotoUrl || profile.avatarUrl || profile.photoUrl || profile.user?.profilePhotoUrl || currentUser?.profilePhotoUrl;
           if (photo) {
-            this.proAvatarUrl.set(this.formatImageUrl(photo));
+            const formatted = this.formatImageUrl(photo);
+            this.proAvatarUrl.set(formatted || null);
           }
           if (profile.services && Array.isArray(profile.services)) {
             const assignedIds = new Set<string>(profile.services.map((s: any) => String(s.serviceId || s.id)));
@@ -208,12 +222,17 @@ export class ServiceSelectionComponent implements OnInit {
     this.professionalService.getProfessionalProfileDashboard().subscribe({
       next: (dashData) => {
         if (dashData) {
+          if (dashData.isVerified === false && !this.authService.isAdmin()) {
+            this.router.navigate(['/professional-dashboard']);
+            return;
+          }
           if (dashData.fullName && !this.proProfile()?.fullName) {
             this.proName.set(dashData.fullName);
           }
           const photo = dashData.profilePhotoUrl || dashData.avatarUrl;
           if (photo) {
-            this.proAvatarUrl.set(this.formatImageUrl(photo));
+            const formatted = this.formatImageUrl(photo);
+            this.proAvatarUrl.set(formatted || null);
           }
         }
       },
@@ -262,12 +281,6 @@ export class ServiceSelectionComponent implements OnInit {
 
             this.allServices.set(combinedServices);
             this.loadingServices.set(false);
-
-            // Auto-select first service so Service Activation Studio is ready immediately
-            if (combinedServices.length > 0 && !this.selectedService()) {
-              const firstChoice = combinedServices.find((s) => !this.isServiceAlreadyAssigned(s.id)) || combinedServices[0];
-              this.selectService(firstChoice, false);
-            }
           },
           error: (err) => {
             console.error('Failed to load services across categories:', err);
@@ -340,11 +353,12 @@ export class ServiceSelectionComponent implements OnInit {
       this.assignError.set(null);
 
       const formValue = this.assignForm.value;
+      const parsedExp = parseInt(String(formValue.experienceYears), 10);
       const assignData = {
         professionalProfileId: proId,
         serviceId: selected.id,
         customPrice: Number(formValue.customPrice) || selected.basePrice,
-        experienceYears: Number(formValue.experienceYears) || 1
+        experienceYears: Number.isInteger(parsedExp) && parsedExp > 0 ? parsedExp : 1
       };
 
       this.professionalService.assignService(assignData).subscribe({
@@ -357,18 +371,9 @@ export class ServiceSelectionComponent implements OnInit {
           this.assignedServiceIds.set(updated);
         },
         error: (err) => {
-          // If backend returns error or simulation fallback
           this.submitting.set(false);
           const msg = err?.error?.message || err?.message;
-          if (msg && !msg.includes('500')) {
-            this.assignError.set(msg);
-          } else {
-            // Optimistic success if assigned
-            this.assignSuccess.set(true);
-            const updated = new Set(this.assignedServiceIds());
-            updated.add(selected.id);
-            this.assignedServiceIds.set(updated);
-          }
+          this.assignError.set(msg || 'Failed to activate service. Please try again.');
         }
       });
     }

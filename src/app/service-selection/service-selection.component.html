@@ -167,7 +167,7 @@
                 <div class="bench-item">
                   <span class="bench-label">Platform Benchmark</span>
                   <span class="bench-val price-val">
-                    ${{ selected.basePrice }}<small>{{ selected.pricingType === 1 ? '/hr' : '' }}</small>
+                    {{ selected.basePrice }} ETB<small>{{ selected.pricingType === 1 ? '/hr' : '' }}</small>
                   </span>
                 </div>
                 <div class="bench-item">
@@ -208,26 +208,37 @@
               <div class="form-inputs-row">
                 <!-- Custom Pricing -->
                 <mat-form-field appearance="outline" class="form-field-half">
-                  <mat-label>Your Custom Price ($ USD / ETB)</mat-label>
-                  <input matInput type="number" formControlName="customPrice" placeholder="e.g. 120" />
-                  <mat-icon matPrefix>attach_money</mat-icon>
-                  <mat-hint>Platform benchmark: ${{ selected.basePrice }} ({{ selected.pricingType === 0 ? 'Fixed' : 'Hourly' }})</mat-hint>
+                  <mat-label>Your Custom Price (ETB)</mat-label>
+                  <input matInput type="number" formControlName="customPrice" min="1" placeholder="e.g. 500" />
+                  <span matPrefix class="currency-prefix">ETB&nbsp;</span>
+                  <mat-hint>Platform benchmark: {{ selected.basePrice }} ETB ({{ selected.pricingType === 0 ? 'Fixed' : 'Hourly' }})</mat-hint>
                   @if (assignForm.get('customPrice')?.hasError('required')) {
                     <mat-error>Custom price is required</mat-error>
                   }
                   @if (assignForm.get('customPrice')?.hasError('min')) {
-                    <mat-error>Price must be at least $1</mat-error>
+                    <mat-error>Price must be at least 1 ETB</mat-error>
                   }
                 </mat-form-field>
 
                 <!-- Years of Experience in this Trade -->
                 <mat-form-field appearance="outline" class="form-field-half">
                   <mat-label>Years of Experience in this Specialty</mat-label>
-                  <input matInput type="number" formControlName="experienceYears" placeholder="e.g. 5" />
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="experienceYears"
+                    placeholder="e.g. 5"
+                    min="1"
+                    step="1"
+                    (keydown)="preventNonInteger($event)"
+                  />
                   <mat-icon matPrefix>work_history</mat-icon>
-                  <mat-hint>Highlight specialized background to clients</mat-hint>
+                  <mat-hint>Positive whole number of years (e.g. 1, 2, 3...)</mat-hint>
                   @if (assignForm.get('experienceYears')?.hasError('required')) {
                     <mat-error>Experience years is required</mat-error>
+                  }
+                  @if (assignForm.get('experienceYears')?.hasError('min') || assignForm.get('experienceYears')?.hasError('pattern')) {
+                    <mat-error>Please enter a positive integer (e.g. 1, 2, 3...)</mat-error>
                   }
                 </mat-form-field>
               </div>
@@ -283,7 +294,7 @@
                   >
                     <mat-icon>{{ srv.categoryIcon || 'handyman' }}</mat-icon>
                     <span class="srv-lbl">{{ srv.name }}</span>
-                    <span class="srv-price">${{ srv.basePrice }}</span>
+                    <span class="srv-price">{{ srv.basePrice }} ETB</span>
                   </button>
                 }
               </div>
@@ -384,7 +395,7 @@
             <div class="card-footer-row">
               <div class="price-tag">
                 <span class="lbl">Platform Base:</span>
-                <span class="amt">${{ service.basePrice }}<small>{{ service.pricingType === 1 ? '/hr' : '' }}</small></span>
+                <span class="amt">{{ service.basePrice }} ETB<small>{{ service.pricingType === 1 ? '/hr' : '' }}</small></span>
               </div>
 
               <div class="duration-tag">
