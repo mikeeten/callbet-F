@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 
 export interface JobDto {
   customerId?: string | null;
@@ -42,6 +42,16 @@ export interface ProJob {
   description: string;
 }
 
+export interface PagedJobResponse {
+  items: ProJob[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -51,17 +61,107 @@ export class JobService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Fetch assigned jobs for a given professional from the backend
+   * Fetch assigned jobs with server-side pagination, search, and status filtering
+   */
+  getAssignedJobsPaged(
+    professionalId: string,
+    params?: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+      status?: string;
+      orderBy?: string;
+      descending?: boolean;
+    }
+  ): Observable<PagedJobResponse> {
+    let httpParams = new HttpParams();
+    if (params?.page) httpParams = httpParams.set('page', params.page.toString());
+    if (params?.pageSize) httpParams = httpParams.set('pageSize', params.pageSize.toString());
+    if (params?.search) httpParams = httpParams.set('search', params.search);
+    if (params?.status && params.status !== 'all') httpParams = httpParams.set('status', params.status);
+    if (params?.orderBy) httpParams = httpParams.set('orderBy', params.orderBy);
+    if (params?.descending !== undefined) httpParams = httpParams.set('descending', params.descending.toString());
+
+    return this.http.get<any>(`${this.baseUrl}/professional/${professionalId}`, { params: httpParams }).pipe(
+      map((res) => {
+        const rawItems = Array.isArray(res) ? res : (res?.items || []);
+        const items: ProJob[] = rawItems.map((j: any) => ({
+          id: j.id,
+          serviceName: j.serviceName || 'Home Service',
+          customerName: j.customerName || 'Customer',
+          customerPhone: j.customerPhone,
+          customerEmail: j.customerEmail,
+          customerId: j.customerId,
+          status: (j.status === 'Created' ? 'Assigned' : j.status) as any,
+          price: j.price || 0,
+          netPayout: j.netPayout ?? Math.round((j.price || 0) * 0.85 * 100) / 100,
+          platformFee: j.platformFee ?? Math.round((j.price || 0) * 0.15 * 100) / 100,
+          scheduledDate: j.scheduledDate || '',
+          address: j.address || '',
+          street: j.street,
+          city: j.city,
+          neighborhood: j.neighborhood,
+          subCity: j.subCity,
+          latitude: j.latitude,
+          longitude: j.longitude,
+          description: j.description || ''
+        }));
+
+        const totalCount = res?.totalCount ?? items.length;
+        const page = res?.page ?? (params?.page || 1);
+        const pageSize = res?.pageSize ?? (params?.pageSize || 10);
+        const totalPages = res?.totalPages ?? Math.max(1, Math.ceil(totalCount / pageSize));
+
+        return {
+          items,
+          totalCount,
+          page,
+          pageSize,
+          totalPages,
+          hasPrevious: page > 1,
+          hasNext: page < totalPages
+        };
+      })
+    );
+  }
+
+  /**
+   * Fetch assigned jobs for a given professional from the backend (backward compatibility)
    */
   getAssignedJobs(professionalId: string): Observable<ProJob[]> {
-    return this.http.get<ProJob[]>(`${this.baseUrl}/professional/${professionalId}`);
+    return this.http.get<any>(`${this.baseUrl}/professional/${professionalId}?pageSize=100`).pipe(
+      map((res) => {
+        const rawItems = Array.isArray(res) ? res : (res?.items || []);
+        return rawItems.map((j: any) => ({
+          id: j.id,
+          serviceName: j.serviceName || 'Home Service',
+          customerName: j.customerName || 'Customer',
+          customerPhone: j.customerPhone,
+          customerEmail: j.customerEmail,
+          customerId: j.customerId,
+          status: (j.status === 'Created' ? 'Assigned' : j.status) as any,
+          price: j.price || 0,
+          netPayout: j.netPayout ?? Math.round((j.price || 0) * 0.85 * 100) / 100,
+          platformFee: j.platformFee ?? Math.round((j.price || 0) * 0.15 * 100) / 100,
+          scheduledDate: j.scheduledDate || '',
+          address: j.address || '',
+          street: j.street,
+          city: j.city,
+          neighborhood: j.neighborhood,
+          subCity: j.subCity,
+          latitude: j.latitude,
+          longitude: j.longitude,
+          description: j.description || ''
+        }));
+      })
+    );
   }
 
   /**
    * Fetch all jobs assigned to a professional
    */
   getJobsByProfessional(professionalId: string): Observable<ProJob[]> {
-    return this.http.get<ProJob[]>(`${this.baseUrl}/professional/${professionalId}`);
+    return this.getAssignedJobs(professionalId);
   }
 
   /**
@@ -71,9 +171,6 @@ export class JobService {
     return this.http.get<ProJob>(`${this.baseUrl}/${jobId}`);
   }
 
-  /**
-   * Fetch jobs created by a customer
-   */
   /**
    * Fetch all booked jobs for the current logged-in user (Customer or Professional via JWT)
    */
