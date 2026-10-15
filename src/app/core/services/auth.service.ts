@@ -193,6 +193,10 @@ export class AuthService {
     return roles.some((r) => this.hasRole(r));
   }
 
+  isAdmin(): boolean {
+    return this.hasRole('Admin');
+  }
+
   /**
    * Get authenticated user's ID from session or decoded JWT Bearer token
    */
