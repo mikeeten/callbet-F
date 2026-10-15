@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -9,14 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { ProfessionalService } from '../../ProfessionalService/professional-profile.service';
 import { AuthService } from '../core/services/auth.service';
 
-export interface ResumePreset {
-  summary: string;
-  education: string;
-  experience: string;
-  skills: string;
-  languages: string;
-  resumeFileUrl: string;
-}
 
 @Component({
   selector: 'app-resume-upload',
@@ -33,7 +25,7 @@ export interface ResumePreset {
   templateUrl: './resume-upload.component.html',
   styleUrls: ['./resume-upload.component.scss']
 })
-export class ResumeUploadComponent implements OnInit, OnDestroy {
+export class ResumeUploadComponent implements OnInit {
   private fb = inject(FormBuilder);
   private professionalService = inject(ProfessionalService);
   private authService = inject(AuthService);
@@ -44,7 +36,7 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
   uploadError = signal<string | null>(null);
   loadedProfile = signal<any | null>(null);
   isDraggingFile = signal(false);
-  private redirectTimer: any = null;
+  isUploadingPdf = signal(false);
 
   // Computed Pro Meta for Live Preview
   proDisplayName = computed(() => {
@@ -57,13 +49,9 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
 
   proAvatarUrl = computed(() => {
     const p = this.loadedProfile();
-    const photo = p?.profilePhotoUrl || p?.avatarUrl;
-    if (photo) {
-      if (photo.startsWith('http') || photo.startsWith('data:')) return photo;
-      if (photo.startsWith('/')) return `http://localhost:5189${photo}`;
-      return `http://localhost:5189/uploads/${photo}`;
-    }
-    return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+    const url = p?.profilePhotoUrl || p?.avatarUrl || '';
+    if (url.includes('unsplash.com')) return '';
+    return url;
   });
 
   proHeadline = computed(() => {
@@ -88,51 +76,14 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
   // Quick Language Suggestions
   popularLanguages = ['Amharic', 'English', 'Afaan Oromoo', 'Tigrinya', 'Arabic', 'Somali'];
 
-  // Sample Resume Profiles for Quick-Fill
-  sampleResumes: Record<string, ResumePreset> = {
-    electrician: {
-      summary: 'Certified Master Electrician with 9+ years of commercial and residential smart wiring, distribution panels, and solar backup system installation.',
-      education: 'BSc in Electrical Engineering, Addis Ababa University (2018)',
-      experience: 'Lead Field Electrician at Apex Power & Infrastructure (2018 - 2024)',
-      skills: 'Smart Wiring, Breaker Panels, Solar Inverters, Circuit Troubleshooting, Surge Protection',
-      languages: 'Amharic, English',
-      resumeFileUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800'
-    },
-    cleaner: {
-      summary: 'Professional Eco-Cleaning Specialist with 6 years of expertise in hospital-grade deep sanitization, steam upholstery care, and post-construction renewal.',
-      education: 'Certified Hygiene & Bio-Sanitation Guild (#ET-2021-44)',
-      experience: 'Senior Cleaning Supervisor at CleanPro Services Addis (2020 - 2024)',
-      skills: 'Villa Deep Cleaning, Steam Sanitization, Sofa Upholstery, Tile Grout Restoration',
-      languages: 'Amharic, English, Afaan Oromoo',
-      resumeFileUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800'
-    },
-    plumber: {
-      summary: 'Licensed Master Plumber with 8 years solving high-pressure pipeline emergencies, sanitary fixtures, booster pumps, and water heating systems.',
-      education: 'Advanced Diploma in Hydraulic & Sanitary Systems, Tegbare-Id Polytechnic',
-      experience: 'Senior Plumbing Specialist at Addis Urban Utilities (2019 - 2024)',
-      skills: 'Pipe Leak Detection, Sanitary Plumbing, Water Heaters, Booster Pumps, Drain Descaling',
-      languages: 'Amharic, English',
-      resumeFileUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156a?w=800'
-    },
-    hvac: {
-      summary: 'Certified HVAC & Appliance Diagnostics Technician specialized in VRF central air, commercial cooling overhauls, and smart heat-pump installations.',
-      education: 'National HVAC-R Certification, Ministry of Labor & Skills',
-      experience: 'Field Lead at Horn Air Conditioning & Appliance Solutions (2019 - 2024)',
-      skills: 'HVAC Diagnostics, Compressor Overhaul, Refrigerant Recovery, Inverter Heat Pumps',
-      languages: 'Amharic, English, Tigrinya',
-      resumeFileUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800'
-    }
-  };
-
   selectedFile = signal<File | null>(null);
-  isUploadingPdf = signal(false);
 
   resumeForm = this.fb.group({
     summary: ['', [Validators.required, Validators.maxLength(500)]],
-    educationJson: ['', Validators.required],
-    experienceJson: ['', Validators.required],
-    skills: ['', Validators.required],
-    languages: ['', Validators.required],
+    educationJson: ['', [Validators.required, Validators.maxLength(100)]],
+    experienceJson: ['', [Validators.required, Validators.maxLength(100)]],
+    skills: ['', [Validators.required, Validators.maxLength(100)]],
+    languages: ['', [Validators.required, Validators.maxLength(70)]],
     resumeFileUrl: ['', Validators.required]
   });
 
@@ -163,13 +114,13 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
     if (typeof val === 'string') {
       try {
         const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) return parsed.join('; ');
+        if (Array.isArray(parsed)) return parsed.join(', ');
         return val;
       } catch {
         return val;
       }
     }
-    if (Array.isArray(val)) return val.join('; ');
+    if (Array.isArray(val)) return val.join(', ');
     return String(val || '');
   }
 
@@ -229,10 +180,7 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.isUploadingPdf.set(false);
-        // Set fallback file name for demo
-        this.resumeForm.patchValue({
-          resumeFileUrl: 'uploads/resumes/' + file.name
-        });
+        this.uploadError.set('Failed to upload resume document to server. Please try again.');
       }
     });
   }
@@ -242,20 +190,6 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
     this.resumeForm.patchValue({ resumeFileUrl: '' });
   }
 
-  applyPreset(presetKey: string): void {
-    const preset = this.sampleResumes[presetKey];
-    if (preset) {
-      this.selectedFile.set(null);
-      this.resumeForm.patchValue({
-        summary: preset.summary,
-        educationJson: preset.education,
-        experienceJson: preset.experience,
-        skills: preset.skills,
-        languages: preset.languages,
-        resumeFileUrl: preset.resumeFileUrl
-      });
-    }
-  }
 
   isSkillSelected(skill: string): boolean {
     const current = this.resumeForm.get('skills')?.value || '';
@@ -272,7 +206,10 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
     } else {
       skillsList.push(skill);
     }
-    this.resumeForm.patchValue({ skills: skillsList.join(', ') });
+    const combined = skillsList.join(', ');
+    if (combined.length <= 100) {
+      this.resumeForm.patchValue({ skills: combined });
+    }
   }
 
   removeSkill(skill: string): void {
@@ -296,7 +233,10 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
     } else {
       langList.push(lang);
     }
-    this.resumeForm.patchValue({ languages: langList.join(', ') });
+    const combined = langList.join(', ');
+    if (combined.length <= 70) {
+      this.resumeForm.patchValue({ languages: combined });
+    }
   }
 
   removeLanguage(lang: string): void {
@@ -317,17 +257,6 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
     return raw.split(',').map(l => l.trim()).filter(l => l.length > 0);
   }
 
-  ngOnDestroy(): void {
-    if (this.redirectTimer) {
-      clearTimeout(this.redirectTimer);
-    }
-  }
-
-  continueToCertificates(): void {
-    if (this.redirectTimer) clearTimeout(this.redirectTimer);
-    this.router.navigate(['/certificate-upload']);
-  }
-
   onSubmit(): void {
     if (this.resumeForm.valid) {
       this.submitting.set(true);
@@ -339,16 +268,12 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
 
       const skillsArr = (formValue.skills ?? '').split(',').map(s => s.trim()).filter(s => s.length > 0);
       const languagesArr = (formValue.languages ?? '').split(',').map(l => l.trim()).filter(l => l.length > 0);
-      const eduJson = JSON.stringify([formValue.educationJson]);
-      const expJson = JSON.stringify([formValue.experienceJson]);
+      const eduJson = JSON.stringify((formValue.educationJson ?? '').split(',').map(e => e.trim()).filter(e => e.length > 0));
+      const expJson = JSON.stringify((formValue.experienceJson ?? '').split(',').map(e => e.trim()).filter(e => e.length > 0));
 
       const onComplete = () => {
         this.submitting.set(false);
         this.uploadSuccess.set(true);
-        // 🚀 Auto redirect to Step 3: Certificate Upload
-        this.redirectTimer = setTimeout(() => {
-          this.router.navigate(['/certificate-upload']);
-        }, 1400);
       };
 
       if (file) {
@@ -404,6 +329,8 @@ export class ResumeUploadComponent implements OnInit, OnDestroy {
           }
         });
       }
+    } else {
+      this.resumeForm.markAllAsTouched();
     }
   }
 }
