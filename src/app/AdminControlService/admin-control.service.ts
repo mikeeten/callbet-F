@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
@@ -115,9 +115,37 @@ export class AdminControlService {
     return this.http.get<any[]>(`${this.baseUrlo}/services/${categoryId}`);
   }
 
-  // Content Moderation
-  getModerationReviews(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrlo}/moderation/reviews`);
+  // Content Moderation (with server-side filtering & pagination)
+  getModerationReviews(params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    orderBy?: string;
+    descending?: boolean;
+  }): Observable<any> {
+    let httpParams = new HttpParams();
+    if (params) {
+      if (params.page !== undefined && params.page !== null) {
+        httpParams = httpParams.set('page', params.page.toString());
+      }
+      if (params.pageSize !== undefined && params.pageSize !== null) {
+        httpParams = httpParams.set('pageSize', params.pageSize.toString());
+      }
+      if (params.search && params.search.trim()) {
+        httpParams = httpParams.set('search', params.search.trim());
+      }
+      if (params.status && params.status !== 'all') {
+        httpParams = httpParams.set('status', params.status);
+      }
+      if (params.orderBy) {
+        httpParams = httpParams.set('orderBy', params.orderBy);
+      }
+      if (params.descending !== undefined) {
+        httpParams = httpParams.set('descending', params.descending.toString());
+      }
+    }
+    return this.http.get<any>(`${this.baseUrlo}/moderation/reviews`, { params: httpParams });
   }
 
   dismissReviewFlag(reviewId: string): Observable<any> {
@@ -145,16 +173,52 @@ export class AdminControlService {
     return this.http.get<any[]>(`${this.baseUrl}/location/subcities`);
   }
 
-  // Reports & Disputes
-  getReports(): Observable<any[]> {
-    return this.http.get<any[]>();
+  // Reports & Disputes (with server-side filtering & pagination)
+  getReports(params?: {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string;
+    role?: string;
+    orderBy?: string;
+    descending?: boolean;
+  }): Observable<any> {
+    let httpParams = new HttpParams();
+    if (params) {
+      if (params.page !== undefined && params.page !== null) {
+        httpParams = httpParams.set('page', params.page.toString());
+      }
+      if (params.pageSize !== undefined && params.pageSize !== null) {
+        httpParams = httpParams.set('pageSize', params.pageSize.toString());
+      }
+      if (params.search && params.search.trim()) {
+        httpParams = httpParams.set('search', params.search.trim());
+      }
+      if (params.status && params.status !== 'all') {
+        httpParams = httpParams.set('status', params.status);
+      }
+      if (params.role && params.role !== 'all') {
+        httpParams = httpParams.set('role', params.role);
+      }
+      if (params.orderBy) {
+        httpParams = httpParams.set('orderBy', params.orderBy);
+      }
+      if (params.descending !== undefined) {
+        httpParams = httpParams.set('descending', params.descending.toString());
+      }
+    }
+    return this.http.get<any>(`${this.baseUrlo}/reports`, { params: httpParams });
   }
 
   resolveReport(reportId: string): Observable<any> {
-    return this.http.put(, {});
+    return this.http.put(`${this.baseUrlo}/reports/${reportId}/resolve`, {});
+  }
+
+  deleteReport(reportId: string): Observable<any> {
+    return this.http.delete(`${this.baseUrlo}/reports/${reportId}`);
   }
 
   getFinancialOverview(): Observable<any> {
-    return this.http.get<any>();
+    return this.http.get<any>(`${this.baseUrlo}/financial-overview`);
   }
 }
