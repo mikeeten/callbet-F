@@ -1,29 +1,31 @@
 <div class="module-page-container">
-  <!-- Onboarding Stepper Navigation Bar -->
-  <div class="stepper-progress-bar">
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Profile & Rates</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Resume / CV</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Certificates</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Portfolio</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item active">
-      <span class="step-num">5</span>
-      <span class="step-label">Verification</span>
+  <!-- Top Navigation Toolbar -->
+  <div class="pro-top-nav-bar">
+    <a routerLink="/professional-dashboard" class="btn-nav-item btn-dashboard-back" title="Go to Professional Dashboard">
+      <mat-icon>dashboard</mat-icon>
+      <span>Professional Dashboard</span>
+    </a>
+    <div class="nav-links-cluster">
+      <a routerLink="/professional-profile" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>person</mat-icon>
+        <span>Profile</span>
+      </a>
+      <a routerLink="/resume-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>description</mat-icon>
+        <span>Resume & Skills</span>
+      </a>
+      <a routerLink="/certificate-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>verified</mat-icon>
+        <span>Certificates</span>
+      </a>
+      <a routerLink="/portfolio-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>photo_library</mat-icon>
+        <span>Portfolio</span>
+      </a>
+      <a routerLink="/verification-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>shield</mat-icon>
+        <span>ID Verification</span>
+      </a>
     </div>
   </div>
 
@@ -32,24 +34,12 @@
     <div class="header-left">
       <div class="header-badge">
         <mat-icon>security</mat-icon>
-        <span>Step 5 of 5: Trust & Compliance Suite</span>
+        <span>Trust & Compliance Suite</span>
       </div>
       <h2>e-KYC Identity Verification Center</h2>
       <p class="subtitle">
-        Upload government identification or trade permits to verify your professional identity and complete your onboarding.
+        Upload government identification or trade permits to verify your professional identity and complete your profile.
       </p>
-    </div>
-
-    <div class="header-actions">
-      <!-- Back Button -->
-      <a routerLink="/portfolio-upload" class="btn-header-secondary btn-back-nav">
-        <mat-icon>arrow_back</mat-icon>
-        <span>Back to Portfolio</span>
-      </a>
-      <a routerLink="/service-selection" class="btn-header-secondary">
-        <mat-icon>engineering</mat-icon>
-        <span>Service Selection</span>
-      </a>
     </div>
   </div>
 
@@ -59,12 +49,12 @@
       <mat-icon>check_circle</mat-icon>
       <div>
         <strong>Verification Document Submitted!</strong>
-        <p>Your ID has been submitted to the compliance queue. Redirecting to Service Activation & Selection...</p>
+        <p>Your ID has been submitted to the compliance queue for administrative review and verification.</p>
       </div>
       <div class="banner-quick-actions">
-        <button type="button" (click)="goToDashboard()" class="btn-banner-action">
-          <mat-icon>engineering</mat-icon> Go to Services &rarr;
-        </button>
+        <a routerLink="/professional-dashboard" class="btn-banner-action">
+          <mat-icon>dashboard</mat-icon> Pro Dashboard &rarr;
+        </a>
       </div>
     </div>
   }
@@ -83,18 +73,6 @@
   <div class="module-content-grid">
     <!-- Form Side -->
     <div class="form-container-card">
-      <!-- Quick Presets -->
-      <div class="presets-box">
-        <span class="presets-label"><mat-icon>auto_fix_high</mat-icon> Quick ID Type Presets:</span>
-        <div class="presets-list">
-          @for (sample of sampleDocuments; track sample.label) {
-            <button type="button" class="preset-pill" (click)="applyPreset(sample)">
-              {{ sample.label }}
-            </button>
-          }
-        </div>
-      </div>
-
       <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()" class="custom-form">
         <!-- Document Type Selector -->
         <div class="custom-field-group">
@@ -129,11 +107,6 @@
                   <span class="file-sub">Click to change selected file</span>
                 </div>
               </div>
-            } @else if (previewUrl()) {
-              <div class="preset-selected-badge">
-                <mat-icon>link</mat-icon>
-                <span>Using Preset Document Sample (Click to upload local file)</span>
-              </div>
             } @else {
               <div class="dropzone-placeholder">
                 <mat-icon class="upload-icon">cloud_upload</mat-icon>
@@ -141,20 +114,6 @@
                 <span class="upload-hint">Allowed formats: JPG, PNG, WEBP, PDF (Max 10MB)</span>
               </div>
             }
-          </div>
-        </div>
-
-        <!-- Fallback URL Input (Optional) -->
-        <div class="custom-field-group">
-          <label for="documentUrl">Or Direct Document Image URL</label>
-          <div class="custom-input-wrap">
-            <mat-icon class="field-icon">link</mat-icon>
-            <input
-              id="documentUrl"
-              type="text"
-              formControlName="documentUrl"
-              placeholder="https://... (Populated automatically if you upload a file or choose preset)"
-            />
           </div>
         </div>
 
@@ -166,14 +125,14 @@
           <button
             type="submit"
             class="btn-submit-primary flex-grow"
-            [disabled]="submitting() || (!selectedFile() && !verificationForm.get('documentUrl')?.value)"
+            [disabled]="submitting() || !selectedFile()"
           >
             @if (submitting()) {
               <span class="btn-spinner"></span>
               <span>Submitting Verification...</span>
             } @else {
               <mat-icon>verified_user</mat-icon>
-              <span>Complete Onboarding & Submit &rarr;</span>
+              <span>Submit Verification Document</span>
             }
           </button>
         </div>

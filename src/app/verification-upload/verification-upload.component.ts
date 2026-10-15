@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -9,11 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { AdminControlService } from './../AdminControlService/admin-control.service';
 import { AuthService } from '../core/services/auth.service';
 
-export interface DocumentSamplePreset {
-  type: string;
-  label: string;
-  url: string;
-}
 
 @Component({
   selector: 'app-verification-upload',
@@ -30,7 +25,7 @@ export interface DocumentSamplePreset {
   templateUrl: './verification-upload.component.html',
   styleUrls: ['./verification-upload.component.scss']
 })
-export class VerificationUploadComponent implements OnInit, OnDestroy {
+export class VerificationUploadComponent implements OnInit {
   private fb = inject(FormBuilder);
   private adminService = inject(AdminControlService);
   public authService = inject(AuthService);
@@ -39,7 +34,6 @@ export class VerificationUploadComponent implements OnInit, OnDestroy {
   submitting = signal(false);
   uploadSuccess = signal(false);
   uploadError = signal<string | null>(null);
-  private redirectTimer: any = null;
 
   selectedFile = signal<File | null>(null);
   previewUrl = signal<string | null>(null);
@@ -54,23 +48,6 @@ export class VerificationUploadComponent implements OnInit, OnDestroy {
     'Certificate of Competence'
   ];
 
-  sampleDocuments: DocumentSamplePreset[] = [
-    {
-      type: 'National ID (Fayda)',
-      label: '🪪 National ID',
-      url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80'
-    },
-    {
-      type: 'Government Issued Passport',
-      label: '📘 Passport',
-      url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'
-    },
-    {
-      type: 'Commercial Trade & Business License',
-      label: '📄 Trade License',
-      url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80'
-    }
-  ];
 
   verificationForm = this.fb.group({
     documentType: ['National ID (Fayda)', Validators.required],
@@ -78,17 +55,6 @@ export class VerificationUploadComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {}
-
-  ngOnDestroy(): void {
-    if (this.redirectTimer) {
-      clearTimeout(this.redirectTimer);
-    }
-  }
-
-  goToDashboard(): void {
-    if (this.redirectTimer) clearTimeout(this.redirectTimer);
-    this.router.navigate(['/service-selection']);
-  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -120,23 +86,13 @@ export class VerificationUploadComponent implements OnInit, OnDestroy {
     }
   }
 
-  applyPreset(preset: DocumentSamplePreset): void {
-    this.selectedFile.set(null);
-    this.fileName.set(null);
-    this.previewUrl.set(preset.url);
-    this.verificationForm.patchValue({
-      documentType: preset.type,
-      documentUrl: preset.url
-    });
-  }
-
   onSubmit(): void {
     const docType = this.verificationForm.get('documentType')?.value || 'National ID (Fayda)';
-    const docUrl = this.verificationForm.get('documentUrl')?.value;
+    const docUrl = this.verificationForm.get('documentUrl')?.value || '';
     const file = this.selectedFile();
 
     if (!file && !docUrl) {
-      this.uploadError.set('Please select an ID card image / PDF or pick a sample preset.');
+      this.uploadError.set('Please select an ID card image or PDF document.');
       return;
     }
 
@@ -151,11 +107,6 @@ export class VerificationUploadComponent implements OnInit, OnDestroy {
       this.fileName.set(null);
       this.previewUrl.set(null);
       this.verificationForm.reset({ documentType: 'National ID (Fayda)', documentUrl: '' });
-
-      // 🚀 Auto redirect to Service Activation Studio upon completion of verification!
-      this.redirectTimer = setTimeout(() => {
-        this.router.navigate(['/service-selection']);
-      }, 1600);
     };
 
     if (file) {
