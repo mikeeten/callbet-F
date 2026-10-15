@@ -10,6 +10,8 @@ export interface AdminLogDto {
   action: string;
   targetEntity?: string;
   targetEntityId?: string;
+  targetUserName?: string;
+  targetUserEmail?: string;
   timestamp: string;
 }
 
