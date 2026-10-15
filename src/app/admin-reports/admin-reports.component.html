@@ -1,0 +1,388 @@
+<div class="admin-reports-wrapper">
+  <!-- Toast Feedback -->
+  @if (feedbackMessage()) {
+    <div class="feedback-toast">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ feedbackMessage() }}</span>
+    </div>
+  }
+
+  <!-- Section Top Header -->
+  <div class="section-top-row">
+    <div>
+      <div class="title-with-badge">
+        <mat-icon class="shield-icon">gavel</mat-icon>
+        <h3>Customer & Professional Dispute Reports</h3>
+        <span class="badge-count">{{ totalCount() }} Total</span>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <button mat-stroked-button color="primary" type="button" (click)="loadReports(currentPage())" [disabled]="loading()">
+        <mat-icon [class.spin-icon]="loading()">refresh</mat-icon>
+        <span>Refresh Feed</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Metric Ribbon Filters -->
+  <div class="reports-metrics-ribbon">
+    <div class="metric-card" [class.active-card]="statusFilter() === 'all' && roleFilter() === 'all'" (click)="resetFilters()">
+      <div class="icon-wrap total-color"><mat-icon>assignment</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ totalCount() }}</span>
+        <span class="metric-lbl">Total Reports in DB</span>
+      </div>
+    </div>
+
+    <div class="metric-card" [class.active-card]="statusFilter() === 'pending'" (click)="setStatusFilter('pending')">
+      <div class="icon-wrap pending-color"><mat-icon>pending_actions</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ pendingReportsCount() }}</span>
+        <span class="metric-lbl">Pending Review</span>
+      </div>
+    </div>
+
+    <div class="metric-card" [class.active-card]="statusFilter() === 'resolved'" (click)="setStatusFilter('resolved')">
+      <div class="icon-wrap resolved-color"><mat-icon>verified</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ resolvedReportsCount() }}</span>
+        <span class="metric-lbl">Resolved Cases</span>
+      </div>
+    </div>
+
+    <div class="metric-card" [class.active-card]="roleFilter() === 'Customer'" (click)="setRoleFilter('Customer')">
+      <div class="icon-wrap cust-color"><mat-icon>person</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ customerReportsCount() }}</span>
+        <span class="metric-lbl">From Customers</span>
+      </div>
+    </div>
+
+    <div class="metric-card" [class.active-card]="roleFilter() === 'Professional'" (click)="setRoleFilter('Professional')">
+      <div class="icon-wrap pro-color"><mat-icon>handyman</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ professionalReportsCount() }}</span>
+        <span class="metric-lbl">From Specialists</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar Card -->
+  <mat-card class="filter-card">
+    <mat-card-content class="filter-card-body">
+      <!-- Search Input -->
+      <div class="search-box-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          class="native-search-input"
+          placeholder="Search by reason, narrative details, reporter or target name/email..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+        />
+        @if (searchQuery()) {
+          <button type="button" class="btn-clear-search" (click)="searchQuery.set(''); loadReports(1)">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <!-- Filter Controls Group -->
+      <div class="filters-group">
+        <!-- Reporter Role Chips -->
+        <div class="filter-segment">
+          <span class="filter-label">Reporter Role:</span>
+          <div class="custom-chip-group">
+            <button
+              type="button"
+              class="filter-chip"
+              [class.chip-active]="roleFilter() === 'all'"
+              (click)="setRoleFilter('all')"
+            >
+              All Roles
+            </button>
+            <button
+              type="button"
+              class="filter-chip"
+              [class.chip-active]="roleFilter() === 'Customer'"
+              (click)="setRoleFilter('Customer')"
+            >
+              Customers
+            </button>
+            <button
+              type="button"
+              class="filter-chip"
+              [class.chip-active]="roleFilter() === 'Professional'"
+              (click)="setRoleFilter('Professional')"
+            >
+              Professionals
+            </button>
+          </div>
+        </div>
+
+        <!-- Status Chips -->
+        <div class="filter-segment">
+          <span class="filter-label">Resolution Status:</span>
+          <div class="custom-chip-group">
+            <button
+              type="button"
+              class="filter-chip"
+              [class.chip-active]="statusFilter() === 'all'"
+              (click)="setStatusFilter('all')"
+            >
+              All Status
+            </button>
+            <button
+              type="button"
+              class="filter-chip"
+              [class.chip-active]="statusFilter() === 'pending'"
+              (click)="setStatusFilter('pending')"
+            >
+              Pending Investigation
+            </button>
+            <button
+              type="button"
+              class="filter-chip"
+              [class.chip-active]="statusFilter() === 'resolved'"
+              (click)="setStatusFilter('resolved')"
+            >
+              Resolved
+            </button>
+          </div>
+        </div>
+
+        <!-- Reset Button -->
+        @if (searchQuery() || roleFilter() !== 'all' || statusFilter() !== 'all') {
+          <button mat-stroked-button color="warn" type="button" class="btn-reset" (click)="resetFilters()">
+            <mat-icon>filter_alt_off</mat-icon>
+            <span>Clear Filters</span>
+          </button>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Reports Feed Card -->
+  <mat-card class="reports-feed-card">
+    <mat-card-content>
+      @if (loading()) {
+        <div class="loading-state-box">
+          <mat-spinner diameter="42"></mat-spinner>
+          <p>Querying incident reports from database...</p>
+        </div>
+      } @else if (reports().length === 0) {
+        <div class="empty-state-box">
+          <mat-icon class="empty-icon">verified_user</mat-icon>
+          <h4>No Incident Reports Found</h4>
+          <p>There are no customer or professional dispute reports matching your current backend filter criteria.</p>
+          <button mat-stroked-button color="primary" type="button" (click)="resetFilters()">
+            Reset Filters
+          </button>
+        </div>
+      } @else {
+        <div class="reports-list">
+          @for (report of reports(); track report.id) {
+            <div class="report-box" [class.is-resolved]="report.isResolved" [class.is-pending]="!report.isResolved">
+              <!-- Report Box Top Header -->
+              <div class="report-box-header">
+                <div class="parties-col">
+                  <!-- Reporter Info -->
+                  <div class="party-item">
+                    <span class="party-label">Filed By:</span>
+                    <div class="party-info">
+                      <strong class="party-name">{{ report.reporterName }}</strong>
+                      <span class="role-pill" [class.role-customer]="report.reporterRole === 'Customer'" [class.role-pro]="report.reporterRole === 'Professional'">
+                        <mat-icon>{{ report.reporterRole === 'Professional' ? 'handyman' : 'person' }}</mat-icon>
+                        {{ report.reporterRole }}
+                      </span>
+                      @if (report.reporterEmail) {
+                        <span class="party-email">
+                          {{ report.reporterEmail }}
+                          <button type="button" class="btn-copy" (click)="copyText(report.reporterEmail, 'Reporter Email')" matTooltip="Copy Email">
+                            <mat-icon>content_copy</mat-icon>
+                          </button>
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="vs-arrow">
+                    <mat-icon>arrow_forward</mat-icon>
+                  </div>
+
+                  <!-- Reported User / Target -->
+                  <div class="party-item">
+                    <span class="party-label">Against / Target:</span>
+                    <div class="party-info">
+                      <strong class="party-name">{{ report.reportedName || 'General Platform Service' }}</strong>
+                      @if (report.reportedRole) {
+                        <span class="role-pill" [class.role-customer]="report.reportedRole === 'Customer'" [class.role-pro]="report.reportedRole === 'Professional'">
+                          <mat-icon>{{ report.reportedRole === 'Professional' ? 'handyman' : 'person' }}</mat-icon>
+                          {{ report.reportedRole }}
+                        </span>
+                      }
+                      @if (report.reportedEmail) {
+                        <span class="party-email">
+                          {{ report.reportedEmail }}
+                          <button type="button" class="btn-copy" (click)="copyText(report.reportedEmail, 'Reported Email')" matTooltip="Copy Email">
+                            <mat-icon>content_copy</mat-icon>
+                          </button>
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Date & Status -->
+                <div class="meta-status-col">
+                  <span class="report-date">
+                    <mat-icon>calendar_today</mat-icon>
+                    {{ report.createdAt | date:'medium' }}
+                  </span>
+                  @if (report.isResolved) {
+                    <span class="status-badge badge-resolved">
+                      <mat-icon>check_circle</mat-icon> Resolved & Closed
+                    </span>
+                  } @else {
+                    <span class="status-badge badge-pending">
+                      <mat-icon>hourglass_empty</mat-icon> Pending Investigation
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Report Reason & Narrative Details -->
+              <div class="report-body">
+                <div class="reason-row">
+                  <strong class="reason-text">{{ report.reason }}</strong>
+                </div>
+
+                @if (report.details) {
+                  <blockquote class="report-narrative">
+                    "{{ report.details }}"
+                  </blockquote>
+                }
+              </div>
+
+              <!-- Report Actions -->
+              <div class="report-actions-bar">
+                <div class="left-actions">
+                  @if (!report.isResolved) {
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      type="button"
+                      class="btn-resolve"
+                      (click)="resolveReport(report)"
+                      [disabled]="actionLoading() === report.id"
+                    >
+                      @if (actionLoading() === report.id) {
+                        <mat-spinner diameter="18"></mat-spinner>
+                      } @else {
+                        <mat-icon>done_all</mat-icon>
+                      }
+                      <span>Mark as Resolved</span>
+                    </button>
+                  } @else {
+                    <span class="resolved-note">
+                      <mat-icon>verified</mat-icon> Case officially resolved & documented in administrative audit log.
+                    </span>
+                  }
+                </div>
+
+                <div class="right-actions">
+                  <button
+                    mat-stroked-button
+                    color="warn"
+                    type="button"
+                    class="btn-delete"
+                    (click)="openDeleteModal(report)"
+                    [disabled]="actionLoading() === report.id"
+                  >
+                    <mat-icon>delete_forever</mat-icon>
+                    <span>Remove Report</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Pagination Footer Toolbar -->
+        @if (totalCount() > 0) {
+          <div class="pagination-footer">
+            <div class="page-meta">
+              Showing <strong>{{ (currentPage() - 1) * pageSize() + 1 }}</strong> -
+              <strong>{{ currentPage() * pageSize() > totalCount() ? totalCount() : currentPage() * pageSize() }}</strong>
+              of <strong>{{ totalCount() }}</strong> reports
+            </div>
+
+            <div class="page-buttons">
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="currentPage() <= 1 || loading()"
+                (click)="prevPage()"
+              >
+                <mat-icon>chevron_left</mat-icon> Previous
+              </button>
+
+              <span class="current-pill">Page {{ currentPage() }} of {{ totalPages() }}</span>
+
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="currentPage() >= totalPages() || loading()"
+                (click)="nextPage()"
+              >
+                Next <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Delete Confirmation Modal -->
+  @if (reportToDelete(); as target) {
+    <div class="modal-backdrop" (click)="closeDeleteModal()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+          <div class="warn-icon-wrap">
+            <mat-icon>delete_forever</mat-icon>
+          </div>
+          <div>
+            <h3>Remove Incident Report?</h3>
+            <p class="modal-sub">Are you sure you want to permanently delete this report filed by <strong>{{ target.reporterName }}</strong>?</p>
+          </div>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-reason-preview">
+            <strong>Reason:</strong> {{ target.reason }}
+          </p>
+        </div>
+
+        <div class="modal-actions">
+          <button mat-button type="button" (click)="closeDeleteModal()">Cancel</button>
+          <button
+            mat-raised-button
+            color="warn"
+            type="button"
+            (click)="confirmDelete()"
+            [disabled]="actionLoading() === target.id"
+          >
+            @if (actionLoading() === target.id) {
+              <mat-spinner diameter="18"></mat-spinner>
+            } @else {
+              <mat-icon>delete</mat-icon>
+            }
+            <span>Permanently Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
