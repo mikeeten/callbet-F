@@ -41,6 +41,8 @@ export const routes: Routes = [
   },
   {
     path: "admin-registration",
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ["Admin"] },
     loadComponent: () =>
       import("./admin-registration/admin-registration.component")
         .then((m) => m.AdminRegistrationComponent),
@@ -58,29 +60,6 @@ export const routes: Routes = [
       import("./service-selection/service-selection.component")
         .then((m) => m.ServiceSelectionComponent),
   },
-  {
-    path: "professional-dashboard-detail",
-    loadComponent: () =>
-      import("./professional-dashboard-detail/professional-dashboard-detail.component")
-        .then((m) => m.ProfessionalDashboardDetailComponent),
-  },
-  {
-    path: "professional-dashboard-detail/:id",
-    loadComponent: () =>
-      import("./professional-dashboard-detail/professional-dashboard-detail.component")
-        .then((m) => m.ProfessionalDashboardDetailComponent),
-  },
-  {
-    path: "professional-dashboard-detai",
-    redirectTo: "professional-dashboard-detail",
-    pathMatch: "full",
-  },
-  {
-    path: "professional-dashboard-detai/:id",
-    redirectTo: "professional-dashboard-detail/:id",
-    pathMatch: "full",
-  },
-
   // -------------------------------------------------------------
   // CUSTOMER PROTECTED ROUTES (Customer & Admin)
   // -------------------------------------------------------------
@@ -138,20 +117,26 @@ export const routes: Routes = [
   { path: "customer-profile", redirectTo: "customer-dashboard", pathMatch: "full" },
 
   // -------------------------------------------------------------
-  // PUBLIC PROFESSIONAL DETAIL ROUTES (Accessible to ALL Users)
+  // PROFESSIONAL DETAIL & KYC DOSSIER (Admin Only)
   // -------------------------------------------------------------
   {
-    path: "professional-dashboard/detail",
+    path: "professional-dashboard-detail",
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ["Admin"] },
     loadComponent: () =>
       import("./professional-dashboard-detail/professional-dashboard-detail.component")
         .then((m) => m.ProfessionalDashboardDetailComponent),
   },
   {
-    path: "professional-dashboard/detail/:id",
+    path: "professional-dashboard-detail/:id",
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ["Admin"] },
     loadComponent: () =>
       import("./professional-dashboard-detail/professional-dashboard-detail.component")
         .then((m) => m.ProfessionalDashboardDetailComponent),
   },
+  { path: "professional-dashboard/detail", redirectTo: "professional-dashboard-detail", pathMatch: "full" },
+  { path: "professional-dashboard/detail/:id", redirectTo: "professional-dashboard-detail/:id", pathMatch: "full" },
 
   // -------------------------------------------------------------
   // PROFESSIONAL PROTECTED ROUTES (Professional & Admin)
@@ -288,6 +273,16 @@ export const routes: Routes = [
       import("./admin-logs/admin-logs.component")
         .then((m) => m.AdminLogsComponent),
   },
+  {
+    path: "admin-service-zones",
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ["Admin"] },
+    loadComponent: () =>
+      import("./admin-service-zones/admin-service-zones.component")
+        .then((m) => m.AdminServiceZonesComponent),
+  },
+  { path: "admin-zones", redirectTo: "admin-service-zones", pathMatch: "full" },
+  { path: "service-zones", redirectTo: "admin-service-zones", pathMatch: "full" },
   {
     path: "verification-list",
     canActivate: [authGuard, roleGuard],
