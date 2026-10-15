@@ -68,101 +68,70 @@
       </div>
     </div>
 
-    <!-- Header Actions (Owner vs Public Visitor) -->
+    <!-- Header Actions -->
     <div class="header-actions">
-      @if (isPublicView()) {
-        <!-- Public Visitor CTA Buttons -->
-        <button
-          mat-raised-button
-          color="primary"
-          class="btn-book-hero"
-          type="button"
-          (click)="openBookingModal()"
-        >
-          <mat-icon>calendar_month</mat-icon>
-          <span>Book Service</span>
+      <!-- Assigned Jobs Portal Button -->
+      <a
+        mat-raised-button
+        color="primary"
+        class="btn-jobs-header-top"
+        routerLink="/jobs"
+        title="Open Dedicated Assigned Jobs & Dispatch Portal"
+      >
+        <mat-icon
+          [matBadge]="jobs().length"
+          [matBadgeHidden]="jobs().length === 0"
+          matBadgeColor="warn"
+          matBadgeSize="small"
+        >handyman</mat-icon>
+        <span>Assigned Jobs</span>
+      </a>
+
+      <a
+        mat-stroked-button
+        color="accent"
+        class="btn-notif-top"
+        routerLink="/professional-notifications"
+        title="Go to Notifications"
+      >
+        <mat-icon
+          [matBadge]="notificationService.unreadProfessionalCount()"
+          [matBadgeHidden]="notificationService.unreadProfessionalCount() === 0"
+          matBadgeColor="warn"
+          matBadgeSize="small"
+        >notifications</mat-icon>
+        <span>Notifications</span>
+      </a>
+
+      @if (proProfile().isVerified) {
+        <button mat-stroked-button color="primary" routerLink="/service-selection">
+          <mat-icon>add_business</mat-icon> Add Service
         </button>
-
-        <button
-          mat-stroked-button
-          color="primary"
-          type="button"
-          (click)="startDirectChat()"
-          [disabled]="customerChatLoading()"
-        >
-          @if (customerChatLoading()) {
-            <mat-spinner diameter="18"></mat-spinner>
-          } @else {
-            <mat-icon>chat</mat-icon>
-          }
-          <span>Message</span>
-        </button>
-
-        <button
-          mat-icon-button
-          [color]="isBookmarked() ? 'warn' : 'basic'"
-          (click)="toggleBookmark()"
-          [title]="isBookmarked() ? 'Bookmarked' : 'Bookmark Specialist'"
-        >
-          <mat-icon>{{ isBookmarked() ? 'bookmark' : 'bookmark_border' }}</mat-icon>
-        </button>
-      } @else {
-        <!-- Owner Pro Action Buttons -->
-        <!-- Assigned Jobs Portal Button -->
-        <a
-          mat-raised-button
-          color="primary"
-          class="btn-jobs-header-top"
-          routerLink="/jobs"
-          title="Open Dedicated Assigned Jobs & Dispatch Portal"
-        >
-          <mat-icon
-            [matBadge]="jobs().length"
-            [matBadgeHidden]="jobs().length === 0"
-            matBadgeColor="warn"
-            matBadgeSize="small"
-          >handyman</mat-icon>
-          <span>Assigned Jobs</span>
-        </a>
-
-        <a
-          mat-stroked-button
-          color="accent"
-          class="btn-notif-top"
-          routerLink="/professional-notifications"
-          title="Go to Notifications"
-        >
-          <mat-icon
-            [matBadge]="notificationService.unreadProfessionalCount()"
-            [matBadgeHidden]="notificationService.unreadProfessionalCount() === 0"
-            matBadgeColor="warn"
-            matBadgeSize="small"
-          >notifications</mat-icon>
-          <span>Notifications</span>
-        </a>
-
-        @if (proProfile().isVerified) {
-          <button mat-stroked-button color="primary" routerLink="/service-selection">
-            <mat-icon>add_business</mat-icon> Services
-          </button>
-        }
-
-        
-        <button
-          mat-stroked-button
-          color="warn"
-          class="btn-report-header"
-          type="button"
-          (click)="openReportModal()"
-          title="Report Abuse, Safety Concern or App Issue"
-        >
-          <mat-icon>report_problem</mat-icon>
-          <span>Report Abuse</span>
-        </button>
-<a mat-icon-button color="warn" routerLink="/signout" title="Sign Out">
-          <mat-icon>logout</mat-icon>
-        </a>
       }
+
+      <button
+        mat-stroked-button
+        color="warn"
+        class="btn-report-header"
+        type="button"
+        (click)="openReportModal()"
+        title="Report Safety Concern or App Issue"
+      >
+        <mat-icon>report_problem</mat-icon>
+        <span>Report</span>
+      </button>
+
+      <button
+        mat-stroked-button
+        color="warn"
+        class="btn-signout-header"
+        type="button"
+        (click)="openSignoutConfirm()"
+        title="Sign Out of Professional Dashboard"
+      >
+        <mat-icon>logout</mat-icon>
+        <span>Sign Out</span>
+      </button>
     </div>
   </div>
 
@@ -173,13 +142,9 @@
         <mat-icon class="unverified-alert-icon">gpp_maybe</mat-icon>
         <div class="unverified-banner-text">
           <h4 class="unverified-banner-title">Profile Verification Required</h4>
-          <p class="unverified-banner-desc">The professional profile should be verified to select a service and to be viewed by the customer.</p>
+          <p class="unverified-banner-desc">The professional profile should be verified by the admin to select a service and to be viewed by the customer.</p>
         </div>
       </div>
-      <a mat-raised-button color="accent" routerLink="/verification-upload" class="unverified-banner-btn">
-        <mat-icon>verified_user</mat-icon>
-        <span>Complete Verification</span>
-      </a>
     </div>
   }
 
@@ -353,9 +318,23 @@
 
       <!-- Profile Info & Bio Card -->
       <mat-card appearance="outlined" class="info-card">
-        <mat-card-header>
-          <mat-card-title>{{ isPublicView() ? 'About Specialist' : 'Professional Profile' }}</mat-card-title>
-          <mat-card-subtitle>{{ isPublicView() ? 'Verified artisan summary & trade information' : 'Public artisan overview and base location settings' }}</mat-card-subtitle>
+        <mat-card-header class="header-between">
+          <div>
+            <mat-card-title>{{ isPublicView() ? 'About Specialist' : 'Professional Profile' }}</mat-card-title>
+            <mat-card-subtitle>{{ isPublicView() ? 'Verified artisan summary & trade information' : 'Public artisan overview and base location settings' }}</mat-card-subtitle>
+          </div>
+          @if (!isPublicView()) {
+            <a
+              mat-stroked-button
+              color="primary"
+              routerLink="/professional-profile"
+              class="btn-edit-profile"
+              title="Edit Professional Profile"
+            >
+              <mat-icon>edit</mat-icon>
+              <span>Edit Profile</span>
+            </a>
+          }
         </mat-card-header>
 
         <mat-card-content class="profile-details-content">
@@ -422,6 +401,7 @@
           <div class="detail-row"><span class="label">Service Radius:</span> <span>{{ proProfile().serviceRadiusKm }} km coverage</span></div>
           <div class="detail-row"><span class="label">Base Location:</span> <span>{{ proProfile().baseLocation }}</span></div>
           <div class="detail-row"><span class="label">Status:</span> <span class="verified-text"><mat-icon>verified</mat-icon> Verified Trade License</span></div>
+
 
           @if (fullDashboardData()?.createdAt) {
             <div class="detail-row"><span class="label">Member Since:</span> <span>{{ fullDashboardData()?.createdAt | date:'mediumDate' }}</span></div>
@@ -543,7 +523,7 @@
           </div>
           @if (!isPublicView() && proProfile().isVerified) {
             <button mat-flat-button color="primary" routerLink="/service-selection">
-              <mat-icon>add_circle</mat-icon> Configure Services
+              <mat-icon>add_circle</mat-icon> Add Service
             </button>
           }
         </mat-card-header>
@@ -598,41 +578,27 @@
                     <p class="srv-desc">{{ srv.serviceDescription || srv.description }}</p>
                   }
 
-                  @if (isPublicView()) {
-                    <div class="srv-card-action">
-                      <button
-                        mat-raised-button
-                        color="primary"
-                        class="btn-book-sm"
-                        type="button"
-                        (click)="openBookingModal(srv)"
-                      >
-                        <mat-icon>calendar_today</mat-icon> Book Professional Service
-                      </button>
-                    </div>
-                  } @else {
-                    <div class="srv-card-action pro-owner-actions">
-                      <button
-                        mat-stroked-button
-                        color="warn"
-                        class="btn-unset-srv"
-                        type="button"
-                        (click)="unassignService(srv, $event)"
-                        [disabled]="unassigningServiceId() === (srv.serviceId || srv.id)"
-                        title="Remove service offering from your profile"
-                      >
-                        <ng-container>
-                          @if (unassigningServiceId() === (srv.serviceId || srv.id)) {
-                            <mat-spinner diameter="16"></mat-spinner>
-                            <span>Removing...</span>
-                          } @else {
-                            <mat-icon>delete_outline</mat-icon>
-                            <span>Remove Service</span>
-                          }
-                        </ng-container>
-                      </button>
-                    </div>
-                  }
+                  <div class="srv-card-action pro-owner-actions">
+                    <button
+                      mat-stroked-button
+                      color="warn"
+                      class="btn-unset-srv"
+                      type="button"
+                      (click)="unassignService(srv, $event)"
+                      [disabled]="unassigningServiceId() === (srv.serviceId || srv.id)"
+                      title="Remove service offering from your profile"
+                    >
+                      <ng-container>
+                        @if (unassigningServiceId() === (srv.serviceId || srv.id)) {
+                          <mat-spinner diameter="16"></mat-spinner>
+                          <span>Removing...</span>
+                        } @else {
+                          <mat-icon>delete_outline</mat-icon>
+                          <span>Remove Service</span>
+                        }
+                      </ng-container>
+                    </button>
+                  </div>
                 </div>
               }
             </div>
@@ -650,28 +616,16 @@
               <mat-icon>construction</mat-icon>
               @if (!isPublicView() && !proProfile().isVerified) {
                 <div class="unverified-services-notice">
-                  <p class="unverified-services-message">The professional profile should be verified to select a service and to be viewed by the customer.</p>
-                  <a mat-raised-button color="accent" routerLink="/verification-upload" class="unverified-services-btn">
-                    <mat-icon>verified_user</mat-icon> Complete Profile Verification
-                  </a>
+                  <p class="unverified-services-message">The professional profile should be verified by the admin to select a service and to be viewed by the customer.</p>
                 </div>
               } @else {
                 <p>No professional services configured on this profile yet.</p>
                 @if (!isPublicView() && proProfile().isVerified) {
                   <button mat-stroked-button color="primary" routerLink="/service-selection" class="btn-empty-assign">
-                    <mat-icon>add</mat-icon> Browse Catalog & Assign Services
+                    <mat-icon>add</mat-icon> Add Service
                   </button>
                 }
               }
-            </div>
-          }
-
-          @if (!isPublicView()) {
-            <div class="pro-upload-links">
-              <a (click)="setTab('education-skills')" class="upload-link" style="cursor: pointer;"><mat-icon>school</mat-icon> View Education & Skill Background &rarr;</a>
-              <a routerLink="/portfolio-upload" class="upload-link"><mat-icon>collections</mat-icon> Update Portfolio Photos</a>
-              <a routerLink="/certificate-upload" class="upload-link"><mat-icon>workspace_premium</mat-icon> Upload Trade Certificates</a>
-              <a routerLink="/resume-upload" class="upload-link"><mat-icon>description</mat-icon> Update Structured Resume</a>
             </div>
           }
         </mat-card-content>
@@ -757,10 +711,6 @@
         </mat-card>
       }
 
-      <!-- Location Settings (Owner Only) -->
-      @if (!isPublicView()) {
-        <app-pro-location-settings (saved)="loadProfileDashboard()"></app-pro-location-settings>
-      }
     </div>
   }
 
@@ -807,10 +757,7 @@
                     <span class="skill-chip"><mat-icon>check_circle</mat-icon> {{ skill }}</span>
                   }
                 } @else {
-                  <span class="skill-chip"><mat-icon>check_circle</mat-icon> Electrical Diagnostics & Wiring</span>
-                  <span class="skill-chip"><mat-icon>check_circle</mat-icon> Sanitary Plumbing & Piping</span>
-                  <span class="skill-chip"><mat-icon>check_circle</mat-icon> Appliance Installation & Repair</span>
-                  <span class="skill-chip"><mat-icon>check_circle</mat-icon> Hospital-Grade Deep Sanitation</span>
+                  <span class="no-data-text">No technical skills added yet.</span>
                 }
               </div>
             </div>
@@ -824,9 +771,7 @@
                     <span class="lang-chip">{{ lang }}</span>
                   }
                 } @else {
-                  <span class="lang-chip">Amharic (Native)</span>
-                  <span class="lang-chip">English (Professional)</span>
-                  <span class="lang-chip">Oromo (Conversational)</span>
+                  <span class="no-data-text">No languages added yet.</span>
                 }
               </div>
             </div>
@@ -843,26 +788,19 @@
                     <div class="timeline-content">
                       <div class="exp-title-row">
                         <strong>{{ edu.degree || edu.fieldOfStudy || 'Technical Qualification' }}</strong>
-                        <span class="exp-duration">{{ edu.year || 'Certified' }}</span>
+                        @if (edu.year) {
+                          <span class="exp-duration">{{ edu.year }}</span>
+                        }
                       </div>
-                      <span class="exp-company">{{ edu.institution || 'Technical & Vocational Training Institute' }}</span>
+                      @if (edu.institution) {
+                        <span class="exp-company">{{ edu.institution }}</span>
+                      }
                     </div>
                   </div>
                 }
               </div>
             } @else {
-              <div class="timeline-list">
-                <div class="timeline-item">
-                  <div class="timeline-dot"></div>
-                  <div class="timeline-content">
-                    <div class="exp-title-row">
-                      <strong>Diploma in Electrical & Mechanical Systems</strong>
-                      <span class="exp-duration">2017</span>
-                    </div>
-                    <span class="exp-company">Addis Ababa Technical & Vocational Training College (TVET)</span>
-                  </div>
-                </div>
-              </div>
+              <p class="no-data-text">No academic or vocational training recorded yet.</p>
             }
           </div>
 
@@ -876,29 +814,23 @@
                     <div class="timeline-dot"></div>
                     <div class="timeline-content">
                       <div class="exp-title-row">
-                        <strong>{{ exp.position || 'Master Technical Specialist' }}</strong>
-                        <span class="exp-duration">{{ exp.duration || '2020 - Present' }}</span>
+                        <strong>{{ exp.position || 'Technical Specialist' }}</strong>
+                        @if (exp.duration) {
+                          <span class="exp-duration">{{ exp.duration }}</span>
+                        }
                       </div>
-                      <span class="exp-company">{{ exp.company || 'Callbet Certified Contractor' }}</span>
-                      <p class="exp-desc">{{ exp.description || 'Specialized residential and commercial diagnostic, installation, and repair work.' }}</p>
+                      @if (exp.company) {
+                        <span class="exp-company">{{ exp.company }}</span>
+                      }
+                      @if (exp.description) {
+                        <p class="exp-desc">{{ exp.description }}</p>
+                      }
                     </div>
                   </div>
                 }
               </div>
             } @else {
-              <div class="timeline-list">
-                <div class="timeline-item">
-                  <div class="timeline-dot"></div>
-                  <div class="timeline-content">
-                    <div class="exp-title-row">
-                      <strong>Lead Technical Specialist & Master Artisan</strong>
-                      <span class="exp-duration">2018 &ndash; Present</span>
-                    </div>
-                    <span class="exp-company">Independent Licensed Contractor & Callbet Professional</span>
-                    <p class="exp-desc">Provided premier electrical diagnostics, sanitary plumbing installations, and technical maintenance across Addis Ababa with 99% client satisfaction.</p>
-                  </div>
-                </div>
-              </div>
+              <p class="no-data-text">No work experience history recorded yet.</p>
             }
           </div>
 
@@ -966,7 +898,7 @@
             } @else {
               <div class="empty-certs-box">
                 <mat-icon>verified_user</mat-icon>
-                <p>Licensed under Ethiopian Trade & Standards Compliance.</p>
+                <p>No verified trade certificates attached yet.</p>
               </div>
             }
           </div>
@@ -1388,77 +1320,7 @@
   <!-- MODALS -->
   <!-- ============================================================== -->
 
-  <!-- PUBLIC BOOKING MODAL -->
-  @if (showBookingModal()) {
-    <div class="booking-modal-backdrop" (click)="closeBookingModal()">
-      <div class="booking-modal-content" (click)="$event.stopPropagation()">
-        <mat-card appearance="outlined" class="modal-card">
-          <mat-card-header>
-            <mat-card-title>Book Service with {{ proProfile().name }}</mat-card-title>
-            <mat-card-subtitle>100% Escrow Protected Booking Guarantee</mat-card-subtitle>
-          </mat-card-header>
 
-          <mat-card-content>
-            @if (bookingSuccess()) {
-              <div class="booking-success-box">
-                <mat-icon>check_circle</mat-icon>
-                <h3>Booking Request Submitted!</h3>
-                <p>{{ proProfile().name }} has been notified of your request and will confirm shortly.</p>
-                <button mat-raised-button color="primary" type="button" (click)="closeBookingModal()">
-                  Done
-                </button>
-              </div>
-            } @else {
-              <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()">
-                @if (selectedServiceForBooking(); as srv) {
-                  <div class="selected-srv-badge">
-                    <span>Selected Service: <strong>{{ srv.name }}</strong> (${{ srv.price || srv.basePrice || proProfile().hourlyRate }})</span>
-                  </div>
-                }
-
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Scheduled Date</mat-label>
-                  <input matInput type="date" formControlName="scheduledDate" />
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Service Location / Address</mat-label>
-                  <input matInput formControlName="address" placeholder="e.g. Bole Medhanealem, House #104" />
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Job Description & Requirements</mat-label>
-                  <textarea
-                    matInput
-                    formControlName="description"
-                    rows="3"
-                    placeholder="Describe what needs to be fixed or installed..."
-                  ></textarea>
-                </mat-form-field>
-
-                <div class="modal-actions">
-                  <button mat-button type="button" (click)="closeBookingModal()">Cancel</button>
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    type="submit"
-                    [disabled]="bookingForm.invalid || bookingLoading()"
-                  >
-                    @if (bookingLoading()) {
-                      <mat-spinner diameter="18"></mat-spinner>
-                      <span>Booking...</span>
-                    } @else {
-                      <span>Confirm & Book Escrow</span>
-                    }
-                  </button>
-                </div>
-              </form>
-            }
-          </mat-card-content>
-        </mat-card>
-      </div>
-    </div>
-  }
 
   <!-- INLINE REPLY MODAL OVERLAY (Pro Owner) -->
   @if (replyingReviewId(); as revId) {
@@ -1631,156 +1493,7 @@
     </div>
   }
 
-  <!-- ========================================== -->
-  <!-- CUSTOMER DIRECT CHAT MODAL OVERLAY         -->
-  <!-- ========================================== -->
-  @if (showCustomerChatModal()) {
-    <div class="customer-chat-backdrop" (click)="closeCustomerChatModal()">
-      <div class="customer-chat-modal-content" (click)="$event.stopPropagation()">
-        <!-- Chat Header -->
-        <div class="customer-chat-header">
-          <div class="pro-chat-meta">
-            <div class="chat-avatar-wrap">
-              <img [src]="proProfile().avatarUrl || imageNotGivenUrl" [alt]="proProfile().name" class="chat-avatar" />
-            </div>
-            <div class="chat-title-info">
-              <div class="pro-name-row">
-                <h4>{{ proProfile().name }}</h4>
-                @if (proProfile().isVerified) {
-                  <mat-icon class="verified-icon" title="Verified Trade Professional">verified</mat-icon>
-                }
-              </div>
-              <p class="pro-headline-sub">{{ proProfile().headline }}</p>
-              <div class="chat-badges-row">
-                <span class="escrow-safe-pill"><mat-icon>shield</mat-icon> Escrow Protected</span>
-              </div>
-            </div>
-          </div>
 
-          <div class="chat-header-actions">
-            <a
-              mat-stroked-button
-              class="btn-open-hub"
-              routerLink="/customer-dashboard"
-              [queryParams]="{ tab: 'chats' }"
-              (click)="closeCustomerChatModal()"
-              title="Open full conversation inside Customer Hub"
-            >
-              <mat-icon>launch</mat-icon>
-              <span>Full Chat Hub</span>
-            </a>
-            <button mat-icon-button class="btn-close-chat" (click)="closeCustomerChatModal()" title="Close chat">
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-        </div>
-
-        <!-- Chat Body Stream -->
-        <div class="customer-chat-body">
-          @if (chatService.loadingMessages()) {
-            <div class="chat-loading-state">
-              <mat-spinner diameter="32"></mat-spinner>
-              <p>Loading real-time conversation...</p>
-            </div>
-          } @else if (chatService.activeMessages().length === 0) {
-            <div class="chat-welcome-box">
-              <div class="welcome-icon-circle">
-                <mat-icon>forum</mat-icon>
-              </div>
-              <h3>Message {{ proProfile().name }}</h3>
-              <p>Ask about availability, custom quotes, parts requirements, or project details. Responses arrive in real time.</p>
-              
-              <!-- Quick Prompt Pills -->
-              <div class="quick-prompts-container">
-                <span class="prompts-title"><mat-icon>tips_and_updates</mat-icon> Suggested Questions:</span>
-                <div class="prompt-pills-list">
-                  <button type="button" class="prompt-pill" (click)="sendCustomerDirectMessage('Hi! Are you available for a service request this week?')">
-                    "Hi! Are you available this week?"
-                  </button>
-                  <button type="button" class="prompt-pill" (click)="sendCustomerDirectMessage('Could you provide a price estimate for my home repair?')">
-                    "Could you provide a price estimate?"
-                  </button>
-                  <button type="button" class="prompt-pill" (click)="sendCustomerDirectMessage('Do you offer on-site diagnostic inspections?')">
-                    "Do you offer on-site diagnostic inspections?"
-                  </button>
-                  <button type="button" class="prompt-pill" (click)="sendCustomerDirectMessage('What guarantee or warranty is included with your work?')">
-                    "What warranty is included with your work?"
-                  </button>
-                </div>
-              </div>
-            </div>
-          } @else {
-            <div class="chat-messages-container">
-              @for (msg of chatService.activeMessages(); track msg.id || $index) {
-                <div
-                  class="chat-bubble-row"
-                  [class.outgoing]="isCustomerMessage(msg)"
-                  [class.incoming]="!isCustomerMessage(msg)"
-                >
-                  @if (!isCustomerMessage(msg)) {
-                    <img [src]="proProfile().avatarUrl || imageNotGivenUrl" [alt]="proProfile().name" class="msg-avatar" />
-                  }
-                  <div class="chat-bubble">
-                    @if (!isCustomerMessage(msg)) {
-                      <span class="sender-tag">{{ proProfile().name }} (Specialist)</span>
-                    }
-                    <p class="msg-text">{{ msg.content }}</p>
-                    <div class="msg-meta-row">
-                      <span class="msg-time">{{ formatMsgTime(msg.sentAt) }}</span>
-                      @if (isCustomerMessage(msg)) {
-                        <mat-icon class="status-tick" [class.is-read]="msg.isRead">
-                          {{ msg.isRead ? 'done_all' : 'done' }}
-                        </mat-icon>
-                      }
-                    </div>
-                  </div>
-                </div>
-              }
-
-              @if (chatService.isOtherUserTyping()) {
-                <div class="typing-indicator-row">
-                  <div class="typing-bubble">
-                    <span class="t-dot"></span><span class="t-dot"></span><span class="t-dot"></span>
-                    <small>{{ proProfile().name }} is typing...</small>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Chat Input Footer -->
-        <div class="customer-chat-footer">
-          <div class="chat-input-wrapper">
-            <textarea
-              [(ngModel)]="customerChatMessage"
-              (input)="onCustomerTyping()"
-              (keydown.enter)="$event.preventDefault(); sendCustomerDirectMessage()"
-              placeholder="Type your message to {{ proProfile().name }}... (Press Enter to send)"
-              rows="1"
-              [disabled]="chatService.sendingMessage()"
-            ></textarea>
-
-            <button
-              mat-fab
-              color="primary"
-              class="btn-send-msg"
-              type="button"
-              (click)="sendCustomerDirectMessage()"
-              [disabled]="!customerChatMessage().trim() || chatService.sendingMessage()"
-              title="Send Message"
-            >
-              @if (chatService.sendingMessage()) {
-                <mat-spinner diameter="20"></mat-spinner>
-              } @else {
-                <mat-icon>send</mat-icon>
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  }
 
   <!-- Address Google Map Interactive Viewer Modal -->
   @if (activeMapModalAddress()) {
@@ -1804,7 +1517,7 @@
               <mat-icon class="header-icon">flag</mat-icon>
             </div>
             <div>
-              <h3>Report Abuse or App Issue</h3>
+              <h3>Report</h3>
               <p class="modal-subtitle">Submit concerns regarding app behavior, customer safety, or system issues</p>
             </div>
           </div>
@@ -1883,12 +1596,78 @@
                 <mat-spinner diameter="18"></mat-spinner>
                 <span>Submitting...</span>
               } @else {
-                <mat-icon>send</mat-icon>
-                <span>Submit Report</span>
+                <ng-container>
+                  <mat-icon>send</mat-icon>
+                  <span>Submit Report</span>
+                </ng-container>
               }
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  }
+
+  <!-- SIGN OUT CONFIRMATION MODAL OVERLAY -->
+  @if (showSignoutConfirm()) {
+    <div class="signout-modal-backdrop" (click)="closeSignoutConfirm()">
+      <div class="signout-modal-dialog" (click)="$event.stopPropagation()">
+        <!-- Icon Badge -->
+        <div class="signout-icon-shield">
+          <mat-icon>logout</mat-icon>
+        </div>
+
+        <!-- Header -->
+        <div class="signout-modal-head">
+          <h3>Do you want to sign out?</h3>
+          <p class="signout-modal-sub">
+            Are you sure you want to end your active professional session on Callbet?
+          </p>
+        </div>
+
+        <!-- Current User Session Summary Card -->
+        <div class="session-user-summary">
+          <div class="user-avatar-badge">
+            <img [src]="proProfile().avatarUrl || imageNotGivenUrl" [alt]="proProfile().name" class="modal-summary-avatar" />
+          </div>
+          <div class="user-identity">
+            <strong class="user-fullname">{{ proProfile().name }}</strong>
+            <span class="user-email-address">{{ proProfile().email }}</span>
+          </div>
+          <span class="active-session-pill">
+            Active Session
+          </span>
+        </div>
+
+        <!-- Security / Guarantee Notice -->
+        <div class="signout-security-notice">
+          <mat-icon>shield</mat-icon>
+          <span>Your active assigned jobs, customer chats, and escrow earnings remain safely secured.</span>
+        </div>
+
+        <!-- Modal Actions Grid -->
+        <div class="signout-modal-actions">
+          <button
+            mat-stroked-button
+            type="button"
+            class="btn-modal-cancel"
+            (click)="closeSignoutConfirm()"
+          >
+            <mat-icon>close</mat-icon>
+            <span>Stay Signed In</span>
+          </button>
+
+          <button
+            mat-raised-button
+            color="warn"
+            type="button"
+            class="btn-modal-confirm"
+            (click)="confirmSignout()"
+          >
+            <mat-icon>logout</mat-icon>
+            <span>Yes, Sign Out</span>
+          </button>
+        </div>
       </div>
     </div>
   }

@@ -607,6 +607,12 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
+
+    .btn-edit-profile {
+      font-size: 0.82rem;
+      font-weight: 600;
+      mat-icon { font-size: 16px; width: 16px; height: 16px; margin-right: 4px; }
+    }
   }
 
   .profile-details-content {
@@ -1317,6 +1323,15 @@
       padding: 1rem;
       border-radius: 8px;
       .summary-text { margin: 0; font-size: 0.9rem; color: #475569; line-height: 1.5; }
+    }
+
+    .no-data-text {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      font-style: italic;
+      margin: 0;
+      padding: 0.25rem 0;
+      display: block;
     }
 
     .skills-lang-grid {
@@ -2241,12 +2256,12 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
-    color: #166534;
+    color: #64748b;
     font-size: 0.85rem;
-    mat-icon { font-size: 20px; width: 20px; height: 20px; }
+    mat-icon { font-size: 20px; width: 20px; height: 20px; color: #94a3b8; }
     p { margin: 0; font-weight: 500; }
   }
 }
@@ -3419,3 +3434,235 @@
   color: rgba(255, 255, 255, 0.9);
   text-align: right;
 }
+
+.btn-signout-header {
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    transform: translateY(-1px);
+  }
+}
+
+.signout-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  z-index: 2500;
+  animation: fadeInBackdrop 0.2s ease-out;
+
+  .signout-modal-dialog {
+    width: 100%;
+    max-width: 480px;
+    background: #ffffff;
+    border-radius: 22px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: scaleInModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+    .signout-icon-shield {
+      width: 68px;
+      height: 68px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+      color: #dc2626;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 8px 20px rgba(220, 38, 38, 0.18);
+
+      mat-icon {
+        font-size: 34px;
+        width: 34px;
+        height: 34px;
+      }
+    }
+
+    .signout-modal-head {
+      margin-bottom: 1.25rem;
+
+      h3 {
+        margin: 0 0 0.4rem;
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.3px;
+      }
+
+      .signout-modal-sub {
+        margin: 0;
+        font-size: 0.88rem;
+        color: #64748b;
+        line-height: 1.45;
+      }
+    }
+
+    .session-user-summary {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.85rem 1rem;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      margin-bottom: 1rem;
+      text-align: left;
+
+      .user-avatar-badge {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 1.5px solid #3f51b5;
+
+        .modal-summary-avatar {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+
+      .user-identity {
+        flex: 1;
+        min-width: 0;
+
+        .user-fullname {
+          display: block;
+          font-size: 0.9rem;
+          font-weight: 800;
+          color: #0f172a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .user-email-address {
+          display: block;
+          font-size: 0.78rem;
+          color: #64748b;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .active-session-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px;
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+    }
+
+    .signout-security-notice {
+      width: 100%;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.75rem 0.9rem;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      text-align: left;
+      font-size: 0.78rem;
+      color: #0369a1;
+      line-height: 1.4;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: #0284c7;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+    }
+
+    .signout-modal-actions {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+
+      button {
+        height: 44px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      .btn-modal-cancel {
+        border-color: #cbd5e1;
+        color: #475569;
+
+        &:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+      }
+
+      .btn-modal-confirm {
+        background-color: #dc2626;
+        color: #ffffff;
+
+        &:hover {
+          background-color: #b91c1c;
+        }
+      }
+    }
+  }
+}
+

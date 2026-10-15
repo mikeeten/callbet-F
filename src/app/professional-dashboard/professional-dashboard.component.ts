@@ -26,10 +26,8 @@ import {
   EducationItemDto,
   ExperienceItemDto
 } from '../services/pro-dashboard.service';
-import { CustomerServicesService } from '../services/customer-services.service';
 import { NotificationService } from '../services/notification.service';
 import { AuthService } from '../core/services/auth.service';
-import { ProLocationSettingsComponent } from '../components/pro-location-settings/pro-location-settings.component';
 import { AddressPickerComponent } from '../components/address-picker/address-picker.component';
 import { MapModalComponent } from '../components/map-modal/map-modal.component';
 import { LocationService, Address } from '../services/location.service';
@@ -52,7 +50,6 @@ import { ChatService } from '../services/chat.service';
     MatInputModule,
     MatSelectModule,
     MatProgressSpinnerModule,
-    ProLocationSettingsComponent,
     AddressPickerComponent,
     MapModalComponent
   ],
@@ -64,7 +61,6 @@ export class ProfessionalDashboardComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private proService = inject(ProDashboardService);
-  private customerServicesService = inject(CustomerServicesService);
   public notificationService = inject(NotificationService);
   public authService = inject(AuthService);
   public chatService = inject(ChatService);
@@ -97,7 +93,7 @@ export class ProfessionalDashboardComponent implements OnInit {
     avatarUrl: this.imageNotGivenUrl,
     yearsOfExperience: 0,
     hourlyRate: 0,
-    serviceRadiusKm: 2.5,
+    serviceRadiusKm: 2.0,
     baseLocation: 'Unassigned',
     isVerified: false,
     overallRating: 0,
@@ -110,6 +106,7 @@ export class ProfessionalDashboardComponent implements OnInit {
 
   // Profile Photo Upload State
   isUploadingPhoto = signal<boolean>(false);
+
 
   // Assigned Jobs Count & State (for Pro owner quick links)
   jobs = signal<ProJob[]>([]);
@@ -186,6 +183,7 @@ export class ProfessionalDashboardComponent implements OnInit {
     this.showAddAddress.set(false);
     this.showFeedback('Service location address saved successfully!');
     this.locationService.loadMyAddresses().subscribe();
+    this.loadProfileDashboard();
   }
 
   deleteAddress(id: string): void {
@@ -203,28 +201,9 @@ export class ProfessionalDashboardComponent implements OnInit {
   }
 
   // Public Booking Modal State (When viewed by Customer/Visitor)
-    // Dedicated Professional Services State (Loaded via GET /api/professional/services/{profileId})
   professionalServices = signal<ProfessionalProfileServiceDto[]>([]);
   servicesLoading = signal<boolean>(false);
   unassigningServiceId = signal<string | null>(null);
-
-selectedServiceForBooking = signal<ServiceDto | null>(null);
-  showBookingModal = signal<boolean>(false);
-  bookingSuccess = signal<boolean>(false);
-  bookingLoading = signal<boolean>(false);
-  isBookmarked = signal<boolean>(false);
-
-  // Public Customer Direct Chat State (When viewed by Customer/Visitor)
-  showCustomerChatModal = signal<boolean>(false);
-  customerChatMessage = signal<string>('');
-  customerChatLoading = signal<boolean>(false);
-  activeCustomerSessionId = signal<string | null>(null);
-
-  bookingForm = this.fb.group({
-    scheduledDate: [new Date().toISOString().split('T')[0], Validators.required],
-    address: ['', Validators.required],
-    description: ['', [Validators.required, Validators.maxLength(500)]]
-  });
 
   // Lightbox Image Preview Modal
   previewImage = signal<string | null>(null);
@@ -242,8 +221,8 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
 
   onCertImageError(event: Event): void {
     const target = event.target as HTMLImageElement;
-    if (target && !target.src.includes('unsplash.com')) {
-      target.src = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80';
+    if (target) {
+      target.src = this.imageNotGivenUrl;
     }
   }
 
@@ -261,6 +240,8 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
       .filter((p) => p.status === 'Disbursed')
       .reduce((sum, p) => sum + p.netPayout, 0)
   );
+
+
 
   ngOnInit(): void {
     // Check if accessing public profile with an ID or detail mode
@@ -361,29 +342,11 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
               }
             });
           } else {
-            dashboardData.certificates = [
-              {
-                id: 'cert-default-1',
-                title: 'Ethiopian Electric Utility Certified Wireman Grade 1',
-                organization: 'EEU Accreditation Bureau & Ministry of Water & Energy',
-                issueDate: '2024-03-15',
-                documentImageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-                documentUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80'
-              },
-              {
-                id: 'cert-default-2',
-                title: 'Commercial Sanitary & Deep Sanitation Compliance',
-                organization: 'Addis Ababa Health & Standards Authority',
-                issueDate: '2023-11-20',
-                documentImageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1200&auto=format&fit=crop&q=80',
-                documentUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1200&auto=format&fit=crop&q=80'
-              }
-            ];
+            dashboardData.certificates = [];
           }
           this.fullDashboardData.set(dashboardData);
           this.applyDashboardData(dashboardData, targetId);
           this.loadProfessionalServices(dashboardData.id || targetId || '');
-          this.loadAvailability(dashboardData.id || targetId || '');
         }
       },
       error: (err: any) => {
@@ -401,11 +364,15 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
 
   private applyDashboardData(data: ProfessionalProfileDashboardDto, requestedId?: string): void {
     const authUser = this.authService.currentUser();
-    const isOwner = authUser && (
-      (data.userId && authUser.id === data.userId) ||
-      (data.id && authUser.id === data.id) ||
-      (!requestedId && authUser.roles?.some(r => r.toLowerCase() === 'professional'))
+    const tokenUserId = this.authService.getUserId();
+    const currentUserId = authUser?.id || tokenUserId;
+
+    // Strict ownership verification: match authenticated user's ID to dashboard profile
+    const idsMatch = !!currentUserId && (
+      (!!data.userId && currentUserId.toLowerCase() === data.userId.toLowerCase()) ||
+      (!!data.id && currentUserId.toLowerCase() === data.id.toLowerCase())
     );
+    const isOwner = idsMatch;
 
     // If on the detail route, always ensure public detail view is active
     const isDetailRoute = this.router.url.includes('professional-dashboard-detail');
@@ -436,6 +403,16 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
       ? data.services.map(s => s.name)
       : [];
 
+    if (isOwner && data.fullName) {
+      const parts = data.fullName.trim().split(/\s+/);
+      const fName = parts[0] || "";
+      const lName = parts.slice(1).join(" ") || "";
+      this.authService.updateUserProfile({
+        firstName: fName,
+        lastName: lName
+      });
+    }
+
     this.proProfile.set({
       name: data.fullName?.trim() || 'Unassigned',
       headline: data.headline?.trim() || 'Unassigned',
@@ -446,7 +423,7 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
       avatarUrl: this.formatImageUrl(data.profilePhotoUrl) || this.imageNotGivenUrl,
       yearsOfExperience: data.yearsOfExperience ?? 0,
       hourlyRate: (data.services && data.services[0]?.price) || (data.services && data.services[0]?.basePrice) || 0,
-      serviceRadiusKm: data.serviceRadiusKm ? Math.min(2.5, Math.max(1, data.serviceRadiusKm)) : 2.5,
+      serviceRadiusKm: data.serviceRadiusKm ? Number(data.serviceRadiusKm) : 2.0,
       baseLocation: locationStr,
       isVerified: data.isVerified !== undefined ? data.isVerified : false,
       overallRating: data.overallRating ?? 0,
@@ -457,34 +434,32 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
       updatedAt: data.updatedAt || ''
     });
 
-    // Populate Availability
+    // Populate Availability if already present in dashboard payload
     if (data.availabilitySchedules && data.availabilitySchedules.length > 0) {
       this.availabilitySchedules.set(data.availabilitySchedules);
-    } else {
-      this.loadAvailability(data.id || data.userId || requestedId || '');
     }
 
-    // Populate Reviews
+    // Populate Reviews if already present in dashboard payload
     if (data.reviews && data.reviews.length > 0) {
       this.reviews.set(data.reviews);
     }
 
-    // If owner mode, load jobs, chats, and oversight logs
+    // If owner mode, load assigned jobs and notifications
     if (!this.isPublicView()) {
       const proId = data.id || data.userId || this.routeProId() || '';
       if (proId) {
-        this.loadOwnerJobsAndLedger(proId);
+        this.loadOwnerJobs(proId);
       }
-      this.chatService.loadMySessions().subscribe();
       this.notificationService.loadNotifications();
     }
   }
 
   private fallbackLoadAuthenticated(): void {
     const authUser = this.authService.currentUser();
+    const tokenUserId = this.authService.getUserId();
     this.isPublicView.set(false);
     this.activeTab.set('profile');
-    const defaultId = authUser?.id || '';
+    const defaultId = authUser?.id || tokenUserId || '';
 
     this.proService.getMyProfile().subscribe({
       next: (data) => {
@@ -504,15 +479,14 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
             avatarUrl: this.formatImageUrl(data.profilePhotoUrl || data.avatarUrl) || this.imageNotGivenUrl,
             bio: data.bio?.trim() || 'Unassigned',
             yearsOfExperience: data.yearsOfExperience ?? prev.yearsOfExperience,
-            serviceRadiusKm: data.serviceRadiusKm ? Math.min(2.5, Math.max(1, data.serviceRadiusKm)) : (prev.serviceRadiusKm ? Math.min(2.5, Math.max(1, prev.serviceRadiusKm)) : 2.5),
+            serviceRadiusKm: data.serviceRadiusKm ? Math.min(2, Math.max(1, Number(data.serviceRadiusKm))) : (prev.serviceRadiusKm ? Math.min(2, Math.max(1, Number(prev.serviceRadiusKm))) : 2.0),
             baseLocation: locationStr || 'Unassigned',
             isVerified: data.isVerified !== undefined ? data.isVerified : prev.isVerified,
             overallRating: data.overallRating ?? prev.overallRating,
             completedJobsCount: data.completedJobsCount ?? prev.completedJobsCount
           }));
-          this.loadOwnerJobsAndLedger(data.id || defaultId);
+          this.loadOwnerJobs(data.id || defaultId);
           this.loadProfessionalServices(data.id || defaultId);
-          this.loadAvailability(data.id || defaultId);
         }
 
         if (!this.fullDashboardData()) {
@@ -520,58 +494,32 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
             id: defaultId,
             userId: defaultId,
             fullName: this.proProfile().name,
-            serviceRadiusKm: this.proProfile().serviceRadiusKm ? Math.min(2.5, Math.max(1, this.proProfile().serviceRadiusKm)) : 2.5,
-            yearsOfExperience: this.proProfile().yearsOfExperience || 5,
-            overallRating: this.proProfile().overallRating || 4.9,
-            completedJobsCount: this.proProfile().completedJobsCount || 10,
+            serviceRadiusKm: this.proProfile().serviceRadiusKm ? Math.min(2, Math.max(1, Number(this.proProfile().serviceRadiusKm))) : 2.0,
+            yearsOfExperience: data?.yearsOfExperience ?? this.proProfile().yearsOfExperience ?? 0,
+            overallRating: data?.overallRating ?? this.proProfile().overallRating ?? 0,
+            completedJobsCount: data?.completedJobsCount ?? this.proProfile().completedJobsCount ?? 0,
             isVerified: data?.isVerified !== undefined ? data.isVerified : this.proProfile().isVerified,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            certificates: [
-              {
-                id: 'cert-default-1',
-                title: 'Ethiopian Electric Utility Certified Wireman Grade 1',
-                organization: 'EEU Accreditation Bureau & Ministry of Water & Energy',
-                issueDate: '2024-03-15',
-                documentImageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-                documentUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80'
-              },
-              {
-                id: 'cert-default-2',
-                title: 'Commercial Sanitary & Deep Sanitation Compliance',
-                organization: 'Addis Ababa Health & Standards Authority',
-                issueDate: '2023-11-20',
-                documentImageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1200&auto=format&fit=crop&q=80',
-                documentUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=1200&auto=format&fit=crop&q=80'
-              }
-            ]
+            certificates: []
           } as any);
         }
       },
       error: () => {
-        this.loadOwnerJobsAndLedger(defaultId);
+        this.loadOwnerJobs(defaultId);
         if (!this.fullDashboardData()) {
           this.fullDashboardData.set({
             id: defaultId,
             userId: defaultId,
             fullName: this.proProfile().name,
-            serviceRadiusKm: 2.5,
-            yearsOfExperience: 5,
-            overallRating: 4.9,
-            completedJobsCount: 10,
+            serviceRadiusKm: 2.0,
+            yearsOfExperience: this.proProfile().yearsOfExperience || 0,
+            overallRating: this.proProfile().overallRating || 0,
+            completedJobsCount: this.proProfile().completedJobsCount || 0,
             isVerified: this.proProfile().isVerified || false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            certificates: [
-              {
-                id: 'cert-default-1',
-                title: 'Ethiopian Electric Utility Certified Wireman Grade 1',
-                organization: 'EEU Accreditation Bureau & Ministry of Water & Energy',
-                issueDate: '2024-03-15',
-                documentImageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-                documentUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80'
-              }
-            ]
+            certificates: []
           } as any);
         }
       }
@@ -603,7 +551,7 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
             bio: data.bio?.trim() || 'Unassigned',
             yearsOfExperience: data.yearsOfExperience ?? 0,
             hourlyRate: data.hourlyRate ?? 0,
-            serviceRadiusKm: data.serviceRadiusKm ? Math.min(2.5, Math.max(1, data.serviceRadiusKm)) : 2.5,
+            serviceRadiusKm: data.serviceRadiusKm ? Math.min(2, Math.max(1, Number(data.serviceRadiusKm))) : 2.0,
             baseLocation: locationStr || 'Unassigned',
             isVerified: data.isVerified !== undefined ? data.isVerified : false,
             overallRating: data.overallRating ?? 0,
@@ -616,61 +564,75 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
             id: targetId,
             userId: targetId,
             fullName: this.proProfile().name,
-            serviceRadiusKm: 2.5,
-            yearsOfExperience: 5,
-            overallRating: 4.9,
-            completedJobsCount: 10,
+            serviceRadiusKm: 2.0,
+            yearsOfExperience: data?.yearsOfExperience ?? this.proProfile().yearsOfExperience ?? 0,
+            overallRating: data?.overallRating ?? this.proProfile().overallRating ?? 0,
+            completedJobsCount: data?.completedJobsCount ?? this.proProfile().completedJobsCount ?? 0,
             isVerified: data?.isVerified !== undefined ? data.isVerified : this.proProfile().isVerified,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            certificates: [
-              {
-                id: 'cert-default-1',
-                title: 'Ethiopian Electric Utility Certified Wireman Grade 1',
-                organization: 'EEU Accreditation Bureau & Ministry of Water & Energy',
-                issueDate: '2024-03-15',
-                documentImageUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80',
-                documentUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&auto=format&fit=crop&q=80'
-              }
-            ]
+            certificates: []
           } as any);
         }
       },
       error: () => { }
     });
-    this.loadReviews(targetId);
   }
 
-  loadOwnerJobsAndLedger(proId: string): void {
-    // 1. Jobs
+  loadOwnerJobs(proId: string): void {
+    if (!proId) {
+      this.jobs.set([]);
+      return;
+    }
+
+    // 1. Assigned Jobs for top badges and active widgets
     this.proService.getAssignedJobs(proId).subscribe({
       next: (jobs) => {
-        if (jobs && jobs.length > 0) this.jobs.set(jobs);
+        if (jobs && Array.isArray(jobs)) {
+          const assignedOnly = jobs.filter((j: any) =>
+            j.status === "Assigned" || j.status === "InProgress" || j.status === "CompletedPendingApproval"
+          );
+          this.jobs.set(assignedOnly);
+        } else {
+          this.jobs.set([]);
+        }
       },
-      error: () => { }
+      error: () => {
+        this.jobs.set([]);
+      }
     });
 
-    // 2. Payments
-    this.proService.getPaymentsLedger(proId).subscribe({
+    // 2. Saved Service Addresses
+    this.locationService.loadMyAddresses().subscribe();
+  }
+
+  loadPaymentsLedger(proId?: string): void {
+    const targetId = proId || this.proProfile().profileId || this.proProfile().userId || this.routeProId() || '';
+    if (!targetId) return;
+
+    this.proService.getPaymentsLedger(targetId).subscribe({
       next: (payments) => {
-        if (payments && payments.length > 0) this.payments.set(payments);
+        if (payments && Array.isArray(payments)) {
+          this.payments.set(payments);
+        } else {
+          this.payments.set([]);
+        }
       },
-      error: () => { }
+      error: () => {
+        this.payments.set([]);
+      }
     });
 
-    // 3. Oversight logs
     this.proService.getOversightLogs(1, 10).subscribe({
       next: (logs) => {
         if (logs?.items && logs.items.length > 0) this.oversightLogs.set(logs.items);
       },
       error: () => { }
     });
+  }
 
-    // 4. Saved Service Addresses
-    this.locationService.loadMyAddresses().subscribe();
-
-    // 4. Availability
-    this.loadAvailability(proId);
+  loadCustomerChats(): void {
+    this.chatService.loadMySessions().subscribe();
   }
 
   loadAvailability(proId?: string): void {
@@ -825,8 +787,45 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
   setTab(tab: string): void {
     this.activeTab.set(tab);
     this.feedbackMessage.set(null);
-    if (tab === 'reviews') {
-      this.loadReviews();
+
+    const proId = this.proProfile().profileId || this.proProfile().userId || this.routeProId() || '';
+
+    switch (tab) {
+      case 'education-skills':
+      case 'resume':
+        // Education & skills background loaded with profile
+        break;
+
+      case 'portfolio':
+        // Portfolio items loaded with profile
+        break;
+
+      case 'availability':
+        // Lazy-load availability schedules on demand
+        if (this.availabilitySchedules().length === 0) {
+          this.loadAvailability(proId);
+        }
+        break;
+
+      case 'earnings':
+        // Lazy-load payments & escrow ledger on demand
+        this.loadPaymentsLedger(proId);
+        break;
+
+      case 'reviews':
+        // Lazy-load client reviews on demand
+        this.loadReviews(proId);
+        break;
+
+      case 'chats':
+        // Lazy-load customer chat sessions on demand
+        this.loadCustomerChats();
+        break;
+
+      case 'profile':
+      default:
+        // Profile & Services is already loaded on initial page load
+        break;
     }
   }
 
@@ -842,11 +841,14 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
       try {
         const parsed = JSON.parse(resume.educationJson);
         if (Array.isArray(parsed)) list = parsed;
-      } catch { }
+        else if (typeof parsed === 'string') list = parsed.split(',').map(s => s.trim()).filter(Boolean);
+      } catch {
+        list = resume.educationJson.split(',').map(s => s.trim()).filter(Boolean);
+      }
     }
     return list.map(item => {
       if (typeof item === 'string') {
-        return { degree: item, school: 'Accredited Vocational & Technical Institution', year: 'Verified Credential' };
+        return { degree: item, institution: '', year: '' };
       }
       return item;
     });
@@ -861,11 +863,14 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
       try {
         const parsed = JSON.parse(resume.experienceJson);
         if (Array.isArray(parsed)) list = parsed;
-      } catch { }
+        else if (typeof parsed === 'string') list = parsed.split(',').map(s => s.trim()).filter(Boolean);
+      } catch {
+        list = resume.experienceJson.split(',').map(s => s.trim()).filter(Boolean);
+      }
     }
     return list.map(item => {
       if (typeof item === 'string') {
-        return { role: item, company: 'Independent Licensed Contractor & Callbet Professional', duration: 'Field Experience', description: '' };
+        return { position: item, company: '', duration: '', description: '' };
       }
       return item;
     });
@@ -873,6 +878,7 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
 
   formatImageUrl(url?: string | null): string {
     if (!url) return '';
+    if (url.includes('unsplash.com')) return '';
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
     if (url.startsWith('/uploads/')) return `http://localhost:5189${url}`;
     if (url.startsWith('/')) return `http://localhost:5189${url}`;
@@ -961,146 +967,6 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
 
     this.closeReplyModal();
     this.showFeedback('Your reply has been published to the review.');
-  }
-
-  // Public Booking Flow for Visitors / Customers
-  openBookingModal(service?: any): void {
-    const availableServices = this.professionalServices().length > 0 ? this.professionalServices() : (this.fullDashboardData()?.services || []);
-    const srv = service || (availableServices.length > 0 ? availableServices[0] : null);
-    this.selectedServiceForBooking.set(srv);
-    this.bookingSuccess.set(false);
-    const serviceName = srv?.serviceName || srv?.name || 'Professional Service';
-    this.bookingForm.reset({
-      scheduledDate: new Date().toISOString().split('T')[0],
-      address: this.proProfile().baseLocation || 'Bole, Addis Ababa',
-      description: srv ? `Requesting "${serviceName}" service.` : 'Requesting professional service.'
-    });
-    this.showBookingModal.set(true);
-  }
-
-  closeBookingModal(): void {
-    this.showBookingModal.set(false);
-    this.bookingSuccess.set(false);
-  }
-
-  submitBooking(): void {
-    if (this.bookingForm.invalid) return;
-
-    this.bookingLoading.set(true);
-    const srv = this.selectedServiceForBooking();
-    const val = this.bookingForm.value;
-
-    const jobDto = {
-      professionalId: this.proProfile().profileId || this.routeProId() || '',
-      serviceName: srv?.name || 'Professional Service',
-      price: srv?.price || srv?.basePrice || this.proProfile().hourlyRate || 100,
-      scheduledDate: val.scheduledDate || new Date().toISOString().split('T')[0],
-      address: val.address || 'Addis Ababa',
-      description: val.description || ''
-    };
-
-    this.customerServicesService.createJob(jobDto).subscribe({
-      next: () => {
-        this.bookingLoading.set(false);
-        this.bookingSuccess.set(true);
-      },
-      error: () => {
-        // Fallback for simulation
-        this.bookingLoading.set(false);
-        this.bookingSuccess.set(true);
-      }
-    });
-  }
-
-  toggleBookmark(): void {
-    const isNow = !this.isBookmarked();
-    this.isBookmarked.set(isNow);
-    const msg = isNow
-      ? `Saved ${this.proProfile().name} to your bookmarked specialists!`
-      : `Removed ${this.proProfile().name} from bookmarks.`;
-    this.showFeedback(msg);
-  }
-
-  startDirectChat(): void {
-    const authUser = this.authService.currentUser();
-    if (!authUser) {
-      this.router.navigate(['/login'], { queryParams: { returnUrl: this.router.url } });
-      return;
-    }
-
-    const targetProId = this.proProfile().profileId || this.proProfile().userId || this.routeProId() || '';
-    if (!targetProId) {
-      this.showCustomerChatModal.set(true);
-      return;
-    }
-
-    this.customerChatLoading.set(true);
-    this.chatService.getOrCreateSession(targetProId, authUser.id).subscribe({
-      next: (res) => {
-        this.customerChatLoading.set(false);
-        const sId = res?.sessionId || res?.id;
-        if (sId) {
-          this.activeCustomerSessionId.set(sId);
-          this.chatService.selectSession(sId);
-        }
-        this.showCustomerChatModal.set(true);
-      },
-      error: (err: any) => {
-        this.customerChatLoading.set(false);
-        console.warn('Chat session init error, opening modal directly:', err);
-        const fallbackSessionId = `session-${targetProId}-${authUser.id}`;
-        this.activeCustomerSessionId.set(fallbackSessionId);
-        this.chatService.selectSession(fallbackSessionId);
-        this.showCustomerChatModal.set(true);
-      }
-    });
-  }
-
-  closeCustomerChatModal(): void {
-    this.showCustomerChatModal.set(false);
-  }
-
-  onCustomerTyping(): void {
-    this.chatService.sendTyping(true);
-  }
-
-  isCustomerMessage(msg: any): boolean {
-    const currentUserId = this.authService.currentUser()?.id;
-    return msg.senderRole === 'Customer' || msg.senderId === currentUserId;
-  }
-
-  sendCustomerDirectMessage(prefillMsg?: string): void {
-    const text = (prefillMsg || this.customerChatMessage()).trim();
-    if (!text) return;
-
-    const authUser = this.authService.currentUser();
-    const sId = this.activeCustomerSessionId() || this.chatService.activeSessionId();
-    const proUserId = this.proProfile().userId || this.proProfile().profileId || this.routeProId() || undefined;
-
-    if (sId) {
-      this.chatService.sendMessage(text, sId, proUserId).subscribe({
-        next: () => {
-          this.customerChatMessage.set('');
-        },
-        error: (err: any) => {
-          console.error('Failed to send customer message:', err);
-          // Fallback optimistic message
-          this.chatService.activeMessages.update((list) => [
-            ...list,
-            {
-              chatSessionId: sId,
-              senderId: authUser?.id || 'customer',
-              senderName: authUser?.firstName || 'You (Customer)',
-              senderRole: 'Customer',
-              content: text,
-              sentAt: new Date().toISOString(),
-              isRead: false
-            }
-          ]);
-          this.customerChatMessage.set('');
-        }
-      });
-    }
   }
 
   // Chat Actions for Owner
@@ -1225,5 +1091,21 @@ selectedServiceForBooking = signal<ServiceDto | null>(null);
         this.reportErrorMessage.set(err.error?.message || err.message || 'Failed to submit report. Please try again.');
       }
     });
+  }
+
+  // Signout Confirmation Modal Actions
+  showSignoutConfirm = signal(false);
+
+  openSignoutConfirm(): void {
+    this.showSignoutConfirm.set(true);
+  }
+
+  closeSignoutConfirm(): void {
+    this.showSignoutConfirm.set(false);
+  }
+
+  confirmSignout(): void {
+    this.showSignoutConfirm.set(false);
+    this.authService.logout(true);
   }
 }
