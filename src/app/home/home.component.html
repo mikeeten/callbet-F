@@ -1077,8 +1077,10 @@
             <li><a routerLink="/login" [queryParams]="{mode: 'register', role: 'Professional'}">Pro Partner Registration</a></li>
             <li><a routerLink="/professional-profile">Professional Profile & CV</a></li>
             <li><a routerLink="/professional-notifications">Activity & Job Feed</a></li>
-            <li><a routerLink="/admin-services">Admin Catalog Management</a></li>
-            <li><a routerLink="/verification-list">Admin Verification Portal</a></li>
+            @if (authService.hasRole('Admin')) {
+              <li><a routerLink="/admin-services">Admin Catalog Management</a></li>
+              <li><a routerLink="/verification-list">Admin Verification Portal</a></li>
+            }
           </ul>
         </div>
 
