@@ -3,7 +3,7 @@
   <div class="header-section">
     <div>
       <h2>Professional Job Notifications</h2>
-      <p class="subtitle">Track real-time activity updates and manage customer work orders</p>
+      <p class="subtitle">Track real-time activity updates, customer requests, and work order lifecycles</p>
     </div>
     <div class="header-actions">
       <button mat-stroked-button color="primary" routerLink="/professional-dashboard">
@@ -15,40 +15,39 @@
     </div>
   </div>
 
+  <!-- Metric Overview Cards -->
+  <div class="stats-overview">
+    <div class="stat-card" [class.active-stat]="activeFilter() === 'all'" (click)="setFilter('all')">
+      <div class="stat-num">{{ notificationService.professionalNotifications().length }}</div>
+      <div class="stat-label">Total Notifications</div>
+    </div>
+    <div class="stat-card unread-card" [class.active-stat]="activeFilter() === 'unread'" (click)="setFilter('unread')">
+      <div class="stat-num">{{ notificationService.unreadProfessionalCount() }}</div>
+      <div class="stat-label">Unread Alerts</div>
+    </div>
+  </div>
+
   <!-- Action Status Banners -->
   @if (actionSuccess()) {
     <div class="success-banner">
-      {{ actionSuccess() }}
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ actionSuccess() }}</span>
     </div>
   }
 
   @if (replySuccess()) {
     <div class="success-banner">
-      {{ replySuccess() }}
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ replySuccess() }}</span>
     </div>
   }
 
   @if (actionError()) {
     <div class="error-banner">
-      {{ actionError() }}
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ actionError() }}</span>
     </div>
   }
-
-  <!-- Summary Stats -->
-  <div class="stats-overview">
-    <div class="stat-card" (click)="setFilter('requests')">
-      <div class="stat-num">{{ requestsCount() }}</div>
-      <div class="stat-label">Requests & Assigned</div>
-    </div>
-    <div class="stat-card in-progress-card" (click)="setFilter('in_progress')">
-      <div class="stat-num">{{ inProgressCount() }}</div>
-      <div class="stat-label">Jobs In Progress</div>
-    </div>
-    <div class="stat-card completed-card" (click)="setFilter('completed')">
-      <div class="stat-num">{{ completedCount() }}</div>
-      <div class="stat-label">Completed & Closed</div>
-    </div>
-  </div>
 
   <!-- Notifications Center Card -->
   <mat-card appearance="outlined" class="notifications-card">
@@ -67,25 +66,59 @@
             mat-button
             color="primary"
             type="button"
-            [disabled]="notificationService.unreadProfessionalCount() === 0"
             (click)="markAllAsRead()"
+            [disabled]="notificationService.unreadProfessionalCount() === 0"
           >
-            Mark All Read
+            <mat-icon>done_all</mat-icon> Mark All Read
           </button>
           <button
             mat-button
             color="warn"
             type="button"
-            [disabled]="notificationService.professionalNotifications().length === 0"
             (click)="clearAll()"
+            [disabled]="totalCount() === 0"
           >
-            Clear All
+            <mat-icon>clear_all</mat-icon> Clear Feed
           </button>
         </div>
       </div>
     </mat-card-header>
 
-    <!-- Filter Buttons Bar -->
+    <!-- Search & Filter Ribbon -->
+    <div class="filter-and-search-ribbon">
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          placeholder="Search notifications by message or keyword..."
+          [value]="searchQuery()"
+          (input)="onSearchChange($event)"
+          (keyup.enter)="onSearchSubmit()"
+        />
+        @if (searchQuery()) {
+          <button type="button" class="btn-clear-search" (click)="clearSearch()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <div class="page-size-selector">
+        <label for="pageSizeSelect">Show:</label>
+        <select
+          id="pageSizeSelect"
+          [value]="pageSize()"
+          (change)="onPageSizeChange(+$any($event.target).value)"
+          class="custom-select"
+        >
+          <option [value]="5">5 per page</option>
+          <option [value]="10">10 per page</option>
+          <option [value]="20">20 per page</option>
+          <option [value]="50">50 per page</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Filter Category Tabs -->
     <div class="filter-tabs">
       <button
         mat-stroked-button
@@ -103,203 +136,253 @@
       >
         Unread ({{ notificationService.unreadProfessionalCount() }})
       </button>
-      <button
-        mat-stroked-button
-        type="button"
-        [class.active-tab]="activeFilter() === 'requests'"
-        (click)="setFilter('requests')"
-      >
-        Requests ({{ requestsCount() }})
-      </button>
-      <button
-        mat-stroked-button
-        type="button"
-        [class.active-tab]="activeFilter() === 'in_progress'"
-        (click)="setFilter('in_progress')"
-      >
-        In Progress ({{ inProgressCount() }})
-      </button>
-      <button
-        mat-stroked-button
-        type="button"
-        [class.active-tab]="activeFilter() === 'completed'"
-        (click)="setFilter('completed')"
-      >
-        Completed ({{ completedCount() }})
-      </button>
     </div>
 
     <mat-card-content class="card-content">
-      <!-- Notification Items List -->
-      <div class="notifications-feed">
-        @for (item of filteredNotifications(); track item.id) {
-          <div class="notification-row" [class.unread]="!item.isRead">
-            <div class="notif-icon-col">
-              <div
-                class="icon-circle"
-                [class.stage1]="item.stage === 1"
-                [class.stage2]="item.stage === 2"
-                [class.stage3]="item.stage === 3"
-                [class.stage4]="item.stage === 4"
-                [class.stage5]="item.stage === 5"
-              >
-                @if (item.stage === 1 || item.stage === 2) {
-                  <mat-icon>assignment_ind</mat-icon>
-                } @else if (item.stage === 3) {
-                  <mat-icon>play_circle_filled</mat-icon>
-                } @else if (item.stage === 4) {
-                  <mat-icon>check_circle</mat-icon>
-                } @else if (item.stage === 5) {
-                  <mat-icon>verified</mat-icon>
-                } @else {
-                  <mat-icon>info</mat-icon>
-                }
-              </div>
-            </div>
-
-            <div class="notif-body">
-              <div class="notif-header">
-                <div class="title-and-stage">
-                  <span class="notif-title">{{ item.title }}</span>
-                </div>
-                <span class="notif-time">{{ item.createdAt | date:'medium' }}</span>
-              </div>
-
-              <p class="notif-message">{{ item.message }}</p>
-
-              @if (item.serviceName || item.customerName || item.price) {
-                <div class="job-meta-chips">
-                  @if (item.customerName) {
-                    <span class="meta-chip">Customer: <strong>{{ item.customerName }}</strong></span>
-                  }
-                  @if (item.serviceName) {
-                    <span class="meta-chip">Service: <strong>{{ item.serviceName }}</strong></span>
-                  }
-                  @if (item.price) {
-                    <span class="meta-chip">Price: <strong>${{ item.price }}</strong></span>
-                  }
-                  @if (item.jobId) {
-                    <span class="meta-chip job-id-chip">Job ID: <code>{{ item.jobId.substring(0, 8) }}...</code></span>
-                  }
-                </div>
-              }
-
-              <!-- Action Controls for Job Lifecycle -->
-              <div class="lifecycle-actions-bar">
-                @if ((item.stage === 1 || item.stage === 2) && item.jobId) {
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    type="button"
-                    class="lifecycle-action-btn"
-                    [disabled]="actionLoading() === item.jobId"
-                    (click)="startJob(item.jobId, item)"
-                  >
-                    @if (actionLoading() === item.jobId) {
-                      <mat-spinner diameter="16"></mat-spinner>
-                      <span>Starting...</span>
-                    } @else {
-                      <ng-container>
-                        <mat-icon>play_arrow</mat-icon>
-                        <span>Start Job</span>
-                      </ng-container>
-                    }
-                  </button>
-                }
-
-                @if (item.stage === 3 && item.jobId) {
-                  <button
-                    mat-raised-button
-                    color="accent"
-                    type="button"
-                    class="lifecycle-action-btn"
-                    [disabled]="actionLoading() === item.jobId"
-                    (click)="completeJob(item.jobId, item)"
-                  >
-                    @if (actionLoading() === item.jobId) {
-                      <mat-spinner diameter="16"></mat-spinner>
-                      <span>Completing...</span>
-                    } @else {
-                      <ng-container>
-                        <mat-icon>done_all</mat-icon>
-                        <span>Complete Job</span>
-                      </ng-container>
-                    }
-                  </button>
-                }
-
-                @if (item.stage === 5) {
-                  <button
-                    mat-stroked-button
-                    color="primary"
-                    type="button"
-                    class="lifecycle-action-btn"
-                    (click)="openReply(item.reviewId || item.id)"
-                  >
-                    <mat-icon>reply</mat-icon> Reply to Customer Review
-                  </button>
-                }
-
-                @if (!item.isRead) {
-                  <button
-                    mat-button
-                    type="button"
-                    (click)="markAsRead(item.id)"
-                  >
-                    Mark as Read
-                  </button>
-                }
-
-                <button
-                  mat-icon-button
-                  color="warn"
-                  type="button"
-                  aria-label="Delete"
-                  title="Delete notification"
-                  (click)="deleteNotification(item.id)"
+      <!-- Loading State -->
+      @if (loading()) {
+        <div class="loading-state">
+          <mat-spinner diameter="36"></mat-spinner>
+          <span>Loading notifications...</span>
+        </div>
+      } @else {
+        <!-- Notification Items List -->
+        <div class="notifications-feed">
+          @for (item of displayedNotifications(); track item.id) {
+            <div class="notification-row" [class.unread]="!item.isRead">
+              <div class="notif-icon-col">
+                <div
+                  class="icon-circle"
+                  [class.stage1]="item.stage === 1"
+                  [class.stage2]="item.stage === 2"
+                  [class.stage3]="item.stage === 3"
+                  [class.stage4]="item.stage === 4"
+                  [class.stage5]="item.stage === 5"
                 >
-                  <mat-icon>delete_outline</mat-icon>
-                </button>
+                  @if (item.stage === 1 || item.stage === 2) {
+                    <mat-icon>assignment_ind</mat-icon>
+                  } @else if (item.stage === 3) {
+                    <mat-icon>play_circle_filled</mat-icon>
+                  } @else if (item.stage === 4) {
+                    <mat-icon>check_circle</mat-icon>
+                  } @else if (item.stage === 5) {
+                    <mat-icon>verified</mat-icon>
+                  } @else {
+                    <mat-icon>info</mat-icon>
+                  }
+                </div>
               </div>
 
-              <!-- Inline Review Reply Card -->
-              @if (replyingReviewId() === (item.reviewId || item.id)) {
-                <div class="reply-card">
-                  <h4>Reply to Customer Review</h4>
-                  <form [formGroup]="replyForm" (ngSubmit)="submitReply(item.reviewId || item.id)">
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Your Reply Comment</mat-label>
-                      <textarea
-                        matInput
-                        formControlName="comment"
-                        rows="2"
-                        placeholder="Write a polite response to the customer..."
-                      ></textarea>
-                      @if (replyForm.get('comment')?.hasError('required')) {
-                        <mat-error>Reply comment is required</mat-error>
-                      }
-                    </mat-form-field>
-                    <div class="reply-actions">
-                      <button mat-button type="button" (click)="closeReply()">
-                        Cancel
-                      </button>
-                      <button mat-raised-button color="primary" type="submit" [disabled]="replyForm.invalid">
-                        Submit Reply
-                      </button>
-                    </div>
-                  </form>
+              <div class="notif-body">
+                <div class="notif-header">
+                  <div class="title-and-stage">
+                    <span class="notif-title">{{ item.title }}</span>
+                    @if (item.stage === 1 || item.stage === 2) {
+                      <span class="stage-badge stage1-badge">Request</span>
+                    } @else if (item.stage === 3) {
+                      <span class="stage-badge stage3-badge">In Progress</span>
+                    } @else if (item.stage === 4) {
+                      <span class="stage-badge stage4-badge">Completed</span>
+                    } @else if (item.stage === 5) {
+                      <span class="stage-badge stage5-badge">Closed & Reviewed</span>
+                    }
+                  </div>
+                  <span class="notif-time">{{ item.createdAt | date:'medium' }}</span>
                 </div>
+
+                <p class="notif-message">{{ item.message }}</p>
+
+                @if (item.serviceName || item.customerName || item.price || item.jobId) {
+                  <div class="job-meta-chips">
+                    @if (item.customerName) {
+                      <span class="meta-chip">
+                        <mat-icon class="chip-icon">person</mat-icon> Customer: <strong>{{ item.customerName }}</strong>
+                      </span>
+                    }
+                    @if (item.serviceName) {
+                      <span class="meta-chip">
+                        <mat-icon class="chip-icon">handyman</mat-icon> Service: <strong>{{ item.serviceName }}</strong>
+                      </span>
+                    }
+                    @if (item.price) {
+                      <span class="meta-chip">
+                        <mat-icon class="chip-icon">payments</mat-icon> Price: <strong>${{ item.price }}</strong>
+                      </span>
+                    }
+                    @if (item.jobId) {
+                      <span class="meta-chip job-id-chip">
+                        <mat-icon class="chip-icon">tag</mat-icon> Job ID: <code>{{ item.jobId.substring(0, 8) }}...</code>
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- Action Controls for Job Lifecycle -->
+                <div class="lifecycle-actions-bar">
+                  @if ((item.stage === 1 || item.stage === 2) && item.jobId) {
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      type="button"
+                      class="lifecycle-action-btn"
+                      [disabled]="actionLoading() === item.jobId"
+                      (click)="startJob(item.jobId, item)"
+                    >
+                      @if (actionLoading() === item.jobId) {
+                        <mat-spinner diameter="16"></mat-spinner>
+                        <span>Starting...</span>
+                      } @else {
+                        <ng-container>
+                          <mat-icon>play_arrow</mat-icon>
+                          <span>Start Job</span>
+                        </ng-container>
+                      }
+                    </button>
+                  }
+
+                  @if (item.stage === 3 && item.jobId) {
+                    <button
+                      mat-raised-button
+                      color="accent"
+                      type="button"
+                      class="lifecycle-action-btn"
+                      [disabled]="actionLoading() === item.jobId"
+                      (click)="completeJob(item.jobId, item)"
+                    >
+                      @if (actionLoading() === item.jobId) {
+                        <mat-spinner diameter="16"></mat-spinner>
+                        <span>Completing...</span>
+                      } @else {
+                        <ng-container>
+                          <mat-icon>done_all</mat-icon>
+                          <span>Complete Job</span>
+                        </ng-container>
+                      }
+                    </button>
+                  }
+
+                  @if (item.stage === 5) {
+                    <button
+                      mat-stroked-button
+                      color="primary"
+                      type="button"
+                      class="lifecycle-action-btn"
+                      (click)="openReply(item.reviewId || item.id)"
+                    >
+                      <mat-icon>reply</mat-icon> Reply to Customer Review
+                    </button>
+                  }
+
+                  @if (!item.isRead) {
+                    <button
+                      mat-button
+                      type="button"
+                      (click)="markAsRead(item.id)"
+                    >
+                      <mat-icon>mark_email_read</mat-icon> Mark Read
+                    </button>
+                  }
+
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    type="button"
+                    aria-label="Delete"
+                    title="Delete notification"
+                    (click)="deleteNotification(item.id)"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+
+                <!-- Inline Review Reply Card -->
+                @if (replyingReviewId() === (item.reviewId || item.id)) {
+                  <div class="reply-card">
+                    <h4>Reply to Customer Review</h4>
+                    <form [formGroup]="replyForm" (ngSubmit)="submitReply(item.reviewId || item.id)">
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>Your Reply Comment</mat-label>
+                        <textarea
+                          matInput
+                          formControlName="comment"
+                          rows="2"
+                          placeholder="Write a polite response to the customer..."
+                        ></textarea>
+                        @if (replyForm.get('comment')?.hasError('required')) {
+                          <mat-error>Reply comment is required</mat-error>
+                        }
+                      </mat-form-field>
+                      <div class="reply-actions">
+                        <button mat-button type="button" (click)="closeReply()">
+                          Cancel
+                        </button>
+                        <button mat-raised-button color="primary" type="submit" [disabled]="replyForm.invalid">
+                          Submit Reply
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                }
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-notifications">
+              <mat-icon class="empty-icon">notifications_off</mat-icon>
+              <h4>No notifications found</h4>
+              <p>You have no notifications matching the selected criteria. New work orders and customer updates will appear here.</p>
+              @if (searchQuery() || activeFilter() !== 'all') {
+                <button mat-stroked-button color="primary" (click)="clearSearch(); setFilter('all')">
+                  Clear Filters
+                </button>
               }
             </div>
-          </div>
-        } @empty {
-          <div class="empty-notifications">
-            <mat-icon class="empty-icon">work_outline</mat-icon>
-            <h4>No notifications found</h4>
-            <p>You have no notifications in this category. New customer requests will appear here.</p>
+          }
+        </div>
+
+        <!-- Pagination Controls Footer -->
+        @if (totalCount() > 0) {
+          <div class="pagination-footer">
+            <div class="page-meta">
+              {{ rangeText() }}
+            </div>
+
+            <div class="pagination-controls">
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="currentPage() <= 1 || loading()"
+                (click)="prevPage()"
+                class="btn-nav"
+              >
+                <mat-icon>chevron_left</mat-icon> Previous
+              </button>
+
+              <div class="page-pills">
+                @for (p of getPageNumbers(); track p) {
+                  <button
+                    type="button"
+                    class="pill-btn"
+                    [class.active-pill]="p === currentPage()"
+                    (click)="goToPage(p)"
+                  >
+                    {{ p }}
+                  </button>
+                }
+              </div>
+
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="currentPage() >= totalPages() || loading()"
+                (click)="nextPage()"
+                class="btn-nav"
+              >
+                Next <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
           </div>
         }
-      </div>
+      }
     </mat-card-content>
   </mat-card>
 </div>
