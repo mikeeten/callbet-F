@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormsModule, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,6 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NotificationService, NotificationItem } from '../services/notification.service';
 import { JobService } from '../services/job.service';
+import { AuthService } from '../core/services/auth.service';
 
 @Component({
   selector: 'app-customer-notifications',
@@ -20,6 +21,7 @@ import { JobService } from '../services/job.service';
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
@@ -35,16 +37,24 @@ import { JobService } from '../services/job.service';
   styleUrls: ['./customer-notifications.component.scss']
 })
 export class CustomerNotificationsComponent implements OnInit {
-  ngOnInit(): void {
-    this.notificationService.loadNotifications();
-  }
-
   public notificationService = inject(NotificationService);
   private jobService = inject(JobService);
+  private authService = inject(AuthService);
   private fb = inject(FormBuilder);
 
-  // State Signals
+  // Pagination & Filter Signals
+  currentPage = signal<number>(1);
+  pageSize = signal<number>(10);
+  totalCount = signal<number>(0);
+  totalPages = signal<number>(1);
+  loading = signal<boolean>(false);
+  searchQuery = signal<string>('');
   activeFilter = signal<'all' | 'requests' | 'in_progress' | 'completed' | 'unread'>('all');
+
+  // Loaded Items for the current page
+  pagedItems = signal<NotificationItem[]>([]);
+
+  // Action status signals
   actionLoading = signal<string | null>(null);
   actionSuccess = signal<string | null>(null);
   actionError = signal<string | null>(null);
@@ -57,9 +67,9 @@ export class CustomerNotificationsComponent implements OnInit {
     comment: ['', [Validators.required, Validators.maxLength(500)]]
   });
 
-  // Filtered Notifications based on active filter
-  filteredNotifications = computed(() => {
-    const list = this.notificationService.customerNotifications();
+  // Client-side Filtered view of current page items if stage filtering is active
+  displayedNotifications = computed(() => {
+    const list = this.pagedItems();
     const filter = this.activeFilter();
 
     if (filter === 'unread') {
@@ -77,7 +87,7 @@ export class CustomerNotificationsComponent implements OnInit {
     return list;
   });
 
-  // Stage Count Statistics
+  // Overview Counts from global notifications signal for metric badges
   requestsCount = computed(
     () => this.notificationService.customerNotifications().filter((n) => n.stage === 1 || n.stage === 2).length
   );
@@ -88,8 +98,108 @@ export class CustomerNotificationsComponent implements OnInit {
     () => this.notificationService.customerNotifications().filter((n) => n.stage === 4 || n.stage === 5).length
   );
 
+  // Range text: "Showing 1 - 10 of 42 notifications"
+  rangeText = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return '0 notifications';
+    const start = (this.currentPage() - 1) * this.pageSize() + 1;
+    const end = Math.min(this.currentPage() * this.pageSize(), total);
+    return `Showing ${start} - ${end} of ${total} notifications`;
+  });
+
+  ngOnInit(): void {
+    this.notificationService.loadNotifications();
+    this.loadPagedNotifications(1);
+  }
+
+  loadPagedNotifications(page: number = 1): void {
+    this.loading.set(true);
+    this.actionError.set(null);
+
+    const statusParam = this.activeFilter() === 'unread' ? 'unread' : undefined;
+
+    this.notificationService.getNotificationsPaged({
+      page: page,
+      pageSize: this.pageSize(),
+      search: this.searchQuery()?.trim() || undefined,
+      status: statusParam
+    }).subscribe({
+      next: (res) => {
+        this.pagedItems.set(res.items);
+        this.totalCount.set(res.totalCount);
+        this.totalPages.set(res.totalPages);
+        this.currentPage.set(res.page);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Error fetching paged customer notifications:', err);
+        this.loading.set(false);
+        this.actionError.set('Could not load notifications from server.');
+      }
+    });
+  }
+
   setFilter(filter: 'all' | 'requests' | 'in_progress' | 'completed' | 'unread'): void {
     this.activeFilter.set(filter);
+    this.loadPagedNotifications(1);
+  }
+
+  onSearchChange(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(val);
+  }
+
+  onSearchSubmit(): void {
+    this.loadPagedNotifications(1);
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+    this.loadPagedNotifications(1);
+  }
+
+  onPageSizeChange(newSize: number): void {
+    this.pageSize.set(newSize);
+    this.loadPagedNotifications(1);
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages() && page !== this.currentPage()) {
+      this.loadPagedNotifications(page);
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 1) {
+      this.goToPage(this.currentPage() - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.goToPage(this.currentPage() + 1);
+    }
+  }
+
+  /**
+   * Helper to generate visible page numbers around current page
+   */
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+
+    let start = Math.max(1, current - 2);
+    let end = Math.min(total, start + 4);
+
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
   }
 
   /**
@@ -100,17 +210,18 @@ export class CustomerNotificationsComponent implements OnInit {
     this.actionSuccess.set(null);
     this.actionError.set(null);
 
-    // Call backend release / approve
-    setTimeout(() => {
-      this.actionLoading.set(null);
-      this.actionSuccess.set(`Job approved! Escrow payment released to your professional. Thank you!`);
-      this.notificationService.updateJobNotificationStage(
-        jobId,
-        5,
-        'Job Approved & Payment Released',
-        'You have approved the work! Escrow payment was disbursed. Please rate the service.'
-      );
-    }, 600);
+    this.jobService.releasePayment(jobId).subscribe({
+      next: () => {
+        this.actionLoading.set(null);
+        this.actionSuccess.set('Job approved! Escrow payment released to your professional.');
+        this.notificationService.loadNotifications();
+        this.loadPagedNotifications(this.currentPage());
+      },
+      error: (err: any) => {
+        this.actionLoading.set(null);
+        this.actionError.set(err?.error?.message || 'Could not approve job on server.');
+      }
+    });
   }
 
   openReviewModal(jobId: string): void {
@@ -126,29 +237,57 @@ export class CustomerNotificationsComponent implements OnInit {
   submitReview(jobId: string): void {
     if (this.reviewForm.valid) {
       const val = this.reviewForm.value;
+      const currentUserId = this.authService.currentUser()?.id || '';
       this.actionLoading.set(jobId);
 
-      setTimeout(() => {
-        this.actionLoading.set(null);
-        this.reviewSuccess.set('Thank you! Your verified rating and review have been published.');
-        this.closeReviewModal();
-      }, 500);
+      const dto = {
+        jobId: jobId,
+        reviewerId: currentUserId,
+        rating: Number(val.rating) || 5,
+        comment: val.comment?.trim() || ''
+      };
+
+      this.jobService.createReview(dto).subscribe({
+        next: () => {
+          this.actionLoading.set(null);
+          this.reviewSuccess.set('Thank you! Your verified rating and review have been published.');
+          this.closeReviewModal();
+          this.notificationService.loadNotifications();
+          this.loadPagedNotifications(this.currentPage());
+        },
+        error: (err: any) => {
+          this.actionLoading.set(null);
+          this.actionError.set(err?.error?.message || 'Failed to submit review.');
+        }
+      });
     }
   }
 
   markAsRead(id: string): void {
     this.notificationService.markAsRead(id);
+    this.pagedItems.update((items) =>
+      items.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
   }
 
   markAllAsRead(): void {
     this.notificationService.markAllAsRead();
+    this.pagedItems.update((items) =>
+      items.map((n) => ({ ...n, isRead: true }))
+    );
+    this.loadPagedNotifications(this.currentPage());
   }
 
   deleteNotification(id: string): void {
     this.notificationService.deleteNotification(id);
+    this.loadPagedNotifications(this.currentPage());
   }
 
   clearAll(): void {
     this.notificationService.clearAll();
+    this.pagedItems.set([]);
+    this.totalCount.set(0);
+    this.totalPages.set(1);
+    this.currentPage.set(1);
   }
 }
