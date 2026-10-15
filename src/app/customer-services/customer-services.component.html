@@ -579,13 +579,9 @@
               </div>
               <div class="pro-details">
                 <div class="name-verify-row">
-                  <a
-                    [routerLink]="['/professional-dashboard-detail', item.professionalProfileId || item.id]"
-                    class="pro-name-link"
-                    title="View Professional Profile"
-                  >
+                  <span class="pro-name-link" style="cursor: default;">
                     {{ item.professionalName }}
-                  </a>
+                  </span>
                   @if (item.isVerified) {
                     <span class="verified-icon-badge" title="Verified Trade Professional">
                       <mat-icon>verified</mat-icon>
@@ -672,17 +668,7 @@
               <span>{{ isProBookmarked(item.professionalProfileId) ? 'Saved' : 'Save Pro' }}</span>
             </button>
 
-            <!-- View Details Button -->
-            <a
-              mat-stroked-button
-              color="primary"
-              class="btn-view-pro"
-              [routerLink]="['/professional-dashboard-detail', item.professionalProfileId || item.id]"
-              title="View Professional Profile & Portfolio"
-            >
-              <mat-icon>person</mat-icon>
-              <span>Profile</span>
-            </a>
+
 
             <!-- Chat with Pro Direct Action -->
             <button
