@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -23,7 +23,7 @@ import { ProfessionalService } from '../../ProfessionalService/professional-prof
   templateUrl: './certificate-upload.component.html',
   styleUrls: ['./certificate-upload.component.scss']
 })
-export class CertificateUploadComponent implements OnInit, OnDestroy {
+export class CertificateUploadComponent implements OnInit {
   private fb = inject(FormBuilder);
   private professionalService = inject(ProfessionalService);
   private router = inject(Router);
@@ -31,49 +31,33 @@ export class CertificateUploadComponent implements OnInit, OnDestroy {
   submitting = signal(false);
   uploadSuccess = signal(false);
   uploadError = signal<string | null>(null);
-  private redirectTimer: any = null;
 
-  // Preset sample certificate images for quick fill
-  sampleCertificates = [
-    {
-      title: 'Certified Master Electrician License',
-      org: 'Ethiopian Energy & Electrification Authority',
-      url: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80'
-    },
-    {
-      title: 'Sanitary & Hydraulic Plumbing License',
-      org: 'Ministry of Urban Infrastructure & Safety',
-      url: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600&auto=format&fit=crop&q=80'
-    },
-    {
-      title: 'Professional Bio-Sanitation Certificate',
-      org: 'National Health & Hygiene Standards Board',
-      url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80'
-    }
-  ];
 
   selectedFile = signal<File | null>(null);
 
   certificateForm = this.fb.group({
-    title: ['', [Validators.required, Validators.maxLength(100)]],
-    organization: ['', [Validators.required, Validators.maxLength(100)]],
+    title: [
+      '',
+      [
+        Validators.required,
+        Validators.maxLength(70),
+        Validators.pattern(/^[^0-9]*$/)
+      ]
+    ],
+    organization: [
+      '',
+      [
+        Validators.required,
+        Validators.maxLength(70),
+        Validators.pattern(/^[^0-9]*$/)
+      ]
+    ],
     issueDate: ['', Validators.required],
     expiryDate: [''],
     documentImageUrl: ['', Validators.required]
   });
 
   ngOnInit(): void {}
-
-  ngOnDestroy(): void {
-    if (this.redirectTimer) {
-      clearTimeout(this.redirectTimer);
-    }
-  }
-
-  continueToPortfolio(): void {
-    if (this.redirectTimer) clearTimeout(this.redirectTimer);
-    this.router.navigate(['/portfolio-upload']);
-  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -96,17 +80,6 @@ export class CertificateUploadComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Apply a sample preset
-  applyPreset(preset: { title: string; org: string; url: string }): void {
-    this.selectedFile.set(null);
-    this.certificateForm.patchValue({
-      title: preset.title,
-      organization: preset.org,
-      documentImageUrl: preset.url,
-      issueDate: '2024-01-15',
-      expiryDate: '2027-01-15'
-    });
-  }
 
   onSubmit(): void {
     if (this.certificateForm.valid) {
@@ -121,16 +94,12 @@ export class CertificateUploadComponent implements OnInit, OnDestroy {
         this.uploadSuccess.set(true);
         this.selectedFile.set(null);
         this.certificateForm.reset();
-        // 🚀 Auto redirect to Step 4: Portfolio Upload
-        this.redirectTimer = setTimeout(() => {
-          this.router.navigate(['/portfolio-upload']);
-        }, 1400);
       };
 
       if (file) {
         this.professionalService.addCertificateWithDocument(
-          formValue.title!,
-          formValue.organization!,
+          formValue.title?.trim()!,
+          formValue.organization?.trim()!,
           formValue.issueDate ? new Date(formValue.issueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           formValue.expiryDate ? new Date(formValue.expiryDate).toISOString().split('T')[0] : null,
           file
@@ -145,8 +114,8 @@ export class CertificateUploadComponent implements OnInit, OnDestroy {
         });
       } else {
         const certificateData = {
-          title: formValue.title,
-          organization: formValue.organization,
+          title: formValue.title?.trim(),
+          organization: formValue.organization?.trim(),
           issueDate: formValue.issueDate ? new Date(formValue.issueDate).toISOString() : null,
           expiryDate: formValue.expiryDate ? new Date(formValue.expiryDate).toISOString() : null,
           documentImageUrl: formValue.documentImageUrl
@@ -162,6 +131,8 @@ export class CertificateUploadComponent implements OnInit, OnDestroy {
           }
         });
       }
+    } else {
+      this.certificateForm.markAllAsTouched();
     }
   }
 }

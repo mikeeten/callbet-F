@@ -1,70 +1,59 @@
 <div class="module-page-container">
-  <!-- Onboarding Stepper Navigation Bar -->
-  <div class="stepper-progress-bar">
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Profile & Rates</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item completed">
-      <span class="step-num">✓</span>
-      <span class="step-label">Resume / CV</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item active">
-      <span class="step-num">3</span>
-      <span class="step-label">Certificates</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item">
-      <span class="step-num">4</span>
-      <span class="step-label">Portfolio</span>
-    </div>
-    <div class="step-line"></div>
-    <div class="step-item">
-      <span class="step-num">5</span>
-      <span class="step-label">Verification</span>
+  <!-- Top Navigation Toolbar -->
+  <div class="pro-top-nav-bar">
+    <a routerLink="/professional-dashboard" class="btn-nav-item btn-dashboard-back" title="Go to Professional Dashboard">
+      <mat-icon>dashboard</mat-icon>
+      <span>Professional Dashboard</span>
+    </a>
+    <div class="nav-links-cluster">
+      <a routerLink="/professional-profile" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>person</mat-icon>
+        <span>Profile</span>
+      </a>
+      <a routerLink="/resume-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>description</mat-icon>
+        <span>Resume & Skills</span>
+      </a>
+      <a routerLink="/certificate-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>verified</mat-icon>
+        <span>Certificates</span>
+      </a>
+      <a routerLink="/portfolio-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>photo_library</mat-icon>
+        <span>Portfolio</span>
+      </a>
+      <a routerLink="/verification-upload" routerLinkActive="active" class="btn-nav-item">
+        <mat-icon>shield</mat-icon>
+        <span>ID Verification</span>
+      </a>
     </div>
   </div>
 
-  <!-- Top Navigation / Header -->
+  <!-- Top Navigation Header -->
   <div class="module-header-card">
     <div class="header-left">
       <div class="header-badge">
-        <mat-icon>verified</mat-icon>
-        <span>Step 3 of 5: e-KYC & Compliance</span>
+        <mat-icon>school</mat-icon>
+        <span>Verified Credentials</span>
       </div>
-      <h2>Upload Trade License & Certificate</h2>
+      <h2>Trade Licenses & Official Certifications</h2>
       <p class="subtitle">
-        Verified licenses boost your search ranking and unlock high-ticket emergency jobs across the platform.
+        Upload verified government licenses, guild memberships, trade school degrees, or safety permits to earn the Verified Gold Badge.
       </p>
-    </div>
-
-    <div class="header-actions">
-      <!-- Back Button -->
-      <a routerLink="/resume-upload" class="btn-header-secondary btn-back-nav">
-        <mat-icon>arrow_back</mat-icon>
-        <span>Back to Resume</span>
-      </a>
-      <a routerLink="/portfolio-upload" class="btn-header-secondary">
-        <mat-icon>arrow_forward</mat-icon>
-        <span>Skip to Portfolio &rarr;</span>
-      </a>
     </div>
   </div>
 
-  <!-- Messages -->
   @if (uploadSuccess()) {
     <div class="success-banner-custom">
       <mat-icon>check_circle</mat-icon>
       <div>
         <strong>Certificate Uploaded Successfully!</strong>
-        <p>Redirecting you to Step 4: Work Portfolio in a moment...</p>
+        <p>Your license document has been saved to your credentials.</p>
       </div>
       <div class="banner-quick-actions">
-        <button type="button" (click)="continueToPortfolio()" class="btn-banner-action">
-          <mat-icon>arrow_forward</mat-icon> Continue Now &rarr;
-        </button>
+        <a routerLink="/professional-dashboard" class="btn-banner-action">
+          <mat-icon>dashboard</mat-icon> Back to Dashboard
+        </a>
       </div>
     </div>
   }
@@ -73,60 +62,68 @@
     <div class="error-banner-custom">
       <mat-icon>error_outline</mat-icon>
       <div>
-        <strong>Upload Error</strong>
+        <strong>Certificate Submission Error</strong>
         <p>{{ uploadError() }}</p>
       </div>
     </div>
   }
 
-  <!-- Main Grid: Form + Live Preview -->
+  <!-- Main Grid: Form on Left, Live Certificate Frame on Right -->
   <div class="module-content-grid">
     <!-- Form Side -->
     <div class="form-container-card">
-      <!-- Quick Presets -->
-      <div class="presets-box">
-        <span class="presets-label"><mat-icon>auto_fix_high</mat-icon> Quick Sample Presets:</span>
-        <div class="presets-list">
-          @for (sample of sampleCertificates; track sample.title) {
-            <button type="button" class="preset-pill" (click)="applyPreset(sample)">
-              {{ sample.title }}
-            </button>
-          }
-        </div>
-      </div>
-
       <form [formGroup]="certificateForm" (ngSubmit)="onSubmit()" class="certificate-form">
         <!-- Certificate Title -->
         <div class="custom-field-group">
-          <label for="title">Certificate / License Title *</label>
+          <div class="field-label-row">
+            <label for="title">Certificate / License Title *</label>
+            <span class="field-hint">{{ certificateForm.get('title')?.value?.length || 0 }}/70 chars &bull; Words only</span>
+          </div>
           <div class="custom-input-wrap" [class.has-error]="certificateForm.get('title')?.invalid && certificateForm.get('title')?.touched">
             <mat-icon class="field-icon">badge</mat-icon>
             <input
               id="title"
               type="text"
               formControlName="title"
+              maxlength="70"
               placeholder="e.g. Master Electrician License"
             />
           </div>
           @if (certificateForm.get('title')?.hasError('required') && certificateForm.get('title')?.touched) {
             <span class="error-text">Certificate title is required</span>
           }
+          @if (certificateForm.get('title')?.hasError('maxlength') && certificateForm.get('title')?.touched) {
+            <span class="error-text">Certificate title cannot exceed 70 characters</span>
+          }
+          @if (certificateForm.get('title')?.hasError('pattern') && certificateForm.get('title')?.touched) {
+            <span class="error-text">Certificate title must contain words/letters only (no numbers/integers allowed)</span>
+          }
         </div>
 
         <!-- Organization -->
         <div class="custom-field-group">
-          <label for="organization">Issuing Authority / Organization *</label>
+          <div class="field-label-row">
+            <label for="organization">Issuing Authority / Organization *</label>
+            <span class="field-hint">{{ certificateForm.get('organization')?.value?.length || 0 }}/70 chars &bull; Words only</span>
+          </div>
           <div class="custom-input-wrap" [class.has-error]="certificateForm.get('organization')?.invalid && certificateForm.get('organization')?.touched">
             <mat-icon class="field-icon">account_balance</mat-icon>
             <input
               id="organization"
               type="text"
               formControlName="organization"
-              placeholder="e.g. Ministry of Urban Infrastructure & Safety"
+              maxlength="70"
+              placeholder="e.g. Ministry of Urban Infrastructure and Safety"
             />
           </div>
           @if (certificateForm.get('organization')?.hasError('required') && certificateForm.get('organization')?.touched) {
-            <span class="error-text">Organization is required</span>
+            <span class="error-text">Issuing organization is required</span>
+          }
+          @if (certificateForm.get('organization')?.hasError('maxlength') && certificateForm.get('organization')?.touched) {
+            <span class="error-text">Organization cannot exceed 70 characters</span>
+          }
+          @if (certificateForm.get('organization')?.hasError('pattern') && certificateForm.get('organization')?.touched) {
+            <span class="error-text">Organization must contain words/letters only (no numbers/integers allowed)</span>
           }
         </div>
 
@@ -162,7 +159,7 @@
 
         <!-- Document Image / Scan File Selection -->
         <div class="custom-field-group">
-          <label for="documentImageUrl">Document Image / Scan (File Upload or URL) *</label>
+          <label>Document Image / Scan (File Upload) *</label>
 
           <div class="file-picker-row" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
             <input
@@ -193,17 +190,8 @@
             }
           </div>
 
-          <div class="custom-input-wrap" [class.has-error]="certificateForm.get('documentImageUrl')?.invalid && certificateForm.get('documentImageUrl')?.touched">
-            <mat-icon class="field-icon">image</mat-icon>
-            <input
-              id="documentImageUrl"
-              type="text"
-              formControlName="documentImageUrl"
-              placeholder="Or paste document image URL (https://...)"
-            />
-          </div>
           @if (certificateForm.get('documentImageUrl')?.hasError('required') && certificateForm.get('documentImageUrl')?.touched) {
-            <span class="error-text">Please upload a document file or provide a URL</span>
+            <span class="error-text">Please upload a certificate document file</span>
           }
         </div>
 
@@ -222,7 +210,7 @@
               <span>Uploading Certificate...</span>
             } @else {
               <mat-icon>cloud_upload</mat-icon>
-              <span>Save & Continue to Step 4 &rarr;</span>
+              <span>Save Certificate</span>
             }
           </button>
         </div>
