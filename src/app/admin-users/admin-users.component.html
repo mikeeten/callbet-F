@@ -24,6 +24,9 @@
       <a mat-stroked-button routerLink="/admin-services" class="btn-nav">
         <mat-icon>category</mat-icon> Catalog Admin
       </a>
+      <a mat-stroked-button routerLink="/admin-service-zones" class="btn-nav">
+        <mat-icon>map</mat-icon> Service Zones
+      </a>
       <a mat-stroked-button routerLink="/admin-logs" class="btn-nav">
         <mat-icon>manage_history</mat-icon> Audit Logs
       </a>
@@ -53,7 +56,9 @@
     >
       <mat-icon>groups</mat-icon>
       <span class="tab-title">User Accounts Directory</span>
-      <span class="tab-badge">{{ totalCount() }}</span>
+      @if (totalCount() > 0) {
+        <span class="tab-badge">{{ totalCount() }}</span>
+      }
     </button>
     <button
       type="button"
@@ -63,7 +68,9 @@
     >
       <mat-icon>badge</mat-icon>
       <span class="tab-title">Professional Profiles Directory</span>
-      <span class="tab-badge">{{ proTotalCount() }}</span>
+      @if (proTotalCount() > 0) {
+        <span class="tab-badge">{{ proTotalCount() }}</span>
+      }
     </button>
   </div>
 
@@ -167,7 +174,7 @@
           <input
             type="text"
             formControlName="search"
-            placeholder="Search by name, email, phone number, or ID..."
+            placeholder="Search by name, email, or phone number..."
           />
           @if (searchForm.get('search')?.value) {
             <button mat-icon-button type="button" class="btn-clear-search" (click)="clearSearch()">
@@ -360,12 +367,7 @@
                             <mat-icon class="verified-icon" matTooltip="Verified Trade Specialist">verified</mat-icon>
                           }
                         </div>
-                        <div class="id-snippet">
-                          <code>ID: {{ user.id.substring(0, 8) }}...</code>
-                          <button type="button" class="btn-copy-id" (click)="copyText(user.id, 'User ID')" matTooltip="Copy Full User ID">
-                            <mat-icon>content_copy</mat-icon>
-                          </button>
-                        </div>
+
                       </div>
                     </div>
                   </td>
@@ -617,7 +619,7 @@
           <input
             type="text"
             formControlName="search"
-            placeholder="Search by specialist name, email, trade headline, or ID..."
+            placeholder="Search by specialist name, email, or trade headline..."
           />
           @if (proSearchForm.get('search')?.value) {
             <button mat-icon-button type="button" class="btn-clear-search" (click)="clearProSearch()">
@@ -790,12 +792,7 @@
                             <span class="phone-sub"><mat-icon>phone</mat-icon> {{ pro.phone }}</span>
                           }
                         </div>
-                        <div class="id-snippet">
-                          <code>UID: {{ pro.userId.substring(0, 8) }}...</code>
-                          <button type="button" class="btn-copy-id" (click)="copyText(pro.userId, 'User ID')" matTooltip="Copy User ID">
-                            <mat-icon>content_copy</mat-icon>
-                          </button>
-                        </div>
+
                       </div>
                     </div>
                   </td>
@@ -1033,25 +1030,7 @@
               <strong class="field-val text-primary">{{ pro.completedJobsCount }} Completed Jobs</strong>
             </div>
 
-            <div class="dossier-field">
-              <span class="field-lbl"><mat-icon>fingerprint</mat-icon> User UUID</span>
-              <div class="field-val-copy">
-                <code>{{ pro.userId }}</code>
-                <button type="button" class="btn-copy-sm" (click)="copyText(pro.userId, 'User ID')">
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-              </div>
-            </div>
 
-            <div class="dossier-field">
-              <span class="field-lbl"><mat-icon>tag</mat-icon> Profile Record UUID</span>
-              <div class="field-val-copy">
-                <code>{{ pro.id }}</code>
-                <button type="button" class="btn-copy-sm" (click)="copyText(pro.id, 'Profile ID')">
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-              </div>
-            </div>
 
             <div class="dossier-field">
               <span class="field-lbl"><mat-icon>phone</mat-icon> Phone Number</span>
@@ -1272,13 +1251,8 @@
           <!-- Information Fields Grid -->
           <div class="dossier-fields-grid">
             <div class="dossier-field">
-              <span class="field-lbl"><mat-icon>fingerprint</mat-icon> System UUID</span>
-              <div class="field-val-copy">
-                <code>{{ user.id }}</code>
-                <button type="button" class="btn-copy-sm" (click)="copyText(user.id, 'User ID')">
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-              </div>
+              <span class="field-lbl"><mat-icon>email</mat-icon> Email Address</span>
+              <strong class="field-val">{{ user.email }}</strong>
             </div>
 
             <div class="dossier-field">

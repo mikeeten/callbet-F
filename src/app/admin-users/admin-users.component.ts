@@ -147,101 +147,6 @@ export class AdminUsersComponent implements OnInit {
     descending: [true, Validators.required]
   });
 
-  // Default seed users for resilient offline & demo rendering
-  private fallbackUsers: AdminUserItem[] = [
-    {
-      id: 'u-101',
-      firstName: 'Abebech',
-      lastName: 'Tadesse',
-      fullName: 'Abebech Tadesse',
-      email: 'abebech.t@gmail.com',
-      phone: '+251 91 123 4567',
-      role: 'Customer',
-      status: 'Active',
-      createdAt: '2026-01-15T09:30:00Z',
-      completedJobsCount: 4,
-      profilePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'
-    },
-    {
-      id: '09a41aeb-4e62-4f5f-b994-fc965117be83',
-      firstName: 'Tenagasha',
-      lastName: 'Wollela',
-      fullName: 'Tenagasha Wollela',
-      email: 'tenagasha.w@callbet.et',
-      phone: '+251 92 345 6789',
-      role: 'Professional',
-      status: 'Active',
-      createdAt: '2026-02-10T11:15:00Z',
-      completedJobsCount: 148,
-      profilePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'u-103',
-      firstName: 'Dawit',
-      lastName: 'Getachew',
-      fullName: 'Dawit Getachew',
-      email: 'dawit.g@callbet.et',
-      phone: '+251 94 567 8901',
-      role: 'Professional',
-      status: 'Active',
-      createdAt: '2026-03-01T14:20:00Z',
-      completedJobsCount: 89,
-      profilePhotoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'u-104',
-      firstName: 'Kidus',
-      lastName: 'Tessema',
-      fullName: 'Kidus Tessema',
-      email: 'kidus.t@gmail.com',
-      phone: '+251 91 876 5432',
-      role: 'Customer',
-      status: 'Active',
-      createdAt: '2026-04-12T08:45:00Z',
-      completedJobsCount: 6,
-      profilePhotoUrl: ''
-    },
-    {
-      id: 'u-105',
-      firstName: 'Blen',
-      lastName: 'Hailu',
-      fullName: 'Blen Hailu',
-      email: 'blen.h@callbet.et',
-      phone: '+251 93 456 7890',
-      role: 'Professional',
-      status: 'Active',
-      createdAt: '2026-05-18T16:00:00Z',
-      completedJobsCount: 52,
-      profilePhotoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'u-106',
-      firstName: 'Ermias',
-      lastName: 'Alemayehu',
-      fullName: 'Ermias Alemayehu',
-      email: 'ermias.a@callbet.et',
-      phone: '+251 91 234 5678',
-      role: 'Professional',
-      status: 'Suspended',
-      createdAt: '2026-06-02T10:10:00Z',
-      completedJobsCount: 31,
-      profilePhotoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'u-107',
-      firstName: 'Super',
-      lastName: 'Administrator',
-      fullName: 'Callbet Super Admin',
-      email: 'admin@callbet.et',
-      phone: '+251 90 000 0001',
-      role: 'Admin',
-      status: 'Active',
-      createdAt: '2025-12-01T00:00:00Z',
-      completedJobsCount: 0,
-      profilePhotoUrl: ''
-    }
-  ];
-
   // Computed Metrics
   totalPages = computed(() => Math.max(1, Math.ceil(this.totalCount() / this.pageSize())));
 
@@ -291,9 +196,11 @@ export class AdminUsersComponent implements OnInit {
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab === 'professionals' || this.router.url.includes('admin-professionals')) {
       this.activeView.set('professionals');
+      this.loadProfessionalProfiles();
+    } else {
+      this.activeView.set('users');
+      this.loadUsers();
     }
-    this.loadUsers();
-    this.loadProfessionalProfiles();
   }
 
   setView(view: 'users' | 'professionals'): void {
@@ -340,31 +247,17 @@ export class AdminUsersComponent implements OnInit {
           this.users.set(mapped);
           this.totalCount.set(mapped.length);
         } else {
-          this.applyLocalSearchFallback(formVal.search);
+          this.users.set([]);
+          this.totalCount.set(0);
         }
       },
       error: (err) => {
-        console.warn('getUsers API failed, using fallback list:', err);
+        console.warn('getUsers API failed:', err);
         this.loading.set(false);
-        this.applyLocalSearchFallback(formVal.search);
+        this.users.set([]);
+        this.totalCount.set(0);
       }
     });
-  }
-
-  private applyLocalSearchFallback(searchQuery?: string | null): void {
-    let list = [...this.fallbackUsers];
-    if (searchQuery && searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(u =>
-        (u.fullName && u.fullName.toLowerCase().includes(q)) ||
-        (u.email && u.email.toLowerCase().includes(q)) ||
-        (u.phone && u.phone.toLowerCase().includes(q)) ||
-        (u.role && u.role.toLowerCase().includes(q)) ||
-        (u.id && u.id.toLowerCase().includes(q))
-      );
-    }
-    this.users.set(list);
-    this.totalCount.set(list.length);
   }
 
   normalizeUser(item: any): AdminUserItem {
@@ -411,14 +304,14 @@ export class AdminUsersComponent implements OnInit {
       lastName: ln,
       name: computedName,
       fullName: computedName,
-      email: item.email || 'No email provided',
-      phone: item.phoneNumber || item.phone || '+251 90 000 0000',
+      email: item.email || '',
+      phone: item.phoneNumber || item.phone || '',
       phoneNumber: item.phoneNumber || item.phone,
       role: roleStr,
       status: statusStr,
       createdAt: item.createdAt || item.joinedDate || new Date().toISOString(),
       joinedDate: item.joinedDate || (item.createdAt ? new Date(item.createdAt).toISOString().split('T')[0] : '2026-01-01'),
-      completedJobsCount: item.completedJobsCount ?? item.jobsCount ?? (roleStr === 'Professional' ? 42 : 2),
+      completedJobsCount: item.completedJobsCount ?? item.jobsCount ?? 0,
       profilePhotoUrl: this.formatImageUrl(item.profilePhotoUrl || item.avatarUrl)
     };
   }
@@ -691,7 +584,7 @@ export class AdminUsersComponent implements OnInit {
       profilePhotoUrl: this.formatImageUrl(item.profilePhotoUrl || item.avatarUrl),
       headline: item.headline?.trim() || 'Service Professional',
       bio: item.bio || '',
-      serviceRadiusKm: item.serviceRadiusKm ? Math.min(2.5, Math.max(1, item.serviceRadiusKm)) : 2.5,
+      serviceRadiusKm: item.serviceRadiusKm ? Math.min(2, Math.max(1, item.serviceRadiusKm)) : 2.0,
       yearsOfExperience: item.yearsOfExperience ?? 0,
       overallRating: item.overallRating ?? 0,
       completedJobsCount: item.completedJobsCount ?? 0,
