@@ -1,0 +1,225 @@
+<div class="admin-zones-portal">
+  <!-- Top Navigation Header -->
+  <div class="portal-header">
+    <div class="header-left">
+      <div class="shield-badge">
+        <mat-icon>map</mat-icon>
+      </div>
+      <div>
+        <h2>Addis Ababa Official Service Zones & Geolocation Bounds</h2>
+        <p class="subtitle">Manage authorized municipal sub-cities, district woredas, and neighborhood dispatch areas</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a mat-raised-button color="primary" routerLink="/admin-dashboard">
+        <mat-icon>dashboard</mat-icon> Admin Tower
+      </a>
+      <a mat-stroked-button color="accent" routerLink="/admin-users">
+        <mat-icon>people</mat-icon> User Directory
+      </a>
+      <a mat-stroked-button routerLink="/admin-services">
+        <mat-icon>settings_suggest</mat-icon> Catalog Admin
+      </a>
+      <a mat-stroked-button color="warn" routerLink="/verification-list">
+        <mat-icon>verified_user</mat-icon> Verifications
+      </a>
+      <a mat-stroked-button routerLink="/admin-logs">
+        <mat-icon>manage_history</mat-icon> Audit Logs
+      </a>
+    </div>
+  </div>
+
+  <!-- Feedback Banner (Toast) -->
+  @if (feedbackMessage()) {
+    <div class="feedback-toast">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ feedbackMessage() }}</span>
+    </div>
+  }
+
+  <!-- Stats Ribbon -->
+  <div class="metrics-ribbon">
+    <div class="metric-card" (click)="selectedSubCityFilter.set('All'); zoneSearchQuery.set('')">
+      <div class="icon-wrap total-color"><mat-icon>location_city</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ zones().length }}</span>
+        <span class="metric-lbl">Registered Zones</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="icon-wrap subcity-color"><mat-icon>apartment</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">{{ uniqueSubCitiesCount() }}</span>
+        <span class="metric-lbl">Sub-Cities Active</span>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="icon-wrap active-color"><mat-icon>verified</mat-icon></div>
+      <div class="metric-info">
+        <span class="metric-val">100%</span>
+        <span class="metric-lbl">Addis Ababa Dispatch Ready</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Management Card -->
+  <mat-card appearance="outlined" class="zones-main-card">
+    <div class="card-top-bar">
+      <div>
+        <h3>Sub-City & Neighborhood Official Zones</h3>
+        <p class="section-desc">Live service coverage areas and geolocation bounds across Addis Ababa ({{ zones().length }} registered zones).</p>
+      </div>
+      <div class="header-right-actions">
+        <button mat-stroked-button color="primary" type="button" (click)="loadServiceZones()" [disabled]="loadingZones()">
+          <mat-icon [class.spin-icon]="loadingZones()">refresh</mat-icon>
+          <span>Refresh</span>
+        </button>
+        <button mat-raised-button color="primary" type="button" (click)="showAddZone.set(!showAddZone())">
+          <mat-icon>{{ showAddZone() ? 'close' : 'add_location_alt' }}</mat-icon>
+          <span>{{ showAddZone() ? 'Cancel' : 'Add New Zone' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Add Zone Form Panel -->
+    @if (showAddZone()) {
+      <div class="add-zone-box">
+        <form [formGroup]="zoneForm" (ngSubmit)="submitZone()">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Sub-City</mat-label>
+              <mat-select formControlName="subCity">
+                @if (subCitiesList().length > 0) {
+                  @for (sc of subCitiesList(); track sc.id) {
+                    <mat-option [value]="sc.name">{{ sc.name }} ({{ sc.neighborhoodsCount }} zones)</mat-option>
+                  }
+                } @else {
+                  <mat-option value="Bole">Bole</mat-option>
+                  <mat-option value="Kirkos">Kirkos</mat-option>
+                  <mat-option value="Yeka">Yeka</mat-option>
+                  <mat-option value="Arada">Arada</mat-option>
+                  <mat-option value="Nifas Silk-Lafto">Nifas Silk-Lafto</mat-option>
+                  <mat-option value="Gullele">Gullele</mat-option>
+                  <mat-option value="Lideta">Lideta</mat-option>
+                  <mat-option value="Akaky Kaliti">Akaky Kaliti</mat-option>
+                  <mat-option value="Addis Ketema">Addis Ketema</mat-option>
+                  <mat-option value="Kolfe Keranio">Kolfe Keranio</mat-option>
+                  <mat-option value="Lemi Kura">Lemi Kura</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Neighborhood / Woreda Zone</mat-label>
+              <input matInput formControlName="neighborhood" placeholder="e.g. Gerji, Sarbet, Ayat" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-button type="button" (click)="showAddZone.set(false)">Cancel</button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="zoneForm.invalid || submitting()">
+              @if (submitting()) {
+                <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
+                <span>Saving...</span>
+              } @else {
+                <span>Add Official Service Zone to Database</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    }
+
+    <!-- Search & Filter Bar -->
+    <div class="zones-filter-toolbar">
+      <div class="search-input-wrap">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          placeholder="Search zones by neighborhood name..."
+          [value]="zoneSearchQuery()"
+          (input)="zoneSearchQuery.set($any($event.target).value)"
+        />
+        @if (zoneSearchQuery()) {
+          <button class="clear-search-btn" type="button" (click)="zoneSearchQuery.set('')">✕</button>
+        }
+      </div>
+
+      <div class="subcity-chips-wrap">
+        <button
+          type="button"
+          class="subcity-chip"
+          [class.active]="selectedSubCityFilter() === 'All'"
+          (click)="selectedSubCityFilter.set('All')"
+        >
+          All ({{ zones().length }})
+        </button>
+        @for (sc of subCitiesList(); track sc.id) {
+          <button
+            type="button"
+            class="subcity-chip"
+            [class.active]="selectedSubCityFilter() === sc.name"
+            (click)="selectedSubCityFilter.set(sc.name)"
+          >
+            {{ sc.name }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Zones Grid -->
+    <div class="zones-grid">
+      @for (zone of filteredZones(); track zone.id) {
+        <div class="zone-card">
+          <div class="zone-card-header">
+            <mat-icon class="zone-pin">location_on</mat-icon>
+            <div class="zone-info">
+              <h4>{{ zone.neighborhood }}</h4>
+              <span class="subcity-badge">{{ zone.subCity }} Sub-City</span>
+            </div>
+            <button
+              mat-icon-button
+              color="warn"
+              class="btn-del-zone"
+              type="button"
+              (click)="confirmDeleteZone(zone)"
+              title="Delete Zone"
+            >
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      } @empty {
+        <div class="no-zones-state">
+          <mat-icon>location_off</mat-icon>
+          <h4>No service zones found matching criteria</h4>
+          <p>Try clearing your search filters or click "Add New Zone" above.</p>
+        </div>
+      }
+    </div>
+  </mat-card>
+
+  <!-- Delete Confirmation Modal -->
+  @if (zoneToDelete(); as target) {
+    <div class="modal-backdrop" (click)="cancelDeleteZone()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <mat-icon class="warn-icon">delete_forever</mat-icon>
+          <h3>Delete Service Zone</h3>
+        </div>
+        <p class="modal-body">
+          Are you sure you want to delete the official service zone <strong>"{{ target.neighborhood }}"</strong> in <strong>{{ target.subCity }} Sub-City</strong>?
+        </p>
+        <div class="modal-actions">
+          <button mat-stroked-button type="button" (click)="cancelDeleteZone()">Cancel</button>
+          <button mat-raised-button color="warn" type="button" (click)="executeDeleteZone()">
+            Delete Zone
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,468 @@
+.admin-zones-portal {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3.5rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #0f172a;
+}
+
+// ----------------------------------------------------
+// 1. TOP PORTAL HEADER
+// ----------------------------------------------------
+.portal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding: 1.5rem 1.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1.25rem;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .shield-badge {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #ffffff;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .subtitle {
+      margin: 3px 0 0;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+}
+
+// ----------------------------------------------------
+// 2. TOAST FEEDBACK
+// ----------------------------------------------------
+.feedback-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.25rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+  animation: fadeIn 0.2s ease-out;
+
+  mat-icon {
+    color: #16a34a;
+  }
+}
+
+// ----------------------------------------------------
+// 3. METRICS RIBBON
+// ----------------------------------------------------
+.metrics-ribbon {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  .metric-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    }
+
+    .icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      mat-icon {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+      }
+
+      &.total-color {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
+      &.subcity-color {
+        background: #fef3c7;
+        color: #d97706;
+      }
+      &.active-color {
+        background: #dcfce7;
+        color: #16a34a;
+      }
+    }
+
+    .metric-info {
+      display: flex;
+      flex-direction: column;
+
+      .metric-val {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: #0f172a;
+      }
+
+      .metric-lbl {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------
+// 4. MAIN ZONES CARD
+// ----------------------------------------------------
+.zones-main-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+
+  .card-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    h3 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .section-desc {
+      margin: 2px 0 0;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+
+    .header-right-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+  }
+}
+
+// Add Zone Form
+.add-zone-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  animation: fadeIn 0.2s ease;
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+}
+
+// Toolbar
+.zones-filter-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  .search-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    max-width: 450px;
+    width: 100%;
+
+    mat-icon {
+      position: absolute;
+      left: 12px;
+      color: #94a3b8;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.65rem 2rem 0.65rem 2.4rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+
+      &:focus {
+        border-color: #0284c7;
+        box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+      }
+    }
+
+    .clear-search-btn {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  }
+
+  .subcity-chips-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+
+    .subcity-chip {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      padding: 0.4rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+      }
+
+      &.active {
+        background: #0284c7;
+        color: #ffffff;
+        border-color: #0284c7;
+      }
+    }
+  }
+}
+
+// Zones Grid
+.zones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+
+  .zone-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #93c5fd;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(2, 132, 199, 0.08);
+    }
+
+    .zone-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+
+      .zone-pin {
+        color: #0284c7;
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        margin-top: 2px;
+      }
+
+      .zone-info {
+        flex: 1;
+
+        h4 {
+          margin: 0;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        .subcity-badge {
+          display: inline-block;
+          margin-top: 0.35rem;
+          background: #e0f2fe;
+          color: #0369a1;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 6px;
+        }
+      }
+
+      .btn-del-zone {
+        opacity: 0.6;
+        transition: opacity 0.2s;
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+  }
+}
+
+.no-zones-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #64748b;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #cbd5e1;
+    margin-bottom: 0.5rem;
+  }
+
+  h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #334155;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+  }
+}
+
+// Modal
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+
+  .modal-card {
+    background: #ffffff;
+    border-radius: 16px;
+    max-width: 460px;
+    width: 100%;
+    padding: 1.75rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    animation: scaleIn 0.2s ease;
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+
+      .warn-icon {
+        color: #ef4444;
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+      }
+
+      h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+    }
+
+    .modal-body {
+      font-size: 0.9rem;
+      color: #475569;
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
