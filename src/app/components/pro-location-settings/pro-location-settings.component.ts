@@ -57,33 +57,47 @@ import { LocationService, Neighborhood, SubCity, Address } from '../../services/
       </mat-card-header>
 
       <mat-card-content>
-        <!-- Service Radius Slider Section -->
+        <!-- Service Radius Control Section (User Assigns Based on Their Needs) -->
         <div class="radius-control-card">
           <div class="radius-header">
             <div class="radius-title">
-              <mat-icon>social_distance</mat-icon>
+              <mat-icon>near_me</mat-icon>
               <strong>Service Travel Radius</strong>
             </div>
-            <span class="radius-chip">{{ serviceRadiusKm() }} km Radius</span>
+            <div class="radius-input-cluster">
+              <input
+                type="number"
+                min="0.5"
+                max="100"
+                step="0.5"
+                [value]="serviceRadiusKm()"
+                (input)="onRadiusInputChange($event)"
+                class="radius-number-field"
+                aria-label="Service Radius in Kilometers"
+              />
+              <span class="radius-unit-label">km</span>
+            </div>
           </div>
 
           <div class="slider-container">
             <input
               type="range"
               min="1"
-              max="2.5"
-              step="0.1"
+              max="50"
+              step="0.5"
               [value]="serviceRadiusKm()"
               (input)="onRadiusChange($event)"
               class="custom-radius-slider"
             />
           </div>
 
-          <div class="radius-markers">
-            <span [class.active-zone]="serviceRadiusKm() <= 1.2">1.0 km (Immediate)</span>
-            <span [class.active-zone]="serviceRadiusKm() > 1.2 && serviceRadiusKm() <= 1.8">1.5 km (Local)</span>
-            <span [class.active-zone]="serviceRadiusKm() > 1.8 && serviceRadiusKm() <= 2.2">2.0 km (Ward)</span>
-            <span [class.active-zone]="serviceRadiusKm() > 2.2">2.5 km (Max Radius)</span>
+          <div class="radius-quick-chips">
+            <button type="button" class="chip-preset" [class.active]="serviceRadiusKm() === 2" (click)="setRadiusPreset(2)">2 km</button>
+            <button type="button" class="chip-preset" [class.active]="serviceRadiusKm() === 5" (click)="setRadiusPreset(5)">5 km</button>
+            <button type="button" class="chip-preset" [class.active]="serviceRadiusKm() === 10" (click)="setRadiusPreset(10)">10 km</button>
+            <button type="button" class="chip-preset" [class.active]="serviceRadiusKm() === 20" (click)="setRadiusPreset(20)">20 km</button>
+            <button type="button" class="chip-preset" [class.active]="serviceRadiusKm() === 35" (click)="setRadiusPreset(35)">35 km</button>
+            <button type="button" class="chip-preset" [class.active]="serviceRadiusKm() === 50" (click)="setRadiusPreset(50)">50 km (City-wide)</button>
           </div>
         </div>
 
@@ -275,6 +289,32 @@ import { LocationService, Neighborhood, SubCity, Address } from '../../services/
           }
         }
 
+        .radius-input-cluster {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #ffffff;
+          border: 1px solid #c7d2fe;
+          border-radius: 8px;
+          padding: 3px 8px;
+
+          .radius-number-field {
+            width: 58px;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #312e81;
+            text-align: right;
+          }
+
+          .radius-unit-label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #4f46e5;
+          }
+        }
+
         .radius-chip {
           background: #4f46e5;
           color: #ffffff;
@@ -299,16 +339,36 @@ import { LocationService, Neighborhood, SubCity, Address } from '../../services/
         }
       }
 
-      .radius-markers {
+      .radius-quick-chips {
         display: flex;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        color: #64748b;
-        margin-top: 0.25rem;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 0.65rem;
 
-        span.active-zone {
-          color: #4f46e5;
-          font-weight: 700;
+        .chip-preset {
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 16px;
+          padding: 4px 10px;
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #475569;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #e0e7ff;
+            border-color: #818cf8;
+            color: #3730a3;
+          }
+
+          &.active {
+            background: #4f46e5;
+            border-color: #4f46e5;
+            color: #ffffff;
+            font-weight: 700;
+          }
         }
       }
     }
@@ -482,7 +542,7 @@ export class ProLocationSettingsComponent implements OnInit {
 
   saved = output<void>();
 
-  serviceRadiusKm = signal<number>(2.5);
+  serviceRadiusKm = signal<number>(2.0);
   selectedSubCityId = signal<number | null>(null);
   availableNeighborhoods = signal<Neighborhood[]>([]);
   latitude = signal<number | null>(null);
@@ -526,11 +586,10 @@ export class ProLocationSettingsComponent implements OnInit {
     this.proService.getMyProfile().subscribe({
       next: (profile) => {
         if (profile) {
-          if (profile.serviceRadiusKm) {
-            const clamped = Math.min(2.5, Math.max(1, profile.serviceRadiusKm));
-            this.serviceRadiusKm.set(clamped);
+          if (profile.serviceRadiusKm && Number(profile.serviceRadiusKm) > 0) {
+            this.serviceRadiusKm.set(Number(profile.serviceRadiusKm));
           } else {
-            this.serviceRadiusKm.set(2.5);
+            this.serviceRadiusKm.set(5.0);
           }
           if (profile.baseAddress) {
             const addr = profile.baseAddress;
@@ -559,8 +618,22 @@ export class ProLocationSettingsComponent implements OnInit {
 
   onRadiusChange(event: Event): void {
     const target = event.target as HTMLInputElement;
-    const val = Math.min(2.5, Math.max(1, Number(target.value)));
-    this.serviceRadiusKm.set(Number(val.toFixed(1)));
+    const val = Number(target.value);
+    if (!isNaN(val) && val > 0) {
+      this.serviceRadiusKm.set(Number(val.toFixed(1)));
+    }
+  }
+
+  onRadiusInputChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const val = parseFloat(target.value);
+    if (!isNaN(val) && val > 0) {
+      this.serviceRadiusKm.set(Number(val.toFixed(1)));
+    }
+  }
+
+  setRadiusPreset(km: number): void {
+    this.serviceRadiusKm.set(km);
   }
 
   onSubCityChange(subCityId: number | null): void {
