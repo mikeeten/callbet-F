@@ -82,25 +82,6 @@
   }
 }
 
-.autofill-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-
-  .btn-autofill {
-    font-size: 0.8rem;
-    font-weight: 600;
-    border-color: #6366f1;
-    color: #4f46e5;
-    mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      margin-right: 4px;
-    }
-  }
-}
-
 .admin-form {
   display: flex;
   flex-direction: column;

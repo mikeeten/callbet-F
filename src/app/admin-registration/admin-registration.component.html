@@ -32,14 +32,6 @@
       </mat-card-header>
 
       <mat-card-content>
-        <!-- One-click Demo Autofill Button -->
-        <div class="autofill-row">
-          <button mat-stroked-button color="accent" type="button" (click)="fillDemoAdmin()" class="btn-autofill">
-            <mat-icon>auto_fix_high</mat-icon>
-            <span>Fill Demo Admin Credentials</span>
-          </button>
-        </div>
-
         <form [formGroup]="adminForm" (ngSubmit)="onSubmit()" class="admin-form">
           <!-- Name Row -->
           <div class="form-row">

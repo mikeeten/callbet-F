@@ -45,15 +45,6 @@ export class AdminRegistrationComponent {
     phoneNumber: ['', [Validators.required]]
   });
 
-  fillDemoAdmin(): void {
-    this.adminForm.patchValue({
-      firstName: 'Head',
-      lastName: 'Admin',
-      email: 'headadmin@callbet.et',
-      password: 'AdminPassword123',
-      phoneNumber: '+251911000000'
-    });
-  }
 
   onSubmit(): void {
     if (this.adminForm.invalid) {
