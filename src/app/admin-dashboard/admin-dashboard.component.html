@@ -21,6 +21,9 @@
       <a mat-stroked-button routerLink="/admin-services">
         <mat-icon>settings_suggest</mat-icon> Catalog Admin
       </a>
+      <a mat-stroked-button color="primary" routerLink="/admin-service-zones">
+        <mat-icon>map</mat-icon> Service Zones
+      </a>
       <a mat-stroked-button color="warn" routerLink="/verification-list">
         <mat-icon>verified_user</mat-icon> Verifications
       </a>
@@ -53,53 +56,206 @@
   <div class="dashboard-nav-tabs">
     <button
       class="nav-tab-btn"
+      [class.active]="activeTab() === 'reports'"
+      (click)="setTab('reports')"
+    >
+      <mat-icon>gavel</mat-icon>
+      <span>Incident & Dispute Reports</span>
+    </button>
+
+    <button
+      class="nav-tab-btn"
       [class.active]="activeTab() === 'moderation'"
       (click)="setTab('moderation')"
     >
       <mat-icon>policy</mat-icon>
-      <span>Content Moderation ({{ flaggedReviewsCount() }})</span>
+      <span>Content Moderation @if (moderationTotalCount() > 0) { ({{ moderationTotalCount() }}) }</span>
     </button>
 
 
-    <button
-      class="nav-tab-btn"
-      [class.active]="activeTab() === 'zones'"
-      (click)="setTab('zones')"
-    >
-      <mat-icon>map</mat-icon>
-      <span>Service Zones ({{ zones().length }})</span>
-    </button>
-
-    <button
-      class="nav-tab-btn"
-      [class.active]="activeTab() === 'logs'"
-      (click)="setTab('logs')"
-    >
-      <mat-icon>manage_history</mat-icon>
-      <span>Audit Trail Logs ({{ totalLogsCount() }})</span>
-    </button>
   </div>
 
 
 
+  <!-- TAB: CUSTOMER & PROFESSIONAL DISPUTE REPORTS -->
+  @if (activeTab() === 'reports') {
+    <div class="tab-content">
+      <app-admin-reports></app-admin-reports>
+    </div>
+  }
+
   <!-- TAB 2: CONTENT MODERATION -->
   @if (activeTab() === 'moderation') {
-    <div class="tab-content">
+    <div class="tab-content moderation-tab-pane">
+      <!-- Section Top Row -->
       <div class="section-top-row">
         <div>
-          <h3>Flagged Content & Review Moderation</h3>
-          <p class="section-desc">Live community safety oversight. Moderate flagged feedback, inspect violation claims, and purge fraudulent reviews.</p>
+          <div class="title-with-badge">
+            <mat-icon class="shield-icon">policy</mat-icon>
+            <h3>Flagged Content & Review Moderation</h3>
+            <span class="badge-count">{{ moderationTotalCount() }} Total</span>
+          </div>
         </div>
-        <div class="header-right-actions">
-          <button mat-stroked-button color="primary" type="button" (click)="loadModerationReviews()">
-            <mat-icon>refresh</mat-icon>
+
+        <div class="quick-actions">
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            (click)="loadModerationReviews(moderationPage())"
+            [disabled]="loadingModeration()"
+          >
+            <mat-icon [class.spin-icon]="loadingModeration()">refresh</mat-icon>
             <span>Refresh Queue</span>
           </button>
         </div>
       </div>
 
-      <mat-card appearance="outlined" class="moderation-card">
+      <!-- Moderation Metrics Ribbon -->
+      <div class="reports-metrics-ribbon">
+        <div
+          class="metric-card"
+          [class.active-card]="moderationStatusFilter() === 'all' && !moderationSearchQuery()"
+          (click)="resetModerationFilters()"
+        >
+          <div class="icon-wrap total-color"><mat-icon>assignment</mat-icon></div>
+          <div class="metric-info">
+            <span class="metric-val">{{ moderationTotalCount() }}</span>
+            <span class="metric-lbl">Total in Database</span>
+          </div>
+        </div>
+
+        <div
+          class="metric-card"
+          [class.active-card]="moderationStatusFilter() === 'Flagged'"
+          (click)="setModerationStatusFilter('Flagged')"
+        >
+          <div class="icon-wrap pending-color"><mat-icon>flag</mat-icon></div>
+          <div class="metric-info">
+            <span class="metric-val">{{ moderationFlaggedCount() }}</span>
+            <span class="metric-lbl">Flagged (Pending)</span>
+          </div>
+        </div>
+
+        <div
+          class="metric-card"
+          [class.active-card]="moderationStatusFilter() === 'Dismissed'"
+          (click)="setModerationStatusFilter('Dismissed')"
+        >
+          <div class="icon-wrap resolved-color"><mat-icon>verified</mat-icon></div>
+          <div class="metric-info">
+            <span class="metric-val">{{ moderationDismissedCount() }}</span>
+            <span class="metric-lbl">Dismissed (Retained)</span>
+          </div>
+        </div>
+
+        <div
+          class="metric-card"
+          [class.active-card]="moderationStatusFilter() === 'Removed'"
+          (click)="setModerationStatusFilter('Removed')"
+        >
+          <div class="icon-wrap removed-color"><mat-icon>delete_forever</mat-icon></div>
+          <div class="metric-info">
+            <span class="metric-val">{{ moderationRemovedCount() }}</span>
+            <span class="metric-lbl">Purged / Removed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter & Search Toolbar Card -->
+      <mat-card class="filter-card">
+        <mat-card-content class="filter-card-body">
+          <!-- Search Box -->
+          <div class="search-box-wrap">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              type="text"
+              class="native-search-input"
+              placeholder="Search reviews by comment text, violation reason, customer or pro name..."
+              [value]="moderationSearchQuery()"
+              (input)="onModerationSearchInput($event)"
+            />
+            @if (moderationSearchQuery()) {
+              <button type="button" class="btn-clear-search" (click)="moderationSearchQuery.set(''); loadModerationReviews(1)">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+
+          <!-- Status Filter Controls -->
+          <div class="filters-group">
+            <div class="filter-segment">
+              <span class="filter-label">Review Status:</span>
+              <div class="custom-chip-group">
+                <button
+                  type="button"
+                  class="chip-pill"
+                  [class.active]="moderationStatusFilter() === 'all'"
+                  (click)="setModerationStatusFilter('all')"
+                >
+                  All Status
+                </button>
+                <button
+                  type="button"
+                  class="chip-pill"
+                  [class.active]="moderationStatusFilter() === 'Flagged'"
+                  (click)="setModerationStatusFilter('Flagged')"
+                >
+                  <mat-icon class="chip-icon">flag</mat-icon>
+                  Flagged (Pending)
+                </button>
+                <button
+                  type="button"
+                  class="chip-pill"
+                  [class.active]="moderationStatusFilter() === 'Dismissed'"
+                  (click)="setModerationStatusFilter('Dismissed')"
+                >
+                  <mat-icon class="chip-icon">check_circle</mat-icon>
+                  Dismissed
+                </button>
+                <button
+                  type="button"
+                  class="chip-pill"
+                  [class.active]="moderationStatusFilter() === 'Removed'"
+                  (click)="setModerationStatusFilter('Removed')"
+                >
+                  <mat-icon class="chip-icon">delete_outline</mat-icon>
+                  Removed
+                </button>
+              </div>
+            </div>
+
+            <!-- Reset Filters -->
+            @if (moderationStatusFilter() !== 'all' || moderationSearchQuery()) {
+              <button
+                type="button"
+                class="btn-reset-filters"
+                (click)="resetModerationFilters()"
+                title="Reset all moderation filters"
+              >
+                <mat-icon>filter_alt_off</mat-icon>
+                <span>Reset Filters</span>
+              </button>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Moderation Feed Card -->
+      <mat-card appearance="outlined" class="moderation-card feed-card">
         <mat-card-content>
+          <!-- Summary Header -->
+          <div class="feed-header-meta">
+            <span class="meta-count-text">
+              Showing <strong>{{ flaggedReviews().length }}</strong> of <strong>{{ moderationTotalCount() }}</strong> moderation items in database
+            </span>
+            @if (moderationStatusFilter() !== 'all' || moderationSearchQuery()) {
+              <span class="active-filter-badge">
+                Filtered by: {{ moderationStatusFilter() !== 'all' ? moderationStatusFilter() : '' }} {{ moderationSearchQuery() ? '"' + moderationSearchQuery() + '"' : '' }}
+              </span>
+            }
+          </div>
+
           @if (loadingModeration()) {
             <div class="loading-state-box">
               <mat-spinner diameter="40"></mat-spinner>
@@ -108,51 +264,191 @@
           } @else if (flaggedReviews().length === 0) {
             <div class="empty-state-box">
               <mat-icon class="empty-icon">verified_user</mat-icon>
-              <h4>Moderation Queue is Clean</h4>
-              <p>No user reviews are currently flagged for community guideline violations.</p>
+              <h4>No Moderation Reviews Found</h4>
+              <p>No user reviews match the current status filter or search parameters.</p>
+              @if (moderationStatusFilter() !== 'all' || moderationSearchQuery()) {
+                <button mat-stroked-button color="primary" type="button" (click)="resetModerationFilters()">
+                  Clear Filters
+                </button>
+              }
             </div>
           } @else {
             <div class="flagged-items-list">
               @for (rev of flaggedReviews(); track rev.id) {
-                <div class="flagged-review-box" [class.is-dismissed]="rev.status === 'Dismissed'" [class.is-removed]="rev.status === 'Removed'">
+                <div
+                  class="flagged-review-box modern-mod-card"
+                  [class.is-dismissed]="rev.status === 'Dismissed'"
+                  [class.is-removed]="rev.status === 'Removed'"
+                >
+                  <!-- Card Top Row -->
                   <div class="flag-header">
-                    <div>
-                      <strong>Flagged Review on Job #{{ rev.jobId }}</strong>
-                      <span class="flag-status" [class.status-flagged]="rev.status === 'Flagged'" [class.status-dismissed]="rev.status === 'Dismissed'" [class.status-removed]="rev.status === 'Removed'">
-                        Status: {{ rev.status }}
+                    <div class="flag-identity-group">
+                      <span
+                        class="flag-status"
+                        [class.status-flagged]="rev.status === 'Flagged'"
+                        [class.status-dismissed]="rev.status === 'Dismissed'"
+                        [class.status-removed]="rev.status === 'Removed'"
+                      >
+                        <mat-icon class="status-icon-tiny">
+                          {{ rev.status === 'Flagged' ? 'flag' : (rev.status === 'Dismissed' ? 'check_circle' : 'delete') }}
+                        </mat-icon>
+                        {{ rev.status }}
                       </span>
                     </div>
-                    <span class="flag-date">Reported: {{ rev.flagDate }}</span>
+
+                    <div class="meta-date-wrap">
+                      <mat-icon>calendar_today</mat-icon>
+                      <span class="flag-date">Reported: {{ rev.flagDate }}</span>
+                    </div>
                   </div>
 
+                  <!-- Review Details -->
                   <div class="flag-details">
-                    <p class="flag-reason"><strong>Reason for Flag:</strong> {{ rev.flagReason }}</p>
-                    <blockquote class="flag-content">
-                      "{{ rev.comment }}" - ({{ rev.rating }} ★ by <strong>{{ rev.reviewerName }}</strong> for <strong>{{ rev.professionalName }}</strong>)
-                    </blockquote>
+                    <!-- Parties Involved -->
+                    <div class="mod-parties-row">
+                      <div class="mod-party-item">
+                        <span class="mod-party-lbl">Customer / Reviewer:</span>
+                        <div class="mod-party-val">
+                          <mat-icon class="mod-user-icon">person</mat-icon>
+                          <strong>{{ rev.reviewerName }}</strong>
+                        </div>
+                      </div>
+
+                      <div class="mod-arrow">
+                        <mat-icon>arrow_forward</mat-icon>
+                      </div>
+
+                      <div class="mod-party-item">
+                        <span class="mod-party-lbl">Specialist / Professional:</span>
+                        <div class="mod-party-val">
+                          <mat-icon class="mod-user-icon pro-user-icon">handyman</mat-icon>
+                          <strong>{{ rev.professionalName }}</strong>
+                        </div>
+                      </div>
+
+                      <div class="mod-rating-wrap">
+                        <span class="mod-party-lbl">Rating Given:</span>
+                        <div class="stars-row">
+                          <span class="stars-visual">
+                            {{ '★'.repeat(rev.rating) }}{{ '☆'.repeat(5 - rev.rating) }}
+                          </span>
+                          <span class="rating-num">({{ rev.rating }} / 5)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Violation Reason -->
+                    <div class="mod-reason-box">
+                      <div class="mod-reason-text">
+                        <span class="mod-reason-lbl">Reported Violation Reason:</span>
+                        <strong>{{ rev.flagReason }}</strong>
+                      </div>
+                    </div>
+
+                    <!-- Comment Content -->
+                    <div class="mod-comment-wrap">
+                      <span class="mod-comment-lbl">Submitted Review Comment:</span>
+                      <blockquote class="flag-content">
+                        "{{ rev.comment }}"
+                      </blockquote>
+                    </div>
                   </div>
 
+                  <!-- Action Bar -->
                   <div class="flag-actions">
                     @if (rev.status === 'Flagged') {
-                      <button mat-stroked-button color="primary" type="button" (click)="dismissFlag(rev)">
-                        <mat-icon>check</mat-icon> Dismiss Flag (Keep Review)
-                      </button>
-                      <button mat-raised-button color="warn" type="button" (click)="removeReview(rev)">
-                        <mat-icon>delete_forever</mat-icon> Remove Abusive Review
-                      </button>
+                      <div class="pending-actions-group">
+                        <button
+                          mat-stroked-button
+                          color="primary"
+                          type="button"
+                          (click)="dismissFlag(rev)"
+                          [disabled]="moderationActionLoading() === rev.id"
+                        >
+                          @if (moderationActionLoading() === rev.id) {
+                            <mat-spinner diameter="16"></mat-spinner>
+                          } @else {
+                            <mat-icon>check</mat-icon>
+                          }
+                          <span>Dismiss Flag (Retain Review)</span>
+                        </button>
+
+                        <button
+                          mat-raised-button
+                          color="warn"
+                          type="button"
+                          (click)="removeReview(rev)"
+                          [disabled]="moderationActionLoading() === rev.id"
+                        >
+                          @if (moderationActionLoading() === rev.id) {
+                            <mat-spinner diameter="16"></mat-spinner>
+                          } @else {
+                            <mat-icon>delete_forever</mat-icon>
+                          }
+                          <span>Remove Abusive Review</span>
+                        </button>
+                      </div>
                     } @else if (rev.status === 'Dismissed') {
-                      <span class="log-resolved flag-resolved-dismissed">
-                        <mat-icon>verified</mat-icon> Action Taken: Flag Dismissed (Review Retained)
-                      </span>
+                      <div class="status-resolution-row">
+                        <span class="log-resolved flag-resolved-dismissed">
+                          <mat-icon>verified</mat-icon>
+                          Action Taken: Flag Cleared & Dismissed (Public Review Retained)
+                        </span>
+                        <button
+                          mat-button
+                          color="warn"
+                          type="button"
+                          class="btn-sm-delete"
+                          (click)="removeReview(rev)"
+                          [disabled]="moderationActionLoading() === rev.id"
+                        >
+                          <mat-icon>delete</mat-icon>
+                          <span>Remove</span>
+                        </button>
+                      </div>
                     } @else {
                       <span class="log-resolved flag-resolved-removed">
-                        <mat-icon>block</mat-icon> Action Taken: Abusive Review Removed from Platform
+                        <mat-icon>block</mat-icon>
+                        Action Taken: Abusive Review Permanently Purged from Platform
                       </span>
                     }
                   </div>
                 </div>
               }
             </div>
+
+            <!-- Moderation Pagination Footer -->
+            @if (moderationTotalCount() > 0) {
+              <div class="pagination-footer">
+                <div class="page-meta">
+                  Showing <strong>{{ (moderationPage() - 1) * moderationPageSize() + 1 }}</strong> -
+                  <strong>{{ moderationPage() * moderationPageSize() > moderationTotalCount() ? moderationTotalCount() : moderationPage() * moderationPageSize() }}</strong>
+                  of <strong>{{ moderationTotalCount() }}</strong> reviews
+                </div>
+
+                <div class="page-buttons">
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="moderationPage() <= 1 || loadingModeration()"
+                    (click)="prevModerationPage()"
+                  >
+                    <mat-icon>chevron_left</mat-icon> Previous
+                  </button>
+
+                  <span class="current-pill">Page {{ moderationPage() }} of {{ moderationTotalPages() }}</span>
+
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="moderationPage() >= moderationTotalPages() || loadingModeration()"
+                    (click)="nextModerationPage()"
+                  >
+                    Next <mat-icon>chevron_right</mat-icon>
+                  </button>
+                </div>
+              </div>
+            }
           }
         </mat-card-content>
       </mat-card>
@@ -162,262 +458,8 @@
 
 
 
-  <!-- TAB 5: ZONE MANAGEMENT -->
-  @if (activeTab() === 'zones') {
-    <div class="tab-content">
-      <div class="section-top-row">
-        <div>
-          <h3>Sub-City & Neighborhood Official Zones</h3>
-          <p class="section-desc">Live service coverage areas and geolocation bounds across Addis Ababa ({{ zones().length }} registered zones).</p>
-        </div>
-        <div class="header-right-actions">
-          <button mat-stroked-button color="primary" type="button" (click)="loadServiceZones()">
-            <mat-icon>refresh</mat-icon>
-            <span>Refresh</span>
-          </button>
-          <button mat-raised-button color="primary" type="button" (click)="showAddZone.set(!showAddZone())">
-            <mat-icon>{{ showAddZone() ? 'close' : 'add' }}</mat-icon>
-            <span>{{ showAddZone() ? 'Cancel' : 'Add New Zone' }}</span>
-          </button>
-        </div>
-      </div>
 
-      @if (showAddZone()) {
-        <mat-card appearance="outlined" class="add-zone-card">
-          <form [formGroup]="zoneForm" (ngSubmit)="submitZone()">
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="form-field half">
-                <mat-label>Sub-City</mat-label>
-                <mat-select formControlName="subCity">
-                  @if (subCitiesList().length > 0) {
-                    @for (sc of subCitiesList(); track sc.id) {
-                      <mat-option [value]="sc.name">{{ sc.name }} ({{ sc.neighborhoodsCount }} zones)</mat-option>
-                    }
-                  } @else {
-                    <mat-option value="Bole">Bole</mat-option>
-                    <mat-option value="Kirkos">Kirkos</mat-option>
-                    <mat-option value="Yeka">Yeka</mat-option>
-                    <mat-option value="Arada">Arada</mat-option>
-                    <mat-option value="Nifas Silk-Lafto">Nifas Silk-Lafto</mat-option>
-                    <mat-option value="Gullele">Gullele</mat-option>
-                    <mat-option value="Lideta">Lideta</mat-option>
-                    <mat-option value="Akaky Kaliti">Akaky Kaliti</mat-option>
-                    <mat-option value="Addis Ketema">Addis Ketema</mat-option>
-                    <mat-option value="Kolfe Keranio">Kolfe Keranio</mat-option>
-                    <mat-option value="Lemi Kura">Lemi Kura</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
 
-              <mat-form-field appearance="outline" class="form-field half">
-                <mat-label>Neighborhood / Woreda Zone</mat-label>
-                <input matInput formControlName="neighborhood" placeholder="e.g. Gerji, Sarbet, Ayat" />
-              </mat-form-field>
-            </div>
-
-            <button mat-raised-button color="primary" type="submit" [disabled]="zoneForm.invalid">
-              Add Official Service Zone to Database
-            </button>
-          </form>
-        </mat-card>
-      }
-
-      <!-- Zone Search & SubCity Filter Toolbar -->
-      <div class="zones-filter-toolbar">
-        <div class="search-input-wrap">
-          <mat-icon>search</mat-icon>
-          <input
-            type="text"
-            placeholder="Search zones by neighborhood name..."
-            [value]="zoneSearchQuery()"
-            (input)="zoneSearchQuery.set($any($event.target).value)"
-          />
-          @if (zoneSearchQuery()) {
-            <button class="clear-search-btn" type="button" (click)="zoneSearchQuery.set('')">✕</button>
-          }
-        </div>
-
-        <div class="subcity-chips-wrap">
-          <button
-            class="chip-btn"
-            type="button"
-            [class.active]="selectedSubCityFilter() === 'All'"
-            (click)="selectedSubCityFilter.set('All')"
-          >
-            All Sub-Cities ({{ zones().length }})
-          </button>
-          @for (sc of subCitiesList(); track sc.id) {
-            <button
-              class="chip-btn"
-              type="button"
-              [class.active]="selectedSubCityFilter() === sc.name"
-              (click)="selectedSubCityFilter.set(sc.name)"
-            >
-              {{ sc.name }}
-            </button>
-          }
-        </div>
-      </div>
-
-      <div class="zone-metrics-summary">
-        Showing <strong>{{ filteredZones().length }}</strong> of {{ zones().length }} official Addis Ababa coverage zones
-      </div>
-
-      @if (loadingZones()) {
-        <div class="loading-state-box">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Loading coverage zones from database...</p>
-        </div>
-      } @else if (filteredZones().length === 0) {
-        <div class="empty-state-box">
-          <mat-icon class="empty-icon">location_off</mat-icon>
-          <h4>No matching service zones found</h4>
-          <p>Try adjusting your search query or Sub-City filter.</p>
-        </div>
-      } @else {
-        <div class="zones-grid">
-          @for (z of filteredZones(); track z.id) {
-            <div class="zone-card">
-              <div class="zone-card-main">
-                <div class="zone-icon-wrap">
-                  <mat-icon>location_on</mat-icon>
-                </div>
-                <div class="zone-info">
-                  <strong>{{ z.neighborhood }}</strong>
-                  <span>Sub-City: {{ z.subCity }}</span>
-                  <span class="active-pros-badge" [class.has-pros]="z.activeProsCount > 0">
-                    {{ z.activeProsCount }} Active {{ z.activeProsCount === 1 ? 'Pro' : 'Pros' }} in Zone
-                  </span>
-                </div>
-              </div>
-              <button
-                class="zone-delete-btn"
-                type="button"
-                (click)="confirmDeleteZone(z)"
-                title="Remove official zone"
-              >
-                <mat-icon>delete_outline</mat-icon>
-              </button>
-            </div>
-          }
-        </div>
-      }
-    </div>
-  }
-
-  <!-- TAB 6: AUDIT TRAIL & ADMIN LOGS -->
-  @if (activeTab() === 'logs') {
-    <div class="tab-content">
-      <div class="section-top-row">
-        <div>
-          <h3>System Audit Trail & Admin Activity Log</h3>
-          <p class="section-desc">Forensic logs generated automatically when administrators approve verifications, suspend users, resolve disputes, or send broadcasts.</p>
-        </div>
-
-        <div class="header-right-actions">
-          <a mat-raised-button color="primary" routerLink="/admin-logs">
-            <mat-icon>open_in_new</mat-icon> Open Dedicated Logs Center
-          </a>
-        </div>
-      </div>
-
-      @if (loadingLogs()) {
-        <div class="loading-state">
-          <mat-spinner diameter="36"></mat-spinner>
-          <span>Fetching recent system audit logs from server...</span>
-        </div>
-      } @else {
-        <div class="audit-logs-card">
-          <div class="table-responsive">
-            <table class="dashboard-table">
-              <thead>
-                <tr>
-                  <th>Timestamp (UTC)</th>
-                  <th>Action Executed</th>
-                  <th>Target Entity</th>
-                  <th>Entity ID</th>
-                  <th>Admin Operator</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (log of adminLogs(); track log.id) {
-                  <tr>
-                    <td class="time-col">{{ log.timestamp | date:'MMM d, y, h:mm a' }}</td>
-                    <td>
-                      <span class="action-chip" [ngClass]="getActionBadgeClass(log.action)">
-                        <mat-icon>{{ getActionIcon(log.action) }}</mat-icon>
-                        <span>{{ log.action }}</span>
-                      </span>
-                    </td>
-                    <td><span class="entity-pill">{{ log.targetEntity || 'System' }}</span></td>
-                    <td>
-                      @if (log.targetEntityId) {
-                        <code>{{ log.targetEntityId.substring(0, 8) }}...</code>
-                      } @else {
-                        <span>-</span>
-                      }
-                    </td>
-                    <td>
-                      <div class="admin-operator-cell">
-                        <span class="admin-name" [title]="'Admin ID: ' + log.adminUserId">
-                          {{ log.adminName || 'System Administrator' }}
-                        </span>
-                        @if (log.adminEmail) {
-                          <span class="admin-email-sub">{{ log.adminEmail }}</span>
-                        }
-                      </div>
-                    </td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="5" class="empty-cell">
-                      <p>No audit log events recorded yet.</p>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <div class="logs-card-footer">
-            <span>Showing recent {{ adminLogs().length }} audit trail events</span>
-            <a mat-button color="primary" routerLink="/admin-logs">
-              View All Logs with Search & Pagination &rarr;
-            </a>
-          </div>
-        </div>
-      }
-    </div>
-  }
-
-  <!-- DOCUMENT VIEWER MODAL OVERLAY -->
-  @if (selectedDocForView(); as doc) {
-    <div class="booking-modal-backdrop" (click)="closeDocViewer()">
-      <div class="booking-modal-content" (click)="$event.stopPropagation()">
-        <mat-card appearance="outlined" class="modal-card">
-          <mat-card-header>
-            <mat-card-title>{{ doc.title }}</mat-card-title>
-            <mat-card-subtitle>File: <code>{{ doc.filename }}</code></mat-card-subtitle>
-          </mat-card-header>
-
-          <mat-card-content class="doc-viewer-body">
-            <div class="mock-doc-sheet">
-              <mat-icon class="doc-sheet-icon">verified_user</mat-icon>
-              <h4>{{ doc.title }}</h4>
-              <p>Certified Document verified under e-KYC compliance standard.</p>
-              <div class="seal-badge">Official Seal: Approved Verification Entity</div>
-            </div>
-
-            <div class="modal-actions">
-              <button mat-raised-button color="primary" type="button" (click)="closeDocViewer()">
-                Done Reviewing
-              </button>
-            </div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-    </div>
-  }
 
 
 
@@ -482,31 +524,5 @@
       </div>
     </div>
   }
-  <!-- Confirm Delete Zone Modal -->
-  @if (zoneToDelete(); as zone) {
-    <div class="modal-backdrop" (click)="cancelDeleteZone()">
-      <div class="modal-card" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <mat-icon color="warn">warning</mat-icon>
-          <h3>Delete Official Service Zone</h3>
-        </div>
-        <div class="modal-body">
-          <p>
-            Are you sure you want to delete the official service zone
-            <strong>"{{ zone.neighborhood }}"</strong> in <strong>{{ zone.subCity }}</strong>?
-          </p>
-          <p class="sub-text">
-            This will remove the zone from the database and unlink it from any affiliated technician service areas. An audit record will be logged.
-          </p>
-        </div>
-        <div class="modal-actions">
-          <button mat-stroked-button (click)="cancelDeleteZone()">Cancel</button>
-          <button mat-raised-button color="warn" (click)="executeDeleteZone()">
-            <mat-icon>delete_forever</mat-icon>
-            Confirm Zone Removal
-          </button>
-        </div>
-      </div>
-    </div>
-  }
+
 </div>
