@@ -25,17 +25,6 @@
         <mat-icon>badge</mat-icon>
         <span>Pro Dashboard</span>
       </a>
-      <!-- Switch to Customer Dashboard -->
-      <a
-        mat-stroked-button
-        color="primary"
-        routerLink="/customer-dashboard"
-        class="action-btn"
-        title="Switch to Customer Dashboard"
-      >
-        <mat-icon>person</mat-icon>
-        <span>Customer Dashboard</span>
-      </a>
 
 
       <!-- Notifications -->
@@ -94,7 +83,7 @@
     <div
       class="metric-card clickable"
       [class.active-metric]="statusFilter() === 'all'"
-      (click)="statusFilter.set('all')"
+      (click)="setStatusFilter('all')"
     >
       <div class="metric-icon total-icon">
         <mat-icon>assignment</mat-icon>
@@ -109,7 +98,7 @@
     <div
       class="metric-card clickable"
       [class.active-metric]="statusFilter() === 'assigned'"
-      (click)="statusFilter.set('assigned')"
+      (click)="setStatusFilter('assigned')"
     >
       <div class="metric-icon assigned-icon">
         <mat-icon>pending_actions</mat-icon>
@@ -124,7 +113,7 @@
     <div
       class="metric-card clickable"
       [class.active-metric]="statusFilter() === 'in_progress'"
-      (click)="statusFilter.set('in_progress')"
+      (click)="setStatusFilter('in_progress')"
     >
       <div class="metric-icon progress-icon">
         <mat-icon>engineering</mat-icon>
@@ -139,7 +128,7 @@
     <div
       class="metric-card clickable"
       [class.active-metric]="statusFilter() === 'completed'"
-      (click)="statusFilter.set('completed')"
+      (click)="setStatusFilter('completed')"
     >
       <div class="metric-icon approval-icon">
         <mat-icon>hourglass_top</mat-icon>
@@ -171,11 +160,12 @@
         <input
           type="text"
           [value]="searchQuery()"
-          (input)="searchQuery.set($any($event.target).value)"
+          (input)="onSearchInput($event)"
+          (keyup.enter)="onSearchSubmit()"
           placeholder="Search jobs by trade, customer name, location or Job ID..."
         />
         @if (searchQuery()) {
-          <button mat-icon-button type="button" class="btn-clear-search" (click)="searchQuery.set('')">
+          <button mat-icon-button type="button" class="btn-clear-search" (click)="clearSearch()">
             <mat-icon>close</mat-icon>
           </button>
         }
@@ -186,12 +176,27 @@
         <label>Sort By:</label>
         <select
           [value]="sortBy()"
-          (change)="sortBy.set($any($event.target).value)"
+          (change)="onSortChange($any($event.target).value)"
           class="native-select"
         >
           <option value="scheduledDate">Scheduled Date (Newest)</option>
           <option value="price_desc">Price: High to Low</option>
           <option value="price_asc">Price: Low to High</option>
+        </select>
+      </div>
+
+      <!-- Page Size Dropdown -->
+      <div class="page-size-box">
+        <label>Per Page:</label>
+        <select
+          [value]="pageSize()"
+          (change)="onPageSizeChange(+$any($event.target).value)"
+          class="native-select"
+        >
+          <option [value]="5">5</option>
+          <option [value]="10">10</option>
+          <option [value]="20">20</option>
+          <option [value]="50">50</option>
         </select>
       </div>
     </div>
@@ -202,7 +207,7 @@
         type="button"
         class="status-pill-btn"
         [class.active]="statusFilter() === 'all'"
-        (click)="statusFilter.set('all')"
+        (click)="setStatusFilter('all')"
       >
         <mat-icon>list_alt</mat-icon>
         <span>All Jobs ({{ metrics().total }})</span>
@@ -212,7 +217,7 @@
         type="button"
         class="status-pill-btn"
         [class.active]="statusFilter() === 'assigned'"
-        (click)="statusFilter.set('assigned')"
+        (click)="setStatusFilter('assigned')"
       >
         <mat-icon>play_circle_outline</mat-icon>
         <span>Assigned / Ready ({{ metrics().assigned }})</span>
@@ -222,7 +227,7 @@
         type="button"
         class="status-pill-btn"
         [class.active]="statusFilter() === 'in_progress'"
-        (click)="statusFilter.set('in_progress')"
+        (click)="setStatusFilter('in_progress')"
       >
         <mat-icon>bolt</mat-icon>
         <span>In Progress ({{ metrics().inProgress }})</span>
@@ -232,7 +237,7 @@
         type="button"
         class="status-pill-btn"
         [class.active]="statusFilter() === 'completed'"
-        (click)="statusFilter.set('completed')"
+        (click)="setStatusFilter('completed')"
       >
         <mat-icon>fact_check</mat-icon>
         <span>Awaiting Approval ({{ metrics().completed }})</span>
@@ -242,7 +247,7 @@
         type="button"
         class="status-pill-btn"
         [class.active]="statusFilter() === 'closed'"
-        (click)="statusFilter.set('closed')"
+        (click)="setStatusFilter('closed')"
       >
         <mat-icon>task_alt</mat-icon>
         <span>Closed & Paid ({{ metrics().closed }})</span>
@@ -252,7 +257,7 @@
         type="button"
         class="status-pill-btn"
         [class.active]="statusFilter() === 'cancelled'"
-        (click)="statusFilter.set('cancelled')"
+        (click)="setStatusFilter('cancelled')"
       >
         <mat-icon>cancel</mat-icon>
         <span>Cancelled ({{ metrics().cancelled }})</span>
@@ -269,7 +274,7 @@
   } @else {
     <!-- Jobs List Grid -->
     <div class="jobs-grid">
-      @for (job of filteredJobs(); track job.id) {
+      @for (job of jobs(); track job.id) {
         <mat-card appearance="outlined" class="job-work-card">
           <!-- Card Header / Title Row -->
           <div class="card-header-strip">
@@ -312,11 +317,6 @@
               <div class="customer-info-line">
                 <mat-icon>person</mat-icon>
                 <span>Customer: <strong>{{ job.customerName }}</strong></span>
-                <span class="dot-sep">&bull;</span>
-                <span class="job-id-copy" (click)="copyJobId(job.id, $event)" title="Click to copy Job UUID">
-                  <code>#{{ job.id.slice(0, 8) }}...</code>
-                  <mat-icon>content_copy</mat-icon>
-                </span>
               </div>
             </div>
 
@@ -513,7 +513,7 @@
                 mat-stroked-button
                 color="primary"
                 type="button"
-                (click)="statusFilter.set('all'); searchQuery.set('')"
+                (click)="setStatusFilter('all'); clearSearch()"
               >
                 Reset Filters
               </button>
@@ -525,6 +525,54 @@
         </div>
       }
     </div>
+    
+    <!-- Pagination Controls Footer -->
+    @if (totalCount() > 0) {
+      <div class="jobs-pagination-footer">
+        <div class="page-meta">
+          Showing Page <strong>{{ currentPage() }}</strong> of <strong>{{ totalPages() }}</strong> ({{ totalCount() }} total jobs)
+        </div>
+
+        <div class="pagination-controls">
+          <button
+            mat-stroked-button
+            type="button"
+            class="page-nav-btn"
+            [disabled]="currentPage() <= 1 || isLoading()"
+            (click)="prevPage()"
+            title="Go to previous page"
+          >
+            <mat-icon>chevron_left</mat-icon>
+            <span>Previous</span>
+          </button>
+
+          <div class="page-pills">
+            @for (p of getPageNumbers(); track p) {
+              <button
+                type="button"
+                class="pill-btn"
+                [class.active-pill]="p === currentPage()"
+                (click)="goToPage(p)"
+              >
+                {{ p }}
+              </button>
+            }
+          </div>
+
+          <button
+            mat-stroked-button
+            type="button"
+            class="page-nav-btn"
+            [disabled]="currentPage() >= totalPages() || isLoading()"
+            (click)="nextPage()"
+            title="Go to next page"
+          >
+            <span>Next</span>
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
   }
 
   <!-- ============================================================== -->
@@ -687,9 +735,6 @@
             <div>
               <div class="chat-title-row">
                 <h3>Live Client Communications</h3>
-                <span class="signalr-pill" [class.connected]="chatService.signalr.connectionStatus() === 'Connected'">
-                  <span class="dot"></span> {{ chatService.signalr.connectionStatus() }}
-                </span>
               </div>
               <p class="chat-sub">
                 Real-time messaging with your assigned job customers across Addis Ababa.
@@ -745,7 +790,6 @@
                       } @else {
                         <span>{{ (session.customerName || 'Cust').substring(0, 2).toUpperCase() }}</span>
                       }
-                      <span class="online-indicator"></span>
                     </div>
 
                     <div class="session-info">
@@ -783,29 +827,9 @@
                   </div>
                   <div>
                     <h4 class="contact-name">{{ activeSess.customerName || 'Customer' }}</h4>
-                    @if (selectedChatJob()) {
-                      <span class="job-context-pill">
-                        <mat-icon>handyman</mat-icon>
-                        Job: {{ selectedChatJob()?.serviceName }} (#{{ selectedChatJob()?.id?.slice(0, 8) }}...)
-                      </span>
-                    } @else {
-                      <span class="online-label">Active Customer</span>
-                    }
+                    <span class="online-label">Active Customer</span>
                   </div>
                 </div>
-
-                @if (selectedChatJob()) {
-                  <button
-                    mat-stroked-button
-                    color="primary"
-                    type="button"
-                    class="btn-view-job-ctx"
-                    (click)="openJobDossier(selectedChatJob()!)"
-                  >
-                    <mat-icon>description</mat-icon>
-                    <span>View Dossier</span>
-                  </button>
-                }
               </div>
 
               <!-- Messages Stream -->
@@ -836,11 +860,6 @@
                         <p class="bubble-text">{{ msg.content }}</p>
                         <div class="bubble-meta">
                           <span class="msg-timestamp">{{ formatMsgTime(msg.sentAt) }}</span>
-                          @if (isMyMessage(msg)) {
-                            <mat-icon class="read-status-icon" [class.read]="msg.isRead">
-                              {{ msg.isRead ? 'done_all' : 'done' }}
-                            </mat-icon>
-                          }
                         </div>
                       </div>
                     </div>

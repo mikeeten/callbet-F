@@ -62,12 +62,19 @@ export class JobsComponent implements OnInit {
   currentProId = signal<string>('');
   currentProName = signal<string>('Professional Specialist');
 
-  // Job Data & Filter State
-  jobs = signal<ProJob[]>([]);
-  payments = signal<ProPayment[]>([]);
+  // Server-side Pagination & Filter State
+  currentPage = signal<number>(1);
+  pageSize = signal<number>(10);
+  totalCount = signal<number>(0);
+  totalPages = signal<number>(1);
   searchQuery = signal<string>('');
   statusFilter = signal<'all' | 'assigned' | 'in_progress' | 'completed' | 'closed' | 'cancelled'>('all');
   sortBy = signal<'scheduledDate' | 'price_desc' | 'price_asc'>('scheduledDate');
+
+  // Loaded Items for the current page
+  jobs = signal<ProJob[]>([]);
+  allJobsForMetrics = signal<ProJob[]>([]);
+  payments = signal<ProPayment[]>([]);
 
   // Selected Job for Dossier Modal
   selectedJobForInspection = signal<ProJob | null>(null);
@@ -103,9 +110,9 @@ export class JobsComponent implements OnInit {
   mapTitle = signal<string>('Job Location');
   mapSubtitle = signal<string>('Customer service site');
 
-  // Computed Metrics
+  // Computed Metrics from all jobs summary
   metrics = computed(() => {
-    const list = this.jobs();
+    const list = this.allJobsForMetrics();
     const assignedCount = list.filter((j) => j.status === 'Assigned').length;
     const inProgressCount = list.filter((j) => j.status === 'InProgress').length;
     const completedCount = list.filter((j) => j.status === 'CompletedPendingApproval').length;
@@ -126,53 +133,13 @@ export class JobsComponent implements OnInit {
     };
   });
 
-  // Filtered Jobs
-  filteredJobs = computed(() => {
-    let list = this.jobs();
-    const query = this.searchQuery().trim().toLowerCase();
-    const status = this.statusFilter();
-    const sort = this.sortBy();
-
-    // 1. Status Filtering
-    if (status === 'assigned') {
-      list = list.filter((j) => j.status === 'Assigned');
-    } else if (status === 'in_progress') {
-      list = list.filter((j) => j.status === 'InProgress');
-    } else if (status === 'completed') {
-      list = list.filter((j) => j.status === 'CompletedPendingApproval');
-    } else if (status === 'closed') {
-      list = list.filter((j) => j.status === 'Closed');
-    } else if (status === 'cancelled') {
-      list = list.filter((j) => j.status === 'Cancelled');
-    }
-
-    // 2. Query Search
-    if (query) {
-      list = list.filter(
-        (j) =>
-          j.serviceName?.toLowerCase().includes(query) ||
-          j.customerName?.toLowerCase().includes(query) ||
-          j.address?.toLowerCase().includes(query) ||
-          j.description?.toLowerCase().includes(query) ||
-          j.id?.toLowerCase().includes(query)
-      );
-    }
-
-    // 3. Sorting
-    list = [...list].sort((a, b) => {
-      if (sort === 'price_desc') {
-        return (b.price || 0) - (a.price || 0);
-      } else if (sort === 'price_asc') {
-        return (a.price || 0) - (b.price || 0);
-      } else {
-        // Scheduled date or fallback to ID
-        const dateA = new Date(a.scheduledDate || 0).getTime();
-        const dateB = new Date(b.scheduledDate || 0).getTime();
-        return dateB - dateA;
-      }
-    });
-
-    return list;
+  // Item range text: "Showing 1 - 10 of 42 jobs"
+  rangeText = computed(() => {
+    const total = this.totalCount();
+    if (total === 0) return '0 jobs found';
+    const start = (this.currentPage() - 1) * this.pageSize() + 1;
+    const end = Math.min(this.currentPage() * this.pageSize(), total);
+    return `Showing ${start} - ${end} of ${total} jobs`;
   });
 
   ngOnInit(): void {
@@ -199,7 +166,8 @@ export class JobsComponent implements OnInit {
         if (authUser?.firstName) {
           this.currentProName.set(`${authUser.firstName} ${authUser.lastName || ''}`.trim());
         }
-        this.loadJobsForPro(queryId);
+        this.loadJobsForPro(queryId, 1);
+        this.loadMetricsSummary(queryId);
       } else {
         // Resolve professional profile ID dynamically
         this.proService.getMyProfile().subscribe({
@@ -211,40 +179,59 @@ export class JobsComponent implements OnInit {
             } else if (authUser?.firstName) {
               this.currentProName.set(`${authUser.firstName} ${authUser.lastName || ''}`.trim());
             }
-            this.loadJobsForPro(resolvedId);
+            this.loadJobsForPro(resolvedId, 1);
+            this.loadMetricsSummary(resolvedId);
           },
           error: () => {
             this.currentProId.set(defaultId);
             if (authUser?.firstName) {
               this.currentProName.set(`${authUser.firstName} ${authUser.lastName || ''}`.trim());
             }
-            this.loadJobsForPro(defaultId);
+            this.loadJobsForPro(defaultId, 1);
+            this.loadMetricsSummary(defaultId);
           }
         });
       }
     });
   }
 
-  loadJobsForPro(proId: string): void {
+  /**
+   * Fetch paginated & filtered jobs from the backend API
+   */
+  loadJobsForPro(proId: string, page: number = 1): void {
     if (!proId) {
       this.isLoading.set(false);
       this.jobs.set([]);
       return;
     }
 
-    this.jobService.getAssignedJobs(proId).subscribe({
-      next: (jobsList) => {
+    this.isLoading.set(true);
+    const sort = this.sortBy();
+    let orderBy = 'scheduledDate';
+    let descending = true;
+
+    if (sort === 'price_desc') {
+      orderBy = 'price_desc';
+      descending = true;
+    } else if (sort === 'price_asc') {
+      orderBy = 'price_asc';
+      descending = false;
+    }
+
+    this.jobService.getAssignedJobsPaged(proId, {
+      page: page,
+      pageSize: this.pageSize(),
+      search: this.searchQuery()?.trim() || undefined,
+      status: this.statusFilter(),
+      orderBy: orderBy,
+      descending: descending
+    }).subscribe({
+      next: (res) => {
         this.isLoading.set(false);
-        if (jobsList && jobsList.length > 0) {
-          // Normalize any 'Created' or unassigned statuses to Assigned for display
-          const normalized = jobsList.map((j) => ({
-            ...j,
-            status: ((j.status as string) === 'Created' ? 'Assigned' : j.status) as any
-          }));
-          this.jobs.set(normalized);
-        } else {
-          this.jobs.set([]);
-        }
+        this.jobs.set(res.items);
+        this.totalCount.set(res.totalCount);
+        this.totalPages.set(res.totalPages);
+        this.currentPage.set(res.page);
       },
       error: (err) => {
         console.warn('JobService error fetching assigned jobs:', err);
@@ -264,8 +251,89 @@ export class JobsComponent implements OnInit {
     this.notificationService.loadNotifications();
   }
 
+  /**
+   * Load overall job list to compute real-time metric counters
+   */
+  loadMetricsSummary(proId: string): void {
+    this.jobService.getAssignedJobs(proId).subscribe({
+      next: (all) => {
+        this.allJobsForMetrics.set(all || []);
+      },
+      error: () => {}
+    });
+  }
+
   // ==========================================
-  // JOB LIFECYCLE WORKFLOW ACTIONS (via JobService)
+  // FILTER & PAGINATION HANDLERS
+  // ==========================================
+
+  setStatusFilter(status: 'all' | 'assigned' | 'in_progress' | 'completed' | 'closed' | 'cancelled'): void {
+    this.statusFilter.set(status);
+    this.loadJobsForPro(this.currentProId(), 1);
+  }
+
+  onSearchInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.searchQuery.set(val);
+  }
+
+  onSearchSubmit(): void {
+    this.loadJobsForPro(this.currentProId(), 1);
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+    this.loadJobsForPro(this.currentProId(), 1);
+  }
+
+  onSortChange(newSort: 'scheduledDate' | 'price_desc' | 'price_asc'): void {
+    this.sortBy.set(newSort);
+    this.loadJobsForPro(this.currentProId(), 1);
+  }
+
+  onPageSizeChange(newSize: number): void {
+    this.pageSize.set(newSize);
+    this.loadJobsForPro(this.currentProId(), 1);
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages() && page !== this.currentPage()) {
+      this.loadJobsForPro(this.currentProId(), page);
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 1) {
+      this.goToPage(this.currentPage() - 1);
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.goToPage(this.currentPage() + 1);
+    }
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+
+    let start = Math.max(1, current - 2);
+    let end = Math.min(total, start + 4);
+
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  // ==========================================
+  // JOB LIFECYCLE WORKFLOW ACTIONS
   // ==========================================
 
   startJob(job: ProJob, event?: Event): void {
@@ -299,8 +367,9 @@ export class JobsComponent implements OnInit {
       'Job In Progress',
       `You started work on "${job.serviceName}". Customer has been notified.`
     );
-    this.feedbackMessage.set(`Job "${job.serviceName}" is now In Progress!`);
+    this.feedbackMessage.set(`Job "${job.serviceName}" is now In Progress.`);
     setTimeout(() => this.feedbackMessage.set(null), 4000);
+    this.loadMetricsSummary(this.currentProId());
   }
 
   completeJob(job: ProJob, event?: Event): void {
@@ -312,7 +381,7 @@ export class JobsComponent implements OnInit {
       error: (err) => {
         console.error('JobService completeJob error:', err);
         this.actionLoading.set(null);
-        this.feedbackMessage.set(`Failed to complete job: ${err?.message || 'Server error'}`);
+        this.feedbackMessage.set(`Failed to mark complete: ${err?.message || 'Server error'}`);
         setTimeout(() => this.feedbackMessage.set(null), 4000);
       }
     });
@@ -325,19 +394,18 @@ export class JobsComponent implements OnInit {
     );
 
     if (this.selectedJobForInspection()?.id === job.id) {
-      this.selectedJobForInspection.update((prev) =>
-        prev ? { ...prev, status: 'CompletedPendingApproval' } : null
-      );
+      this.selectedJobForInspection.update((prev) => (prev ? { ...prev, status: 'CompletedPendingApproval' } : null));
     }
 
     this.notificationService.updateJobNotificationStage(
       job.id,
       4,
-      'Job Completed (Pending Approval)',
-      `Work submitted for "${job.serviceName}". Waiting for customer inspection & escrow release.`
+      'Job Completed - Pending Approval',
+      `Work order for "${job.serviceName}" has been submitted for customer verification and payment release.`
     );
-    this.feedbackMessage.set(`Job "${job.serviceName}" marked complete! Waiting for customer approval.`);
-    setTimeout(() => this.feedbackMessage.set(null), 4000);
+    this.feedbackMessage.set(`Job "${job.serviceName}" submitted for customer approval.`);
+    setTimeout(() => this.feedbackMessage.set(null), 4500);
+    this.loadMetricsSummary(this.currentProId());
   }
 
   cancelJob(job: ProJob, event?: Event): void {
@@ -364,13 +432,12 @@ export class JobsComponent implements OnInit {
         );
         this.feedbackMessage.set(`Job assignment for "${job.serviceName}" cancelled.`);
         setTimeout(() => this.feedbackMessage.set(null), 4500);
+        this.loadMetricsSummary(this.currentProId());
       },
       error: (err) => {
         this.actionLoading.set(null);
-        this.jobs.update((list) =>
-          list.map((j) => (j.id === job.id ? { ...j, status: 'Cancelled' as any } : j))
-        );
-        this.feedbackMessage.set(`Job assignment for "${job.serviceName}" cancelled.`);
+        console.error('Cancel job error:', err);
+        this.feedbackMessage.set(`Failed to cancel job assignment: ${err?.message || 'Server error'}`);
         setTimeout(() => this.feedbackMessage.set(null), 4000);
       }
     });
@@ -389,12 +456,14 @@ export class JobsComponent implements OnInit {
         this.jobs.update((list) => list.filter((j) => j.id !== job.id));
         this.feedbackMessage.set(`Job record removed.`);
         setTimeout(() => this.feedbackMessage.set(null), 3000);
+        this.loadJobsForPro(this.currentProId(), this.currentPage());
+        this.loadMetricsSummary(this.currentProId());
       },
-      error: () => {
+      error: (err) => {
         this.actionLoading.set(null);
-        this.jobs.update((list) => list.filter((j) => j.id !== job.id));
-        this.feedbackMessage.set(`Job record removed.`);
-        setTimeout(() => this.feedbackMessage.set(null), 3000);
+        console.error('Delete job error:', err);
+        this.feedbackMessage.set(`Failed to remove job record: ${err?.message || 'Server error'}`);
+        setTimeout(() => this.feedbackMessage.set(null), 4000);
       }
     });
   }
@@ -409,7 +478,6 @@ export class JobsComponent implements OnInit {
     this.isChatModalOpen.set(true);
 
     const proId = this.currentProId();
-    // Check if an existing chat session with this customer already exists
     const existing = this.chatService.sessions().find(
       (s) =>
         (job.customerId && s.customerId === job.customerId) ||
@@ -420,7 +488,6 @@ export class JobsComponent implements OnInit {
       this.selectedSession.set(existing);
       this.chatService.selectSession(existing.id);
     } else {
-      // Create or retrieve session from backend
       this.chatService.getOrCreateSession(proId, job.customerId || undefined).subscribe({
         next: (res) => {
           const sId = res?.sessionId || res?.id;
@@ -436,17 +503,8 @@ export class JobsComponent implements OnInit {
             this.chatService.selectSession(sId);
           }
         },
-        error: () => {
-          const fallbackId = `session-${job.customerId || job.id}-${proId}`;
-          const fallbackSess: ChatSession = {
-            id: fallbackId,
-            customerId: job.customerId || '',
-            customerName: job.customerName || 'Customer',
-            professionalId: proId,
-            professionalName: this.currentProName()
-          };
-          this.selectedSession.set(fallbackSess);
-          this.chatService.selectSession(fallbackId);
+        error: (err) => {
+          console.error('Failed to create or retrieve chat session:', err);
         }
       });
     }
@@ -491,22 +549,10 @@ export class JobsComponent implements OnInit {
         this.chatService.sendTyping(false);
       },
       error: (err) => {
-        console.warn('Chat send error, adding optimistic message:', err);
-        this.chatInputText.set('');
-        this.chatService.activeMessages.update((list) => [
-          ...list,
-          {
-            id: 'msg-' + Date.now(),
-            chatSessionId: activeSessionId,
-            senderId: authUser?.id || this.currentProId(),
-            receiverId: receiverId,
-            senderName: this.currentProName(),
-            senderRole: 'Professional',
-            content: text,
-            sentAt: new Date().toISOString(),
-            isRead: false
-          }
-        ]);
+        console.error('Chat send error:', err);
+        this.chatService.sendTyping(false);
+        this.feedbackMessage.set(`Failed to send message: ${err?.error?.message || err?.message || 'Network error'}`);
+        setTimeout(() => this.feedbackMessage.set(null), 4000);
       }
     });
   }
